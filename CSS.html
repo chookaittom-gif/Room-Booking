@@ -6301,4 +6301,111 @@ video {
     transform: none !important;
   }
 }
+/* ANCHOR: BOOKING MODAL FOOTER BUTTON FIX */
+#bookingModal .booking-footer {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 14px 22px !important;
+}
+
+#bookingModal .booking-footer .btn {
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+}
+
+#bookingModal .booking-footer .booking-cancel-btn {
+  order: 1 !important;
+  flex: 0 0 116px !important;
+  max-width: 132px !important;
+  padding: 8px 14px !important;
+  text-decoration: none !important;
+}
+
+#bookingModal .booking-footer .btn-primary {
+  order: 2 !important;
+  flex: 0 1 280px !important;
+  max-width: 320px !important;
+  padding: 8px 22px !important;
+}
+
+#bookingModal .booking-footer .btn i {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+@media (max-width: 575.98px) {
+  #bookingModal .booking-footer {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 20 !important;
+    display: grid !important;
+    grid-template-columns: minmax(88px, 0.35fr) minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-top: 1px solid rgba(148, 163, 184, 0.22) !important;
+  }
+
+  #bookingModal .booking-footer .btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    height: 46px !important;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  #bookingModal .booking-footer .booking-cancel-btn {
+    order: 1 !important;
+    flex: none !important;
+    max-width: none !important;
+    font-size: 13px !important;
+  }
+
+  #bookingModal .booking-footer .btn-primary {
+    order: 2 !important;
+    flex: none !important;
+    max-width: none !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+}
+
+@media (max-width: 389.98px) {
+  #bookingModal .booking-footer {
+    grid-template-columns: minmax(78px, 0.32fr) minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  #bookingModal .booking-footer .btn {
+    font-size: 13px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
 </style>
