@@ -9306,6 +9306,7 @@ function getActiveTabId_() {
     if (typeof window[name] === 'function') return window[name];
     if (typeof globalThis[name] === 'function') return globalThis[name];
     try {
+      if (name === 'initializeApplication' && typeof initializeApplication === 'function') return initializeApplication;
       if (name === 'initializeUI' && typeof initializeUI === 'function') return initializeUI;
       if (name === 'initializeTabs' && typeof initializeTabs === 'function') return initializeTabs;
       if (name === 'showTab' && typeof showTab === 'function') return showTab;
@@ -9385,6 +9386,7 @@ function getActiveTabId_() {
   };
 
   const list = [
+    'initializeApplication',
     'initializeUI', 'initializeTabs', 'showTab', 'toggleTheme',
     'switchTimetableView', 'loadScheduleForRoom', 'renderTimetable', 
     'renderTimetableDayGrid', 'renderTimetableWeekGrid', 'renderTimetableMonthAgenda', 'renderTimetableMonthGrid',
