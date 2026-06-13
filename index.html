@@ -47,11 +47,14 @@
                   window.currentDate = payload.currentDate;
               }
               console.log(`✅ Initial Ready: ${window.roomsData.length} Rooms`);
-              if (typeof loadInitialData === 'function') loadInitialData();
-              
-              const list = document.getElementById('roomList');
-              if (list && window.roomsData.length > 0) {
-                  if (typeof renderRooms === 'function') renderRooms(window.roomsData);
+              if (typeof initializeApplication === 'function') {
+                  initializeApplication();
+              } else {
+                  if (typeof loadInitialData === 'function') loadInitialData();
+                  const list = document.getElementById('roomList');
+                  if (list && window.roomsData.length > 0) {
+                      if (typeof renderRooms === 'function') renderRooms(window.roomsData);
+                  }
               }
           }
       } catch (err) {

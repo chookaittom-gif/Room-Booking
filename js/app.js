@@ -31,7 +31,7 @@
 
   const RECENT_ITEMS_PER_PAGE = 10;
 
-  document.addEventListener('DOMContentLoaded', initializeApplication);
+  // document.addEventListener('DOMContentLoaded', initializeApplication);
 
 
 // ANCHOR:CLIENT.initializeApplication:REPLACE
@@ -748,6 +748,9 @@ window.selectRoom = function(room) {
       isDone = true;
       clearTimeout(timer);
       
+      // ✅ LOG RESPONSE FOR DEBUGGING ENCODING
+      console.log(`📡 API Response [${fnName}]:`, JSON.stringify(res));
+
       if (typeof berryTouchOnApiSuccess === 'function') {
         berryTouchOnApiSuccess();
       }
@@ -899,10 +902,10 @@ console.log('\u2705 Enhanced API wrapper loaded with message channel protection'
     if (!room && window.currentRoom) room = roomsData.find(r => r.RoomID == window.currentRoom);
     if (room) {
       title.textContent = `${sanitizeText(room.RoomName)}`;
-      subtitle.textContent = `à¸¡à¸«à¸²à¸§à¸´à¸—à¸¢à¸²à¸¥à¸±à¸¢à¸ªà¸§à¸™à¸”à¸¸à¸ªà¸´à¸• à¸¨à¸¹à¸™à¸¢à¹Œà¸à¸²à¸£à¸¨à¸¶à¸à¸©à¸²à¸¥à¸³à¸›à¸²à¸‡`;
+      subtitle.textContent = `มหาวิทยาลัยสวนดุสิต ศูนย์การศึกษาลำปาง`;
       const rName = sanitizeText(room.RoomName);
-      document.getElementById('selectedRoomName').textContent = rName.startsWith('à¸«à¹‰à¸­à¸‡') ? rName : `à¸«à¹‰à¸­à¸‡ ${rName}`;
-      document.getElementById('selectedRoomCapacity').innerHTML = `<i class="fas fa-users me-1"></i>${sanitizeText(room.Capacity)} à¸—à¸µà¹ˆà¸™à¸±à¹ˆà¸‡`;
+      document.getElementById('selectedRoomName').textContent = rName.startsWith('ห้อง') ? rName : `ห้อง ${rName}`;
+      document.getElementById('selectedRoomCapacity').innerHTML = `<i class="fas fa-users me-1"></i>${sanitizeText(room.Capacity)} ที่นั่ง`;
       document.getElementById('selectedRoomLocation').innerHTML = `<i class="fas fa-map-marker-alt me-1"></i>${sanitizeText(room.Location) || '\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38'}`;
       const selectedRoomIcon = document.getElementById('selectedRoomIcon');
       if (selectedRoomIcon) {
@@ -1232,7 +1235,7 @@ function loadScheduleForRoom(roomOrId, dateParam) {
             .withFailureHandler((err) => {
                 if (window._lastReqId !== currentAbortId) return;
                 finishWeekLoad();
-                if(weekGrid) weekGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ${err.message || err}</div>`;
+                if(weekGrid) weekGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">เกิดข้อผิดพลาด: ${err.message || err}</div>`;
             })
             .getRoomScheduleRange({ 
                 roomId: roomId, 
@@ -1274,7 +1277,7 @@ function loadScheduleForRoom(roomOrId, dateParam) {
             .withFailureHandler((err) => {
                 if (window._lastReqId !== currentAbortId) return;
                 if (monthGrid) {
-                    monthGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: ${(err && err.message) || err}</div>`;
+                    monthGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">เกิดข้อผิดพลาด: ${(err && err.message) || err}</div>`;
                 }
             })
             .getRoomScheduleRange({ 
@@ -1311,14 +1314,14 @@ function injectHelperMessage(containerId, roomId) {
 }
 // ANCHOR:CLIENT.loadScheduleForRoom:END
 // ============================================================
-// 1. à¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™à¸«à¸¥à¸±à¸: à¹€à¸›à¸´à¸”à¸Ÿà¸­à¸£à¹Œà¸¡à¸ˆà¸­à¸‡ (Core Function)
+// 1. ฟังก์ชันหลัก: เปิดฟอร์มจอง (Core Function)
 // ============================================================
 window.showBookingForm = function(roomIdParam = null) {
-    // 1. à¸«à¸²à¸«à¹‰à¸­à¸‡à¸—à¸µà¹ˆà¸ˆà¸°à¸ˆà¸­à¸‡ (Priority: Parameter > Global Variable)
+    // 1. หาห้องที่จะจอง (Priority: Parameter > Global Variable)
     const targetRoomId = roomIdParam || window.currentRoom;
-    console.log('ðŸ“ Opening Booking Form. Target Room:', targetRoomId);
+    console.log('📝 Opening Booking Form. Target Room:', targetRoomId);
     
-    // 2. à¹€à¸•à¸£à¸µà¸¢à¸¡à¸Ÿà¸­à¸£à¹Œà¸¡ (Reset à¸„à¹ˆà¸²à¹€à¸à¹ˆà¸²)
+    // 2. เตรียมฟอร์ม (Reset ค่าเก่า)
     const form = document.getElementById('bookingForm');
     if(form) {
         form.reset();
@@ -1342,32 +1345,32 @@ window.showBookingForm = function(roomIdParam = null) {
     const alertEl = document.getElementById('bookingConflictAlert');
     if (alertEl) alertEl.classList.add('d-none');
 
-    // 3. ðŸ”¥ à¹€à¸£à¸µà¸¢à¸ Update Dropdown à¸žà¸£à¹‰à¸­à¸¡à¸ªà¹ˆà¸‡ Target Room à¹„à¸›à¹€à¸¥à¸¢! (à¸ªà¸³à¸„à¸±à¸à¸¡à¸²à¸)
+    // 3. 🔥 เรียก Update Dropdown พร้อมส่ง Target Room ไปเลย! (สำคัญมาก)
     if (typeof window.updateRoomOptions === 'function') {
         window.updateRoomOptions(null, targetRoomId);
     }
     
-    // 4. à¸ˆà¸±à¸”à¸à¸²à¸£à¸§à¸±à¸™à¸—à¸µà¹ˆ (à¹ƒà¸Šà¹‰à¸§à¸±à¸™à¸—à¸µà¹ˆà¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™à¸–à¹‰à¸²à¹„à¸¡à¹ˆà¸¡à¸µà¸„à¹ˆà¸²)
+    // 4. จัดการวันที่ (ใช้วันที่ปัจจุบันถ้าไม่มีค่า)
     const dateInput = document.getElementById('bookingDate');
     if (dateInput) {
         if (!dateInput.value && window.currentDate) {
             dateInput.value = window.currentDate;
         }
         
-        // Hack: Clone à¹€à¸žà¸·à¹ˆà¸­à¸¥à¹‰à¸²à¸‡ Event Listener à¹€à¸à¹ˆà¸² à¹à¸¥à¸°à¸à¸£à¸°à¸•à¸¸à¹‰à¸™à¸à¸²à¸£à¹à¸ªà¸”à¸‡à¸œà¸¥ Badge à¸ž.à¸¨.
+        // Hack: Clone เพื่อล้าง Event Listener เก่า และกระตุ้นการแสดงผล Badge พ.ศ.
         const newDateInput = dateInput.cloneNode(true);
         dateInput.parentNode.replaceChild(newDateInput, dateInput);
         
-        // à¸œà¸¹à¸à¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™à¹à¸ªà¸”à¸‡ à¸ž.à¸¨.
+        // ผูกฟังก์ชันแสดง พ.ศ.
         newDateInput.addEventListener('change', function() {
             if(typeof updateDateInputDisplay === 'function') updateDateInputDisplay(this);
         });
         
-        // à¹à¸ªà¸”à¸‡à¸œà¸¥à¸—à¸±à¸™à¸—à¸µ
+        // แสดงผลทันที
         if(typeof updateDateInputDisplay === 'function') updateDateInputDisplay(newDateInput);
     }
 
-    // 5. à¹€à¸›à¸´à¸” Modal
+    // 5. เปิด Modal
     const modalEl = document.getElementById('bookingModal');
     if (modalEl) {
         const modal = new bootstrap.Modal(modalEl);
@@ -1513,7 +1516,7 @@ function renderWeeklyGrid_V2(mondayDate, slots) {
 
 // --- Monthly Grid ---
 function renderMonthlyGrid(firstDate, slots) {
-    // ðŸ“± MOBILE FALLBACK: à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹€à¸ªà¹‰à¸™à¸—à¸²à¸‡à¹„à¸›à¹ƒà¸Šà¹‰ renderTimetableMonthGrid à¹€à¸žà¸·à¹ˆà¸­à¹à¸ªà¸”à¸‡ Agenda Card View à¸šà¸™à¸¡à¸·à¸­à¸–à¸·à¸­
+    // 📱 MOBILE FALLBACK: เปลี่ยนเส้นทางไปใช้ renderTimetableMonthGrid เพื่อแสดง Agenda Card View บนมือถือ
     if (isMonthAgendaViewport() && typeof window.renderTimetableMonthAgenda === 'function') {
         window.renderTimetableMonthAgenda(slots, firstDate);
         return;
@@ -1554,9 +1557,9 @@ function renderMonthlyGrid(firstDate, slots) {
             const isApproved = (s.status === 'approved');
             const colorClass = isClass ? 'bg-dark text-white' : (isApproved ? 'bg-success text-white' : 'bg-warning text-dark');
             const timeText = `${s.start || '-'} - ${s.end || '-'}`;
-            const typeLabel = isClass ? 'à¸•à¸²à¸£à¸²à¸‡à¸ªà¸­à¸™' : (isApproved ? 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§' : 'à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´');
+            const typeLabel = isClass ? 'ตารางสอน' : (isApproved ? 'อนุมัติแล้ว' : 'รออนุมัติ');
             const instructorText = s.instructor || s.booker || '-';
-            const tooltipContent = `[${typeLabel}] ${sanitizeText(s.title)}\nà¹€à¸§à¸¥à¸²: ${timeText} à¸™.\nà¸œà¸¹à¹‰à¸ªà¸­à¸™/à¸œà¸¹à¹‰à¸ˆà¸­à¸‡: ${sanitizeText(instructorText)}`;
+            const tooltipContent = `[${typeLabel}] ${sanitizeText(s.title)}\nเวลา: ${timeText} น.\nผู้สอน/ผู้จอง: ${sanitizeText(instructorText)}`;
             
             html += `<div class="month-event-bar d-flex align-items-center justify-content-center gap-1 rounded-2 px-2 py-1 ${colorClass}" 
                           style="font-size: 0.72rem; font-weight: 600; margin: 1px 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border: 1px solid rgba(0,0,0,0.08);"
@@ -1596,7 +1599,7 @@ function formatShortTimeRange(start, end) {
         if (m === '00') return h;
         return `${h}:${m}`;
     };
-    return `${formatTime(start)}-${formatTime(end)} à¸™.`;
+    return `${formatTime(start)}-${formatTime(end)} น.`;
 }
 
 function handleEmptyClickWeek(e, dateIso) {
@@ -1762,8 +1765,8 @@ function renderTimetableDayGrid(slots) {
 }
 
 // =============================================================
-// ðŸ“± MOBILE: Day Agenda Card View (< 768px)
-// Mirrors Month Agenda style â€” reuses .month-agenda-* classes
+// 📱 MOBILE: Day Agenda Card View (< 768px)
+// Mirrors Month Agenda style — reuses .month-agenda-* classes
 // =============================================================
 function renderTimetableDayAgenda(slots) {
     // Cache slots for resizing
@@ -1818,7 +1821,7 @@ function renderTimetableDayAgenda(slots) {
         html += `
             <section class="month-agenda-day-card">
                 <div class="month-agenda-day-header">
-                    <span class="month-agenda-day-icon">ðŸ“…</span>
+                    <span class="month-agenda-day-icon">📅</span>
                     <span class="month-agenda-day-title">${dateLabel}</span>
                 </div>
                 <div class="month-agenda-event-list">`;
@@ -1826,7 +1829,7 @@ function renderTimetableDayAgenda(slots) {
             const timeText = `${s.start||'-'} - ${s.end||'-'}`;
             const rawTimeRange = `${s.start||''}-${s.end||''}`;
             const hour = parseInt(String(s.start||'0').split(':')[0], 10);
-            const icon = hour < 12 ? 'ðŸ•˜' : 'ðŸ•';
+            const icon = hour < 12 ? '🕘' : '🕐';
             const instructorLine = (s.instructor || s.booker)
                 ? `<span class="d-block" style="font-size:0.82rem;color:#64748b;margin-top:0.2rem;"><i class="fas fa-user-circle me-1 opacity-60"></i>${safeText(s.instructor||s.booker)}</span>`
                 : '';
@@ -1847,7 +1850,7 @@ function renderTimetableDayAgenda(slots) {
     container.innerHTML = html;
 }
 
-// --- Helper: à¸ªà¸£à¹‰à¸²à¸‡ Date String à¹à¸šà¸š Local (à¹„à¸¡à¹ˆà¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸•à¸²à¸¡ Timezone) ---
+// --- Helper: สร้าง Date String แบบ Local (ไม่เปลี่ยนตาม Timezone) ---
 function toLocalISOString(dateObj) {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -1954,12 +1957,12 @@ window.renderTimetableWeekGrid = function(arg1, arg2) {
                 let icon = 'fa-clock';
                 
                 if (isClass) {
-                    // Class: à¸žà¸·à¹‰à¸™à¸«à¸¥à¸±à¸‡à¸ªà¸µà¸‚à¸²à¸§à¹€à¸—à¸² + à¸‚à¸­à¸šà¸”à¸³à¸«à¸™à¸² + à¸•à¸±à¸§à¸«à¸™à¸±à¸‡à¸ªà¸·à¸­à¸”à¸³à¹€à¸‚à¹‰à¸¡
+                    // Class: พื้นหลังสีขาวเทา + ขอบดำหนา + ตัวหนังสือดำเข้ม
                     cardClass = 'bg-light border-start border-4 border-dark text-dark shadow-sm';
                     iconClass = 'text-dark';
                     icon = 'fa-book';
                 } else if (slot.status === 'approved') {
-                    // Approved: à¸žà¸·à¹‰à¸™à¹€à¸‚à¸µà¸¢à¸§à¸ˆà¸²à¸‡ + à¸‚à¸­à¸šà¹€à¸‚à¸µà¸¢à¸§ + à¸•à¸±à¸§à¸«à¸™à¸±à¸‡à¸ªà¸·à¸­à¹€à¸‚à¸µà¸¢à¸§à¹€à¸‚à¹‰à¸¡
+                    // Approved: พื้นเขียวจาง + ขอบเขียว + ตัวหนังสือเขียวเข้ม
                     cardClass = 'bg-success bg-opacity-10 border-start border-4 border-success text-success-emphasis';
                     iconClass = 'text-success';
                     icon = 'fa-check-circle';
@@ -2034,8 +2037,8 @@ window.renderTimetableWeekGrid = function(arg1, arg2) {
 window.renderWeeklyGridV2 = window.renderTimetableWeekGrid;
 
 // =============================================================
-// ðŸ“± MOBILE: Week Agenda Card View (< 768px)
-// Grouped by date â€” reuses .month-agenda-* CSS design system
+// 📱 MOBILE: Week Agenda Card View (< 768px)
+// Grouped by date — reuses .month-agenda-* CSS design system
 // =============================================================
 function renderTimetableWeekAgenda(slots, mondayDateInput) {
     const container = document.getElementById('weeklyScheduleGrid');
@@ -2073,7 +2076,7 @@ function renderTimetableWeekAgenda(slots, mondayDateInput) {
                 <i class="fas fa-chevron-left"></i>
             </button>
             <h5 class="fw-bold text-primary mb-0 user-select-none" style="font-size:0.82rem;text-align:center;">
-                <i class="fas fa-calendar-week me-1 opacity-50"></i>${fmt(rangeStart)} â€“ ${fmt(rangeEnd)}
+                <i class="fas fa-calendar-week me-1 opacity-50"></i>${fmt(rangeStart)} – ${fmt(rangeEnd)}
             </h5>
             <button class="btn btn-sm btn-outline-primary rounded-circle border-0 me-1"
                     onclick="changeTimetableWeek(1)" style="min-width:44px;min-height:44px;">
@@ -2101,7 +2104,7 @@ function renderTimetableWeekAgenda(slots, mondayDateInput) {
         html += `
             <section class="month-agenda-day-card" data-date="${safeText(iso)}">
                 <div class="month-agenda-day-header">
-                    <span class="month-agenda-day-icon">ðŸ“…</span>
+                    <span class="month-agenda-day-icon">📅</span>
                     <span class="month-agenda-day-title">${dayLabel}${todayBadge}</span>
                 </div>
                 <div class="month-agenda-event-list">`;
@@ -2109,13 +2112,13 @@ function renderTimetableWeekAgenda(slots, mondayDateInput) {
         if (daySlots.length === 0) {
             html += `
                 <div class="month-agenda-event week-agenda-empty-day" aria-disabled="true">
-                    <span class="month-agenda-event-title">à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¸§à¸±à¸™à¸™à¸µà¹‰</span>
+                    <span class="month-agenda-event-title">ไม่มีรายการวันนี้</span>
                 </div>`;
         } else daySlots.forEach((s) => {
             const timeText = `${s.start||'-'} - ${s.end||'-'}`;
             const rawTimeRange = `${s.start||''}-${s.end||''}`;
             const hour = parseInt(String(s.start||'0').split(':')[0], 10);
-            const icon = hour < 12 ? 'ðŸ•˜' : 'ðŸ•';
+            const icon = hour < 12 ? '🕘' : '🕐';
             const instructorLine = (s.instructor || s.booker)
                 ? `<span class="d-block" style="font-size:0.82rem;color:#64748b;margin-top:0.2rem;"><i class="fas fa-user-circle me-1 opacity-60"></i>${safeText(s.instructor||s.booker)}</span>`
                 : '';
@@ -2158,7 +2161,7 @@ function isMonthAgendaViewport() {
     return window.innerWidth < 992;
 }
 
-// ðŸ“± Mobile Agenda breakpoint (< 768px) â€” Week card list only on phone width
+// 📱 Mobile Agenda breakpoint (< 768px) — Week card list only on phone width
 function isMobileAgendaViewport() {
     return window.innerWidth < 768;
 }
@@ -2258,7 +2261,7 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
     window._monthFirstDateCache = new Date(firstDate);
     window._monthSlotsCache = Array.isArray(slots) ? slots : [];
 
-    const monthNames = ['à¸¡à¸à¸£à¸²à¸„à¸¡','à¸à¸¸à¸¡à¸ à¸²à¸žà¸±à¸™à¸˜à¹Œ','à¸¡à¸µà¸™à¸²à¸„à¸¡','à¹€à¸¡à¸©à¸²à¸¢à¸™','à¸žà¸¤à¸©à¸ à¸²à¸„à¸¡','à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™','à¸à¸£à¸à¸Žà¸²à¸„à¸¡','à¸ªà¸´à¸‡à¸«à¸²à¸„à¸¡','à¸à¸±à¸™à¸¢à¸²à¸¢à¸™','à¸•à¸¸à¸¥à¸²à¸„à¸¡','à¸žà¸¤à¸¨à¸ˆà¸´à¸à¸²à¸¢à¸™','à¸˜à¸±à¸™à¸§à¸²à¸„à¸¡'];
+    const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
     const y = firstDate.getFullYear();
     const m = firstDate.getMonth();
     const safeText = (v) => (typeof sanitizeText === 'function') ? sanitizeText(v) : String(v || '');
@@ -2267,17 +2270,17 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
-    const getSlotTitle = (s) => String((s && (s.title || s.subject || s.SubjectName || s.purpose || s.Purpose)) || 'à¹„à¸¡à¹ˆà¸£à¸°à¸šà¸¸à¸Šà¸·à¹ˆà¸­à¸§à¸´à¸Šà¸²').trim();
+    const getSlotTitle = (s) => String((s && (s.title || s.subject || s.SubjectName || s.purpose || s.Purpose)) || 'ไม่ระบุชื่อวิชา').trim();
     const getSlotPerson = (s) => String((s && (s.instructor || s.teacher || s.booker || s.BookerName)) || '').trim();
     const getSlotTone = (s) => {
         const type = String((s && s.type) || '').toLowerCase();
         const status = String((s && s.status) || '').toLowerCase();
-        if (type === 'class') return { className: 'month-schedule-event-bar--class', label: 'à¹€à¸£à¸µà¸¢à¸™' };
-        if (status === 'approved' || status === 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') return { className: 'month-schedule-event-bar--approved', label: 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´' };
-        if (status === 'cancelled' || status === 'canceled' || status === 'rejected' || status === 'à¸¢à¸à¹€à¸¥à¸´à¸' || status === 'à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') {
-            return { className: 'month-schedule-event-bar--danger', label: 'à¸¢à¸à¹€à¸¥à¸´à¸' };
+        if (type === 'class') return { className: 'month-schedule-event-bar--class', label: 'เรียน' };
+        if (status === 'approved' || status === 'อนุมัติ') return { className: 'month-schedule-event-bar--approved', label: 'อนุมัติ' };
+        if (status === 'cancelled' || status === 'canceled' || status === 'rejected' || status === 'ยกเลิก' || status === 'ไม่อนุมัติ') {
+            return { className: 'month-schedule-event-bar--danger', label: 'ยกเลิก' };
         }
-        return { className: 'month-schedule-event-bar--pending', label: 'à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´' };
+        return { className: 'month-schedule-event-bar--pending', label: 'รออนุมัติ' };
     };
     const toLocalISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const normalizeSlotDate = (value) => {
@@ -2300,13 +2303,13 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
 
     let html = `
         <div class="d-flex justify-content-between align-items-center mb-3 px-2 bg-white rounded-pill shadow-sm py-2 border">
-            <button class="btn btn-sm btn-outline-primary rounded-circle border-0 ms-1" onclick="changeTimetableMonth(-1)" title="à¹€à¸”à¸·à¸­à¸™à¸à¹ˆà¸­à¸™à¸«à¸™à¹‰à¸²">
+            <button class="btn btn-sm btn-outline-primary rounded-circle border-0 ms-1" onclick="changeTimetableMonth(-1)" title="เดือนก่อนหน้า">
                 <i class="fas fa-chevron-left"></i>
             </button>
             <h5 class="fw-bold text-primary mb-0 user-select-none">
                 <i class="fas fa-calendar-alt me-2 opacity-50"></i>${monthNames[m]} ${y + 543}
             </h5>
-            <button class="btn btn-sm btn-outline-primary rounded-circle border-0 me-1" onclick="changeTimetableMonth(1)" title="à¹€à¸”à¸·à¸­à¸™à¸–à¸±à¸”à¹„à¸›">
+            <button class="btn btn-sm btn-outline-primary rounded-circle border-0 me-1" onclick="changeTimetableMonth(1)" title="เดือนถัดไป">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -2318,8 +2321,8 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
         html += `
             <div class="month-agenda-empty">
                 <i class="fas fa-calendar-check"></i>
-                <h6>à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¹ƒà¸™à¹€à¸”à¸·à¸­à¸™à¸™à¸µà¹‰</h6>
-                <p>à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸•à¸²à¸£à¸²à¸‡à¹€à¸£à¸µà¸¢à¸™à¸«à¸£à¸·à¸­à¸à¸²à¸£à¸ˆà¸­à¸‡à¹ƒà¸™à¹€à¸”à¸·à¸­à¸™${monthNames[m]}</p>
+                <h6>ไม่มีรายการในเดือนนี้</h6>
+                <p>ยังไม่มีตารางเรียนหรือการจองในเดือน${monthNames[m]}</p>
             </div>`;
     }
 
@@ -2331,7 +2334,7 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
         html += `
             <section class="month-agenda-day-card" data-date="${safeText(dateISO)}">
                 <div class="month-agenda-day-header">
-                    <span class="month-agenda-day-icon">ðŸ“…</span>
+                    <span class="month-agenda-day-icon">📅</span>
                     <span class="month-agenda-day-title">${day} ${monthNames[m]} ${y + 543}</span>
                 </div>
                 <div class="month-agenda-event-list">`;
@@ -2342,7 +2345,7 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
             const tone = getSlotTone(s);
             const titleText = getSlotTitle(s);
             const personText = getSlotPerson(s);
-            const detailLabel = `à¸”à¸¹à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸” ${titleText} à¹€à¸§à¸¥à¸² ${timeText}`;
+            const detailLabel = `ดูรายละเอียด ${titleText} เวลา ${timeText}`;
 
             html += `
                 <button type="button" class="month-agenda-event ${tone.className}"
@@ -2372,12 +2375,12 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
     const container = document.getElementById('monthlyScheduleGrid');
     if (!container) return;
 
-    // âœ… STATE: à¸ˆà¸³à¸„à¹ˆà¸²à¹€à¸”à¸·à¸­à¸™à¸—à¸µà¹ˆà¸à¸³à¸¥à¸±à¸‡à¹à¸ªà¸”à¸‡à¸œà¸¥à¹„à¸§à¹‰à¸ªà¸³à¸«à¸£à¸±à¸šà¸à¸²à¸£à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹€à¸”à¸·à¸­à¸™
+    // ✅ STATE: จำค่าเดือนที่กำลังแสดงผลไว้สำหรับการเปลี่ยนเดือน
     window._currentMonthDisplayDate = new Date(firstDate);
     window._monthFirstDateCache = new Date(firstDate);
     window._monthSlotsCache = Array.isArray(slots) ? slots : [];
 
-    const monthNames = ['à¸¡à¸à¸£à¸²à¸„à¸¡','à¸à¸¸à¸¡à¸ à¸²à¸žà¸±à¸™à¸˜à¹Œ','à¸¡à¸µà¸™à¸²à¸„à¸¡','à¹€à¸¡à¸©à¸²à¸¢à¸™','à¸žà¸¤à¸©à¸ à¸²à¸„à¸¡','à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™','à¸à¸£à¸à¸Žà¸²à¸„à¸¡','à¸ªà¸´à¸‡à¸«à¸²à¸„à¸¡','à¸à¸±à¸™à¸¢à¸²à¸¢à¸™','à¸•à¸¸à¸¥à¸²à¸„à¸¡','à¸žà¸¤à¸¨à¸ˆà¸´à¸à¸²à¸¢à¸™','à¸˜à¸±à¸™à¸§à¸²à¸„à¸¡'];
+    const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
     const y = firstDate.getFullYear();
     const m = firstDate.getMonth();
     
@@ -2394,17 +2397,17 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
-    const getSlotTitle = (s) => String((s && (s.title || s.subject || s.SubjectName || s.purpose || s.Purpose)) || 'à¹„à¸¡à¹ˆà¸£à¸°à¸šà¸¸à¸Šà¸·à¹ˆà¸­à¸§à¸´à¸Šà¸²').trim();
+    const getSlotTitle = (s) => String((s && (s.title || s.subject || s.SubjectName || s.purpose || s.Purpose)) || 'ไม่ระบุชื่อวิชา').trim();
     const getSlotPerson = (s) => String((s && (s.instructor || s.teacher || s.booker || s.BookerName)) || '').trim();
     const getSlotTone = (s) => {
         const type = String((s && s.type) || '').toLowerCase();
         const status = String((s && s.status) || '').toLowerCase();
-        if (type === 'class') return { className: 'month-schedule-event-bar--class', label: 'à¹€à¸£à¸µà¸¢à¸™' };
-        if (status === 'approved' || status === 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') return { className: 'month-schedule-event-bar--approved', label: 'à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´' };
-        if (status === 'cancelled' || status === 'canceled' || status === 'rejected' || status === 'à¸¢à¸à¹€à¸¥à¸´à¸' || status === 'à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´') {
-            return { className: 'month-schedule-event-bar--danger', label: 'à¸¢à¸à¹€à¸¥à¸´à¸' };
+        if (type === 'class') return { className: 'month-schedule-event-bar--class', label: 'เรียน' };
+        if (status === 'approved' || status === 'อนุมัติ') return { className: 'month-schedule-event-bar--approved', label: 'อนุมัติ' };
+        if (status === 'cancelled' || status === 'canceled' || status === 'rejected' || status === 'ยกเลิก' || status === 'ไม่อนุมัติ') {
+            return { className: 'month-schedule-event-bar--danger', label: 'ยกเลิก' };
         }
-        return { className: 'month-schedule-event-bar--pending', label: 'à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´' };
+        return { className: 'month-schedule-event-bar--pending', label: 'รออนุมัติ' };
     };
     
     const todayISO = toLocalISO(new Date());
@@ -2415,17 +2418,17 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
     const isMobile = false;
 
     // ===================================================================
-    // ðŸ“± MOBILE: Agenda Card View (à¹à¸ªà¸”à¸‡à¸£à¸²à¸¢à¸à¸²à¸£à¹€à¸£à¸µà¸¢à¸‡à¸•à¸²à¸¡à¸§à¸±à¸™)
+    // 📱 MOBILE: Agenda Card View (แสดงรายการเรียงตามวัน)
     // ===================================================================
     if (isMobile) {
         window._monthSlotsCache = slots;
 
-        const thaiDayNames = ['à¸­à¸²à¸—à¸´à¸•à¸¢à¹Œ','à¸ˆà¸±à¸™à¸—à¸£à¹Œ','à¸­à¸±à¸‡à¸„à¸²à¸£','à¸žà¸¸à¸˜','à¸žà¸¤à¸«à¸±à¸ªà¸šà¸”à¸µ','à¸¨à¸¸à¸à¸£à¹Œ','à¹€à¸ªà¸²à¸£à¹Œ'];
+        const thaiDayNames = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 
         let html = `
         <div class="d-flex justify-content-between align-items-center mb-3 px-2 bg-white rounded-pill shadow-sm py-2 border">
             <button class="btn btn-sm btn-outline-primary rounded-circle border-0 ms-1" 
-                    onclick="changeTimetableMonth(-1)" title="à¹€à¸”à¸·à¸­à¸™à¸à¹ˆà¸­à¸™à¸«à¸™à¹‰à¸²" style="min-width:44px;min-height:44px;">
+                    onclick="changeTimetableMonth(-1)" title="เดือนก่อนหน้า" style="min-width:44px;min-height:44px;">
                 <i class="fas fa-chevron-left"></i>
             </button>
             
@@ -2434,7 +2437,7 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
             </h5>
             
             <button class="btn btn-sm btn-outline-primary rounded-circle border-0 me-1" 
-                    onclick="changeTimetableMonth(1)" title="à¹€à¸”à¸·à¸­à¸™à¸–à¸±à¸”à¹„à¸›" style="min-width:44px;min-height:44px;">
+                    onclick="changeTimetableMonth(1)" title="เดือนถัดไป" style="min-width:44px;min-height:44px;">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -2457,12 +2460,12 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
 
             const isToday = (currentIso === todayISO);
             const dayName = thaiDayNames[currentDate.getDay()];
-            const todayBadge = isToday ? '<span class="badge bg-primary rounded-pill ms-2" style="font-size:0.65rem;vertical-align:middle;">à¸§à¸±à¸™à¸™à¸µà¹‰</span>' : '';
+            const todayBadge = isToday ? '<span class="badge bg-primary rounded-pill ms-2" style="font-size:0.65rem;vertical-align:middle;">วันนี้</span>' : '';
 
             html += `
             <div class="mobile-agenda-day-group ${isToday ? 'mobile-agenda-today' : ''}" data-date="${currentIso}">
                 <div class="mobile-agenda-day-header">
-                    <span class="mobile-agenda-day-icon">ðŸ“…</span>
+                    <span class="mobile-agenda-day-icon">📅</span>
                     <span class="mobile-agenda-day-label">${d} ${monthNames[m]} ${y+543}</span>
                     <span class="mobile-agenda-day-name">${dayName}</span>
                     ${todayBadge}
@@ -2478,12 +2481,12 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
                     : (isApproved ? 'mobile-agenda-accent-approved' : 'mobile-agenda-accent-pending');
 
                 const badge = isClass 
-                    ? '<span class="badge bg-secondary" style="font-size:0.65rem;">à¹€à¸£à¸µà¸¢à¸™</span>' 
+                    ? '<span class="badge bg-secondary" style="font-size:0.65rem;">เรียน</span>' 
                     : (isApproved 
-                        ? '<span class="badge bg-success" style="font-size:0.65rem;">à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</span>' 
-                        : '<span class="badge bg-warning text-dark" style="font-size:0.65rem;">à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</span>');
+                        ? '<span class="badge bg-success" style="font-size:0.65rem;">อนุมัติ</span>' 
+                        : '<span class="badge bg-warning text-dark" style="font-size:0.65rem;">รออนุมัติ</span>');
 
-                const timeIcon = parseInt(s.start.split(':')[0], 10) < 12 ? 'ðŸ•˜' : 'ðŸ•';
+                const timeIcon = parseInt(s.start.split(':')[0], 10) < 12 ? '🕘' : '🕐';
 
                 html += `
                     <div class="mobile-agenda-event-card ${accentClass}" 
@@ -2518,10 +2521,10 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
             html += `
             <div class="text-center py-5 text-muted bg-white rounded-4 border" style="border-style:dashed !important;">
                 <i class="fas fa-calendar-check fa-3x mb-3 text-secondary opacity-50"></i>
-                <h6 class="fw-bold text-dark mb-1">à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¹ƒà¸™à¹€à¸”à¸·à¸­à¸™à¸™à¸µà¹‰</h6>
-                <p class="small text-muted mb-3" style="font-size:0.85rem;">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸•à¸²à¸£à¸²à¸‡à¹€à¸£à¸µà¸¢à¸™à¸«à¸£à¸·à¸­à¸à¸²à¸£à¸ˆà¸­à¸‡à¹ƒà¸™à¹€à¸”à¸·à¸­à¸™${monthNames[m]}</p>
+                <h6 class="fw-bold text-dark mb-1">ไม่มีรายการในเดือนนี้</h6>
+                <p class="small text-muted mb-3" style="font-size:0.85rem;">ยังไม่มีตารางเรียนหรือการจองในเดือน${monthNames[m]}</p>
                 <button class="btn btn-primary btn-sm rounded-pill px-4 py-2 shadow-sm fw-bold" style="min-height:44px;" onclick="showBookingForm()">
-                    <i class="fas fa-plus-circle me-1"></i>à¸ˆà¸­à¸‡à¸«à¹‰à¸­à¸‡à¹€à¸£à¸µà¸¢à¸™
+                    <i class="fas fa-plus-circle me-1"></i>จองห้องเรียน
                 </button>
             </div>`;
         }
@@ -2678,18 +2681,18 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
         </style>`;
 
         container.innerHTML = html;
-        return; // â›” Mobile path ends here â€” Desktop code below is NOT reached
+        return; // ⛔ Mobile path ends here — Desktop code below is NOT reached
     }
 
     // ===================================================================
-    // ðŸ–¥ï¸ DESKTOP: Calendar Grid (à¹„à¸¡à¹ˆà¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹à¸›à¸¥à¸‡)
+    // 🖥️ DESKTOP: Calendar Grid (ไม่เปลี่ยนแปลง)
     // ===================================================================
 
-    // âœ… UI: à¹€à¸žà¸´à¹ˆà¸¡à¸›à¸¸à¹ˆà¸¡ Navigation (< à¹€à¸”à¸·à¸­à¸™ >)
+    // ✅ UI: เพิ่มปุ่ม Navigation (< เดือน >)
     let html = `
         <div class="d-flex justify-content-between align-items-center mb-3 px-2 bg-white rounded-pill shadow-sm py-2 border">
             <button class="btn btn-sm btn-outline-primary rounded-circle border-0 ms-1" 
-                    onclick="changeTimetableMonth(-1)" title="à¹€à¸”à¸·à¸­à¸™à¸à¹ˆà¸­à¸™à¸«à¸™à¹‰à¸²">
+                    onclick="changeTimetableMonth(-1)" title="เดือนก่อนหน้า">
                 <i class="fas fa-chevron-left"></i>
             </button>
             
@@ -2698,20 +2701,20 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
             </h5>
             
             <button class="btn btn-sm btn-outline-primary rounded-circle border-0 me-1" 
-                    onclick="changeTimetableMonth(1)" title="à¹€à¸”à¸·à¸­à¸™à¸–à¸±à¸”à¹„à¸›">
+                    onclick="changeTimetableMonth(1)" title="เดือนถัดไป">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
 
         <!-- Header Days -->
         <div class="row g-2 mb-2 text-center fw-bold text-secondary small">
-            <div class="col text-danger" style="width:14.28%">à¸­à¸².</div>
-            <div class="col text-warning" style="width:14.28%">à¸ˆ.</div>
-            <div class="col text-pink" style="width:14.28%">à¸­.</div>
-            <div class="col text-success" style="width:14.28%">à¸ž.</div>
-            <div class="col text-orange" style="width:14.28%">à¸žà¸¤.</div>
-            <div class="col text-info" style="width:14.28%">à¸¨.</div>
-            <div class="col text-purple" style="width:14.28%">à¸ª.</div>
+            <div class="col text-danger" style="width:14.28%">อา.</div>
+            <div class="col text-warning" style="width:14.28%">จ.</div>
+            <div class="col text-pink" style="width:14.28%">อ.</div>
+            <div class="col text-success" style="width:14.28%">พ.</div>
+            <div class="col text-orange" style="width:14.28%">พฤ.</div>
+            <div class="col text-info" style="width:14.28%">ศ.</div>
+            <div class="col text-purple" style="width:14.28%">ส.</div>
         </div>
         <div class="row g-2">`;
 
@@ -2749,8 +2752,8 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
         
         const cellAction = daySlots.length > 0 ? 'showMonthDaySlots' : 'showBookingFormWithDate';
         const cellAriaLabel = daySlots.length > 0
-            ? `à¸”à¸¹à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸§à¸±à¸™à¸—à¸µà¹ˆ ${d} ${monthNames[m]} ${y + 543} à¸¡à¸µ ${daySlots.length} à¸£à¸²à¸¢à¸à¸²à¸£`
-            : `à¸ˆà¸­à¸‡à¸«à¹‰à¸­à¸‡à¹€à¸£à¸µà¸¢à¸™à¸§à¸±à¸™à¸—à¸µà¹ˆ ${d} ${monthNames[m]} ${y + 543}`;
+            ? `ดูรายละเอียดวันที่ ${d} ${monthNames[m]} ${y + 543} มี ${daySlots.length} รายการ`
+            : `จองห้องเรียนวันที่ ${d} ${monthNames[m]} ${y + 543}`;
 
         html += `
         <div class="col" style="width:14.28%">
@@ -2778,7 +2781,7 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
                         const titleText = getSlotTitle(s);
                         const personText = getSlotPerson(s) || '-';
                         const rawTimeRange = `${s.start || ''}-${s.end || ''}`;
-                        const tooltipContent = `[${tone.label}] ${safeText(titleText)}\nà¹€à¸§à¸¥à¸²: ${safeText(timeText)} à¸™.\nà¸œà¸¹à¹‰à¸ªà¸­à¸™/à¸œà¸¹à¹‰à¸ˆà¸­à¸‡: ${safeText(personText)}`;
+                        const tooltipContent = `[${tone.label}] ${safeText(titleText)}\nเวลา: ${safeText(timeText)} น.\nผู้สอน/ผู้จอง: ${safeText(personText)}`;
                         
                         return `
                         <button type="button" class="month-schedule-event-bar ${tone.className}" 
@@ -2791,7 +2794,7 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
                             <span class="month-schedule-event-status">${safeText(tone.label)}</span>
                         </button>`;
                     }).join('')}
-                    ${daySlots.length > 3 ? `<button type="button" class="month-more-btn" data-date="${currentIso}" aria-label="à¸”à¸¹à¸£à¸²à¸¢à¸à¸²à¸£à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸‚à¸­à¸‡à¸§à¸±à¸™à¸—à¸µà¹ˆ ${d} ${monthNames[m]} ${y + 543}" onclick="event.stopPropagation(); window.showMonthDaySlots('${currentIso}')">à¸”à¸¹à¸­à¸µà¸ +${daySlots.length-3} à¸£à¸²à¸¢à¸à¸²à¸£</button>` : ''}
+                    ${daySlots.length > 3 ? `<button type="button" class="month-more-btn" data-date="${currentIso}" aria-label="ดูรายการทั้งหมดของวันที่ ${d} ${monthNames[m]} ${y + 543}" onclick="event.stopPropagation(); window.showMonthDaySlots('${currentIso}')">ดูอีก +${daySlots.length-3} รายการ</button>` : ''}
                 </div>`;
 
         html += `
@@ -2863,7 +2866,7 @@ window.selectMonthGridDate = function(dateISO) {
     let html = `
         <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
             <h6 class="fw-bold text-dark mb-0" style="font-size:0.95rem;">
-                <i class="fas fa-calendar-day text-primary me-2"></i>à¸•à¸²à¸£à¸²à¸‡à¹€à¸§à¸¥à¸²: <span class="text-primary">${thaiDateLabel}</span>
+                <i class="fas fa-calendar-day text-primary me-2"></i>ตารางเวลา: <span class="text-primary">${thaiDateLabel}</span>
             </h6>
         </div>
     `;
@@ -2872,10 +2875,10 @@ window.selectMonthGridDate = function(dateISO) {
         html += `
             <div class="text-center py-4 text-muted bg-light rounded-3 border border-dashed">
                 <i class="fas fa-calendar-check fa-2x mb-2 text-secondary opacity-50"></i>
-                <div class="fw-bold text-dark mb-1" style="font-size:0.95rem;">à¹„à¸¡à¹ˆà¸¡à¸µà¸•à¸²à¸£à¸²à¸‡à¸ªà¸­à¸™à¸«à¸£à¸·à¸­à¸à¸²à¸£à¸ˆà¸­à¸‡</div>
-                <p class="small text-muted mb-3" style="font-size:0.8rem;">à¸ªà¸²à¸¡à¸²à¸£à¸–à¸ˆà¸­à¸‡à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¸«à¹‰à¸­à¸‡à¹€à¸£à¸µà¸¢à¸™à¹ƒà¸™à¸Šà¹ˆà¸§à¸‡à¹€à¸§à¸¥à¸²à¸™à¸µà¹‰à¹„à¸”à¹‰</p>
+                <div class="fw-bold text-dark mb-1" style="font-size:0.95rem;">ไม่มีตารางสอนหรือการจอง</div>
+                <p class="small text-muted mb-3" style="font-size:0.8rem;">สามารถจองเพื่อใช้งานห้องเรียนในช่วงเวลานี้ได้</p>
                 <button class="btn btn-primary btn-sm rounded-pill px-4 py-2 shadow-sm fw-bold" style="min-height:44px;" onclick="showBookingFormWithDate('${dateISO}')">
-                    <i class="fas fa-plus-circle me-1"></i>à¸ˆà¸­à¸‡à¸«à¹‰à¸­à¸‡à¹€à¸£à¸µà¸¢à¸™à¸§à¸±à¸™à¸™à¸µà¹‰
+                    <i class="fas fa-plus-circle me-1"></i>จองห้องเรียนวันนี้
                 </button>
             </div>
         `;
@@ -2890,10 +2893,10 @@ window.selectMonthGridDate = function(dateISO) {
                     : 'border-start border-4 border-warning bg-warning bg-opacity-10');
             
             const badge = isClass 
-                ? '<span class="badge bg-secondary text-white" style="font-size:0.7rem;">à¸•à¸²à¸£à¸²à¸‡à¹€à¸£à¸µà¸¢à¸™</span>' 
+                ? '<span class="badge bg-secondary text-white" style="font-size:0.7rem;">ตารางเรียน</span>' 
                 : (s.status === 'approved' 
-                    ? '<span class="badge bg-success" style="font-size:0.7rem;">à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</span>' 
-                    : '<span class="badge bg-warning text-dark" style="font-size:0.7rem;">à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</span>');
+                    ? '<span class="badge bg-success" style="font-size:0.7rem;">อนุมัติ</span>' 
+                    : '<span class="badge bg-warning text-dark" style="font-size:0.7rem;">รออนุมัติ</span>');
 
             html += `
                 <div class="card border-0 shadow-sm ${borderClass} agenda-item-card cursor-pointer" 
@@ -2923,7 +2926,7 @@ window.selectMonthGridDate = function(dateISO) {
         html += `
             <div class="text-center mt-2">
                 <button class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold w-100" style="min-height:44px;" onclick="showBookingFormWithDate('${dateISO}')">
-                    <i class="fas fa-plus-circle me-1"></i>à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¸ªà¹ˆà¸‡à¸„à¸³à¸‚à¸­à¸ˆà¸­à¸‡à¹ƒà¸™à¸§à¸±à¸™à¸™à¸µà¹‰?
+                    <i class="fas fa-plus-circle me-1"></i>ต้องการส่งคำขอจองในวันนี้?
                 </button>
             </div>
         `;
@@ -2934,24 +2937,24 @@ window.selectMonthGridDate = function(dateISO) {
 
 // ANCHOR:CLIENT.showEventDetail:REPLACE
 function showEventDetail(type, title, timeStr, id) {
-    // à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸§à¹ˆà¸² monthDaySlotsModal à¸à¸³à¸¥à¸±à¸‡à¹€à¸›à¸´à¸”à¸­à¸¢à¸¹à¹ˆà¹„à¸«à¸¡
+    // ตรวจสอบว่า monthDaySlotsModal กำลังเปิดอยู่ไหม
     const dayModalEl = document.getElementById('monthDaySlotsModal');
     const bsDayModal = dayModalEl ? bootstrap.Modal.getInstance(dayModalEl) : null;
     const isDayModalOpen = dayModalEl && dayModalEl.classList.contains('show');
 
-    // à¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™ inner à¸ªà¸³à¸«à¸£à¸±à¸šà¹€à¸›à¸´à¸” modal à¸ˆà¸£à¸´à¸‡à¹† (à¹€à¸£à¸µà¸¢à¸à¸«à¸¥à¸±à¸‡ day modal à¸›à¸´à¸”à¸ªà¸™à¸´à¸—à¹à¸¥à¹‰à¸§)
+    // ฟังก์ชัน inner สำหรับเปิด modal จริงๆ (เรียกหลัง day modal ปิดสนิทแล้ว)
     const _doShowEventDetail = () => {
         if (type === 'booking' && id) {
             openBookingDetail(id);
             return;
         }
 
-        // à¸à¸£à¸“à¸µà¹€à¸›à¹‡à¸™ Class (à¸•à¸²à¸£à¸²à¸‡à¸ªà¸­à¸™) -> à¹à¸ªà¸”à¸‡ Modal à¸žà¸£à¹‰à¸­à¸¡à¸›à¸¸à¹ˆà¸¡ "à¸ˆà¸­à¸‡à¸—à¸±à¸š"
+        // กรณีเป็น Class (ตารางสอน) -> แสดง Modal พร้อมปุ่ม "จองทับ"
         const bodyEl = document.getElementById('bookingDetailsContent');
         const footerEl = document.getElementById('bookingDetailsFooter');
         const modalEl = document.getElementById('bookingDetailsModal');
 
-        // à¹à¸›à¸¥à¸‡à¹€à¸§à¸¥à¸² "09:00-12:00" à¹ƒà¸«à¹‰à¹€à¸›à¹‡à¸™à¸„à¹ˆà¸²à¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸Šà¹‰à¸‡à¸²à¸™
+        // แปลงเวลา "09:00-12:00" ให้เป็นค่าพร้อมใช้งาน
         const [start, end] = String(timeStr || '').split('-');
 
         if (bodyEl) {
@@ -2959,16 +2962,16 @@ function showEventDetail(type, title, timeStr, id) {
                 <div class="p-4 text-center">
                     <div class="mb-3">
                         <span class="badge bg-dark rounded-pill px-3 py-2 shadow-sm">
-                            <i class="fas fa-chalkboard-teacher me-2"></i>à¸•à¸²à¸£à¸²à¸‡à¸ªà¸­à¸™
+                            <i class="fas fa-chalkboard-teacher me-2"></i>ตารางสอน
                         </span>
                     </div>
                     <h4 class="fw-bold text-dark mb-2">${sanitizeText(title)}</h4>
                     <div class="text-muted mb-4 small">
-                        <i class="fas fa-clock me-1"></i> ${sanitizeText(timeStr)} à¸™.
+                        <i class="fas fa-clock me-1"></i> ${sanitizeText(timeStr)} น.
                     </div>
                     <div class="alert alert-warning border-0 bg-warning bg-opacity-10 small text-start">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>à¸„à¸³à¹€à¸•à¸·à¸­à¸™:</strong> à¸Šà¹ˆà¸§à¸‡à¹€à¸§à¸¥à¸²à¸™à¸µà¹‰à¸¡à¸µà¸à¸²à¸£à¹€à¸£à¸µà¸¢à¸™à¸à¸²à¸£à¸ªà¸­à¸™ à¸«à¸²à¸à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¹ƒà¸Šà¹‰à¸«à¹‰à¸­à¸‡ à¸à¸£à¸¸à¸“à¸²à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹ƒà¸«à¹‰à¹à¸™à¹ˆà¹ƒà¸ˆà¸§à¹ˆà¸²à¹„à¸”à¹‰à¸‚à¸­à¸­à¸™à¸¸à¸à¸²à¸•à¸­à¸²à¸ˆà¸²à¸£à¸¢à¹Œà¸œà¸¹à¹‰à¸ªà¸­à¸™à¹à¸¥à¹‰à¸§
+                        <strong>คำเตือน:</strong> ช่วงเวลานี้มีการเรียนการสอน หากต้องการใช้ห้อง กรุณาตรวจสอบให้แน่ใจว่าได้ขออนุญาตอาจารย์ผู้สอนแล้ว
                     </div>
                 </div>
             `;
@@ -2977,10 +2980,10 @@ function showEventDetail(type, title, timeStr, id) {
         if (footerEl) {
             footerEl.innerHTML = `
                 <div class="d-flex gap-2 w-100">
-                    <button type="button" class="btn btn-light text-secondary rounded-pill flex-grow-1" data-bs-dismiss="modal">à¸›à¸´à¸”</button>
+                    <button type="button" class="btn btn-light text-secondary rounded-pill flex-grow-1" data-bs-dismiss="modal">ปิด</button>
                     <button type="button" class="btn btn-primary rounded-pill flex-grow-1 shadow-sm fw-bold"
                             onclick="bookOverClass('${start || ''}', '${end || ''}')">
-                        <i class="fas fa-calendar-plus me-2"></i>à¸ˆà¸­à¸‡à¸—à¸±à¸šà¹€à¸§à¸¥à¸²à¸™à¸µà¹‰
+                        <i class="fas fa-calendar-plus me-2"></i>จองทับเวลานี้
                     </button>
                 </div>
             `;
@@ -2989,9 +2992,9 @@ function showEventDetail(type, title, timeStr, id) {
         if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
     };
 
-    // à¸–à¹‰à¸² monthDaySlotsModal à¹€à¸›à¸´à¸”à¸­à¸¢à¸¹à¹ˆ à¸•à¹‰à¸­à¸‡à¸£à¸­à¹ƒà¸«à¹‰à¸›à¸´à¸”à¸ªà¸™à¸´à¸—à¸à¹ˆà¸­à¸™ (à¸›à¹‰à¸­à¸‡à¸à¸±à¸™ Bootstrap race condition)
+    // ถ้า monthDaySlotsModal เปิดอยู่ ต้องรอให้ปิดสนิทก่อน (ป้องกัน Bootstrap race condition)
     if (isDayModalOpen && bsDayModal) {
-        // à¸¥à¸‡à¸—à¸°à¹€à¸šà¸µà¸¢à¸™ one-time listener à¸£à¸­ hidden event
+        // ลงทะเบียน one-time listener รอ hidden event
         const onHidden = () => {
             dayModalEl.removeEventListener('hidden.bs.modal', onHidden);
             _doShowEventDetail();
@@ -2999,7 +3002,7 @@ function showEventDetail(type, title, timeStr, id) {
         dayModalEl.addEventListener('hidden.bs.modal', onHidden);
         bsDayModal.hide();
     } else {
-        // à¹„à¸¡à¹ˆà¸¡à¸µ day modal à¹€à¸›à¸´à¸”à¸­à¸¢à¸¹à¹ˆ à¹€à¸£à¸µà¸¢à¸à¹„à¸”à¹‰à¹€à¸¥à¸¢
+        // ไม่มี day modal เปิดอยู่ เรียกได้เลย
         _doShowEventDetail();
     }
 }
@@ -3017,15 +3020,15 @@ function showMonthDaySlots(dateISO) {
                     <div class="modal-content rounded-4 border-0 shadow">
                         <div class="modal-header border-bottom-0 pb-0">
                             <h5 class="modal-title fw-bold text-primary" id="monthDaySlotsModalTitle">
-                                <i class="fas fa-calendar-day me-2"></i>à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸£à¸²à¸¢à¸à¸²à¸£
+                                <i class="fas fa-calendar-day me-2"></i>รายละเอียดรายการ
                             </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="à¸›à¸´à¸”à¸«à¸™à¹‰à¸²à¸•à¹ˆà¸²à¸‡"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิดหน้าต่าง"></button>
                         </div>
                         <div class="modal-body">
                             <div id="monthDaySlotsModalBody" class="vstack gap-2"></div>
                         </div>
                         <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
-                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">à¸›à¸´à¸”</button>
+                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิด</button>
                         </div>
                     </div>
                 </div>
@@ -3048,7 +3051,7 @@ function showMonthDaySlots(dateISO) {
     const dObj = new Date(dateISO);
     let thaiDateLabel = dateISO;
     if (!isNaN(dObj.getTime())) {
-        const monthNames = ['à¸¡à¸à¸£à¸²à¸„à¸¡','à¸à¸¸à¸¡à¸ à¸²à¸žà¸±à¸™à¸˜à¹Œ','à¸¡à¸µà¸™à¸²à¸„à¸¡','à¹€à¸¡à¸©à¸²à¸¢à¸™','à¸žà¸¤à¸©à¸ à¸²à¸„à¸¡','à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™','à¸à¸£à¸à¸Žà¸²à¸„à¸¡','à¸ªà¸´à¸‡à¸«à¸²à¸„à¸¡','à¸à¸±à¸™à¸¢à¸²à¸¢à¸™','à¸•à¸¸à¸¥à¸²à¸„à¸¡','à¸žà¸¤à¸¨à¸ˆà¸´à¸à¸²à¸¢à¸™','à¸˜à¸±à¸™à¸§à¸²à¸„à¸¡'];
+        const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
         thaiDateLabel = `${dObj.getDate()} ${monthNames[dObj.getMonth()]} ${dObj.getFullYear() + 543}`;
     }
 
@@ -3068,7 +3071,7 @@ function showMonthDaySlots(dateISO) {
 
     let html = '';
     if (daySlots.length === 0) {
-        html = '<div class="text-center py-4 text-muted">à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£à¸§à¸±à¸™à¸™à¸µà¹‰</div>';
+        html = '<div class="text-center py-4 text-muted">ไม่มีรายการวันนี้</div>';
     } else {
         const safeJsArg = (v) => JSON.stringify(String(v == null ? '' : v))
             .replace(/&/g, '&amp;')
@@ -3085,10 +3088,10 @@ function showMonthDaySlots(dateISO) {
                     : 'border-start border-4 border-warning bg-warning bg-opacity-10');
             
             const badge = isClass 
-                ? '<span class="badge bg-secondary text-white" style="font-size:0.7rem;">à¸•à¸²à¸£à¸²à¸‡à¹€à¸£à¸µà¸¢à¸™</span>' 
+                ? '<span class="badge bg-secondary text-white" style="font-size:0.7rem;">ตารางเรียน</span>' 
                 : (s.status === 'approved' 
-                    ? '<span class="badge bg-success" style="font-size:0.7rem;">à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</span>' 
-                    : '<span class="badge bg-warning text-dark" style="font-size:0.7rem;">à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´</span>');
+                    ? '<span class="badge bg-success" style="font-size:0.7rem;">อนุมัติ</span>' 
+                    : '<span class="badge bg-warning text-dark" style="font-size:0.7rem;">รออนุมัติ</span>');
 
             const rawTimeRange = `${s.start || ''}-${s.end || ''}`;
 
@@ -3130,24 +3133,24 @@ function showMonthDaySlots(dateISO) {
     }
 };
 
-// à¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™à¸ªà¸³à¸«à¸£à¸±à¸šà¸à¸”à¸›à¸¸à¹ˆà¸¡à¸ˆà¸­à¸‡à¸—à¸±à¸š
+// ฟังก์ชันสำหรับกดปุ่มจองทับ
 function bookOverClass(start, end) {
-    // à¸›à¸´à¸” Modal à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸à¹ˆà¸­à¸™
+    // ปิด Modal รายละเอียดก่อน
     const modalEl = document.getElementById('bookingDetailsModal');
     const modalInstance = bootstrap.Modal.getInstance(modalEl);
     if(modalInstance) modalInstance.hide();
 
-    // à¸”à¸¶à¸‡à¸§à¸±à¸™à¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™à¸—à¸µà¹ˆà¹€à¸¥à¸·à¸­à¸à¹ƒà¸™ Sidebar
+    // ดึงวันปัจจุบันที่เลือกใน Sidebar
     const selectedDateVal = document.getElementById('bookingDate')?.value || window.currentDate;
     
-    // à¹€à¸£à¸µà¸¢à¸à¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™à¹€à¸›à¸´à¸”à¸Ÿà¸­à¸£à¹Œà¸¡ (à¸«à¸™à¹ˆà¸§à¸‡à¹€à¸§à¸¥à¸²à¹€à¸”à¸µà¸¢à¸§à¸£à¸­ Modal à¹€à¸à¹ˆà¸²à¸›à¸´à¸”)
+    // เรียกฟังก์ชันเปิดฟอร์ม (หน่วงเวลาเดียวรอ Modal เก่าปิด)
     setTimeout(() => {
         showBookingFormWithDate(selectedDateVal, start.trim(), end.trim());
     }, 200);
 }
 // ANCHOR:CLIENT.showEventDetail:END
   
-  // ðŸ”¥ FIX: à¹€à¸žà¸´à¹ˆà¸¡ event handlers à¹à¸¢à¸à¸­à¸­à¸à¸¡à¸²
+  // 🔥 FIX: เพิ่ม event handlers แยกออกมา
   function handleTimeSlotClick(event) {
     const timeSlot = event.target.closest('.time-slot');
     if (!timeSlot) return;
@@ -3167,7 +3170,7 @@ function bookOverClass(start, end) {
   }
 
 async function submitBooking() {
-    console.log('ðŸš€ Submitting Booking (Safe Mode)...');
+    console.log('🚀 Submitting Booking (Safe Mode)...');
     
     const form = document.getElementById('bookingForm');
     if (!form.checkValidity()) {
@@ -3176,10 +3179,10 @@ async function submitBooking() {
         return;
     }
 
-    // 1. à¸”à¸¶à¸‡à¸„à¹ˆà¸²à¹à¸¥à¸° Validate à¹€à¸šà¸·à¹‰à¸­à¸‡à¸•à¹‰à¸™
+    // 1. ดึงค่าและ Validate เบื้องต้น
     const startTime = document.getElementById('startTime').value;
     const endTime = document.getElementById('endTime').value;
-    if (startTime >= endTime) { showToast('Warning', 'à¹€à¸§à¸¥à¸²à¹€à¸¥à¸´à¸à¸•à¹‰à¸­à¸‡à¸«à¸¥à¸±à¸‡à¹€à¸§à¸¥à¸²à¹€à¸£à¸´à¹ˆà¸¡', 'warning'); return; }
+    if (startTime >= endTime) { showToast('Warning', 'เวลาเลิกต้องหลังเวลาเริ่ม', 'warning'); return; }
 
     const isMultiDay = document.getElementById('isMultiDay')?.checked;
     let datesPayload = [];
@@ -3187,7 +3190,7 @@ async function submitBooking() {
     
     if (isMultiDay) {
         if (!window.selectedMultiDates || window.selectedMultiDates.length === 0) {
-            showToast('Warning', 'à¸à¸£à¸¸à¸“à¸²à¸£à¸°à¸šà¸¸à¸§à¸±à¸™à¸—à¸µà¹ˆà¸ˆà¸­à¸‡à¸­à¸¢à¹ˆà¸²à¸‡à¸™à¹‰à¸­à¸¢ 1 à¸§à¸±à¸™', 'warning');
+            showToast('Warning', 'กรุณาระบุวันที่จองอย่างน้อย 1 วัน', 'warning');
             return;
         }
         datesPayload = window.selectedMultiDates;
@@ -3195,14 +3198,14 @@ async function submitBooking() {
     } else {
         const bookingDate = document.getElementById('bookingDate').value;
         if (!bookingDate) {
-            showToast('Warning', 'à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸§à¸±à¸™à¸—à¸µà¹ˆ', 'warning');
+            showToast('Warning', 'กรุณาเลือกวันที่', 'warning');
             return;
         }
         datesPayload = [bookingDate];
         primaryDate = bookingDate;
     }
 
-    // 2. à¹€à¸•à¸£à¸µà¸¢à¸¡ Payload
+    // 2. เตรียม Payload
     const equipment = Array.from(document.querySelectorAll('#bookingForm input[type="checkbox"]:checked'))
         .map(cb => cb.value);
     const otherEq = document.getElementById('otherEquipment')?.value?.trim();
@@ -3224,34 +3227,34 @@ async function submitBooking() {
         remarks: document.getElementById('remarks')?.value || ''
     };
 
-    // 3. UI Interaction Control (à¸à¸±à¸™à¸à¸”à¸£à¸±à¸§)
-    const btnSubmit = document.querySelector('#bookingModal .btn-primary'); // à¸›à¸¸à¹ˆà¸¡à¸¢à¸·à¸™à¸¢à¸±à¸™
-    const btnCancel = document.querySelector('#bookingModal .booking-cancel-btn'); // à¸›à¸¸à¹ˆà¸¡à¸¢à¸à¹€à¸¥à¸´à¸
-    const originalBtnText = btnSubmit ? btnSubmit.innerHTML : 'à¸¢à¸·à¸™à¸¢à¸±à¸™';
+    // 3. UI Interaction Control (กันกดรัว)
+    const btnSubmit = document.querySelector('#bookingModal .btn-primary'); // ปุ่มยืนยัน
+    const btnCancel = document.querySelector('#bookingModal .booking-cancel-btn'); // ปุ่มยกเลิก
+    const originalBtnText = btnSubmit ? btnSubmit.innerHTML : 'ยืนยัน';
 
     if(btnSubmit) {
         btnSubmit.disabled = true;
-        btnSubmit.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸...';
+        btnSubmit.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>กำลังบันทึก...';
     }
     if(btnCancel) btnCancel.classList.add('disabled');
 
     // 4. Show Overlay Loading
-    showLoading(true, 'à¸à¸³à¸¥à¸±à¸‡à¸šà¸±à¸™à¸—à¸¶à¸à¸à¸²à¸£à¸ˆà¸­à¸‡...');
+    showLoading(true, 'กำลังบันทึกการจอง...');
 
     try {
-        // Hide Modal à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰ Loading Overlay à¹€à¸”à¹ˆà¸™à¸Šà¸±à¸”
+        // Hide Modal เพื่อให้ Loading Overlay เด่นชัด
         const bookingModalEl = document.getElementById('bookingModal');
         const bookingModal = bootstrap.Modal.getInstance(bookingModalEl);
         if(bookingModal) bookingModal.hide();
 
         // 5. Call Server
         const res = await apiCall('createBooking', payload);
-        if (!res.ok) throw new Error(res.error || res.message || 'à¸šà¸±à¸™à¸—à¸¶à¸à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ');
+        if (!res.ok) throw new Error(res.error || res.message || 'บันทึกไม่สำเร็จ');
 
         // 6. Handle File Upload (Sequential)
         const fileInput = document.getElementById('fileUpload');
         if (fileInput && fileInput.files.length > 0) {
-             showLoading(true, `à¸šà¸±à¸™à¸—à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹à¸¥à¹‰à¸§... à¸à¸³à¸¥à¸±à¸‡à¸­à¸±à¸›à¹‚à¸«à¸¥à¸” ${fileInput.files.length} à¹„à¸Ÿà¸¥à¹Œ`);
+             showLoading(true, `บันทึกข้อมูลแล้ว... กำลังอัปโหลด ${fileInput.files.length} ไฟล์`);
              const files = await Promise.all(Array.from(fileInput.files).map(f => new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve({ name: f.name, mimeType: f.type, base64Data: reader.result.split(',')[1] });
@@ -3302,19 +3305,19 @@ function resetBookingForm() {
         form.classList.remove('was-validated');
     }
     
-    // à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¸£à¸²à¸¢à¸à¸²à¸£à¹„à¸Ÿà¸¥à¹Œ UI
+    // เคลียร์รายการไฟล์ UI
     const listEl = document.getElementById('fileUploadList');
     if (listEl) listEl.innerHTML = '';
     
-    // à¸£à¸µà¹€à¸‹à¹‡à¸•à¸„à¹ˆà¸² Date Picker à¹ƒà¸«à¹‰à¹€à¸›à¹‡à¸™à¸§à¸±à¸™à¸—à¸µà¹ˆà¸›à¸±à¸ˆà¸ˆà¸¸à¸šà¸±à¸™
+    // รีเซ็ตค่า Date Picker ให้เป็นวันที่ปัจจุบัน
     const dateInput = document.getElementById('bookingDate');
     if (dateInput && window.currentDate) {
         dateInput.value = window.currentDate;
-        // à¸à¸£à¸°à¸•à¸¸à¹‰à¸™ event change à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸•à¸±à¸§à¹à¸ªà¸”à¸‡ à¸ž.à¸¨. à¸—à¸³à¸‡à¸²à¸™
+        // กระตุ้น event change เพื่อให้ตัวแสดง พ.ศ. ทำงาน
         dateInput.dispatchEvent(new Event('change'));
     }
     
-    // à¸£à¸µà¹€à¸‹à¹‡à¸•à¸à¸²à¸£à¸ˆà¸­à¸‡à¸«à¸¥à¸²à¸¢à¸§à¸±à¸™
+    // รีเซ็ตการจองหลายวัน
     window.selectedMultiDates = [];
     const isMultiDay = document.getElementById('isMultiDay');
     if (isMultiDay) {
@@ -3323,12 +3326,12 @@ function resetBookingForm() {
     }
     window.renderSelectedMultiDates();
     
-    // à¸£à¸µà¹€à¸‹à¹‡à¸• Step
+    // รีเซ็ต Step
     if (typeof currentStep !== 'undefined') currentStep = 1;
 }
 
 // ==========================================
-// ðŸ› ï¸ MULTI-DAY BOOKING UI LOGIC
+// 🛠️ MULTI-DAY BOOKING UI LOGIC
 // ==========================================
 window.selectedMultiDates = [];
 
@@ -3352,7 +3355,7 @@ window.initMultiDayBookingUI = function() {
     
     if (!isMultiDay || !multiDayContainer) return;
     
-    // 1. à¸ªà¸¥à¸±à¸šà¹‚à¸«à¸¡à¸”à¸à¸²à¸£à¸ˆà¸­à¸‡ à¸›à¸à¸•à¸´ vs à¸«à¸¥à¸²à¸¢à¸§à¸±à¸™
+    // 1. สลับโหมดการจอง ปกติ vs หลายวัน
     isMultiDay.addEventListener('change', function() {
         if (this.checked) {
             singleDateContainer.classList.add('d-none');
@@ -3370,7 +3373,7 @@ window.initMultiDayBookingUI = function() {
         }
     });
     
-    // 2. à¸ªà¸¥à¸±à¸šà¸§à¸´à¸—à¸¢à¸¸à¹€à¸¥à¸·à¸­à¸à¹‚à¸«à¸¡à¸”
+    // 2. สลับวิทยุเลือกโหมด
     if (modeIndividual && modeRange) {
         const toggleRadioMode = () => {
             if (modeIndividual.checked) {
@@ -3385,38 +3388,38 @@ window.initMultiDayBookingUI = function() {
         modeRange.addEventListener('change', toggleRadioMode);
     }
     
-    // 3. à¸›à¸¸à¹ˆà¸¡à¹€à¸žà¸´à¹ˆà¸¡à¸§à¸±à¸™à¸—à¸µà¹ˆà¸—à¸µà¸¥à¸°à¸§à¸±à¸™
+    // 3. ปุ่มเพิ่มวันที่ทีละวัน
     if (btnAddSingleDate && addSingleDate) {
         btnAddSingleDate.addEventListener('click', function() {
             const val = addSingleDate.value;
             if (!val) {
-                showToast('Warning', 'à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸§à¸±à¸™à¸—à¸µà¹ˆà¸à¹ˆà¸­à¸™à¸à¸”à¹€à¸žà¸´à¹ˆà¸¡', 'warning');
+                showToast('Warning', 'กรุณาเลือกวันที่ก่อนกดเพิ่ม', 'warning');
                 return;
             }
             if (window.selectedMultiDates.includes(val)) {
-                showToast('Warning', 'à¸§à¸±à¸™à¸—à¸µà¹ˆà¸™à¸µà¹‰à¸­à¸¢à¸¹à¹ˆà¹ƒà¸™à¸£à¸²à¸¢à¸à¸²à¸£à¹à¸¥à¹‰à¸§', 'warning');
+                showToast('Warning', 'วันที่นี้อยู่ในรายการแล้ว', 'warning');
                 return;
             }
             window.selectedMultiDates.push(val);
             window.selectedMultiDates.sort();
             window.renderSelectedMultiDates();
-            showToast('Success', 'à¹€à¸žà¸´à¹ˆà¸¡à¸§à¸±à¸™à¸—à¸µà¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ', 'success');
+            showToast('Success', 'เพิ่มวันที่สำเร็จ', 'success');
         });
     }
     
-    // 4. à¸›à¸¸à¹ˆà¸¡à¹€à¸žà¸´à¹ˆà¸¡à¸Šà¹ˆà¸§à¸‡à¸§à¸±à¸™à¸•à¹ˆà¸­à¹€à¸™à¸·à¹ˆà¸­à¸‡
+    // 4. ปุ่มเพิ่มช่วงวันต่อเนื่อง
     if (btnAddRangeDate && addRangeStart && addRangeEnd) {
         btnAddRangeDate.addEventListener('click', function() {
             const startVal = addRangeStart.value;
             const endVal = addRangeEnd.value;
             if (!startVal || !endVal) {
-                showToast('Warning', 'à¸à¸£à¸¸à¸“à¸²à¸£à¸°à¸šà¸¸à¸Šà¹ˆà¸§à¸‡à¸§à¸±à¸™à¸—à¸µà¹ˆà¹€à¸£à¸´à¹ˆà¸¡à¹à¸¥à¸°à¸ªà¸´à¹‰à¸™à¸ªà¸¸à¸”', 'warning');
+                showToast('Warning', 'กรุณาระบุช่วงวันที่เริ่มและสิ้นสุด', 'warning');
                 return;
             }
             const startD = new Date(startVal);
             const endD = new Date(endVal);
             if (startD > endD) {
-                showToast('Warning', 'à¸§à¸±à¸™à¸—à¸µà¹ˆà¸ªà¸´à¹‰à¸™à¸ªà¸¸à¸”à¸•à¹‰à¸­à¸‡à¹„à¸¡à¹ˆà¸™à¹‰à¸­à¸¢à¸à¸§à¹ˆà¸²à¸§à¸±à¸™à¸—à¸µà¹ˆà¹€à¸£à¸´à¹ˆà¸¡', 'warning');
+                showToast('Warning', 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม', 'warning');
                 return;
             }
             
@@ -3434,9 +3437,9 @@ window.initMultiDayBookingUI = function() {
             if (addedCount > 0) {
                 window.selectedMultiDates.sort();
                 window.renderSelectedMultiDates();
-                showToast('Success', `à¹€à¸žà¸´à¹ˆà¸¡à¸Šà¹ˆà¸§à¸‡à¸§à¸±à¸™à¸—à¸µà¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ (${addedCount} à¸§à¸±à¸™)`, 'success');
+                showToast('Success', `เพิ่มช่วงวันที่สำเร็จ (${addedCount} วัน)`, 'success');
             } else {
-                showToast('Warning', 'à¸§à¸±à¸™à¸—à¸µà¹ˆà¹ƒà¸™à¸Šà¹ˆà¸§à¸‡à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸­à¸¢à¸¹à¹ˆà¹ƒà¸™à¸£à¸²à¸¢à¸à¸²à¸£à¸­à¸¢à¸¹à¹ˆà¹à¸¥à¹‰à¸§', 'warning');
+                showToast('Warning', 'วันที่ในช่วงทั้งหมดอยู่ในรายการอยู่แล้ว', 'warning');
             }
         });
     }
@@ -3453,7 +3456,7 @@ window.renderSelectedMultiDates = function() {
     
     if (dates.length === 0) {
         if (noDatesText) noDatesText.classList.remove('d-none');
-        list.innerHTML = `<span class="text-muted small my-auto mx-auto" id="noDatesText">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¹€à¸¥à¸·à¸­à¸à¸§à¸±à¸™à¸—à¸µà¹ˆ</span>`;
+        list.innerHTML = `<span class="text-muted small my-auto mx-auto" id="noDatesText">ยังไม่ได้เลือกวันที่</span>`;
         return;
     }
     
@@ -3467,7 +3470,7 @@ window.renderSelectedMultiDates = function() {
         return `
             <span class="badge bg-primary text-white d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm" style="font-size: 0.8rem;">
                 <span><i class="far fa-calendar-alt me-1"></i>${getThaiText(d)}</span>
-                <i class="fas fa-times cursor-pointer ms-1 text-white opacity-75 hover-opacity-100" onclick="window.removeMultiDate('${d}')" style="cursor: pointer;" title="à¸¥à¸šà¸­à¸­à¸"></i>
+                <i class="fas fa-times cursor-pointer ms-1 text-white opacity-75 hover-opacity-100" onclick="window.removeMultiDate('${d}')" style="cursor: pointer;" title="ลบออก"></i>
             </span>
         `;
     }).join('');
@@ -3778,7 +3781,7 @@ function renderBookingDetailsModal(detail) {
 
   const safe = (v) => (v ? String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;") : '');
   const formatTime = (t) => t ? String(t).substring(0, 5) : '-';
-  const displayDate = detail.formattedDate || (detail.BookingDate ? (typeof formatDateBE === 'function' ? formatDateBE(detail.BookingDate) : detail.BookingDate) : 'à¹„à¸¡à¹ˆà¸£à¸°à¸šà¸¸à¸§à¸±à¸™à¸—à¸µà¹ˆ');
+  const displayDate = detail.formattedDate || (detail.BookingDate ? (typeof formatDateBE === 'function' ? formatDateBE(detail.BookingDate) : detail.BookingDate) : 'ไม่ระบุวันที่');
   const bookingId = String(detail.BookingID || '').trim();
   window.currentBookingId = bookingId;
 
@@ -5070,11 +5073,11 @@ function setSession(sessionData) {
   }
 
   // ===============================
-  // ðŸ”¥ FIX: Enhanced Tab Management
+  // 🔥 FIX: Enhanced Tab Management
   // ===============================
 
 function initializeTabs() {
-  // 1. Helper à¸ªà¸³à¸«à¸£à¸±à¸šà¹à¸›à¸¥à¸‡ ID (à¹€à¸­à¸²à¹„à¸§à¹‰à¹à¸„à¹ˆ return à¸Šà¸·à¹ˆà¸­ tab à¸žà¸­à¸„à¹ˆà¸°)
+  // 1. Helper สำหรับแปลง ID (เอาไว้แค่ return ชื่อ tab พอค่ะ)
   const mapTargetToTab = (targetId) => {
     if (targetId === '#schedule' || targetId === '#nav-schedule') return 'schedule';
     if (targetId === '#timetable' || targetId === '#nav-home') return 'timetable';
@@ -5096,13 +5099,13 @@ function initializeTabs() {
         evt.preventDefault();
         evt.stopPropagation();
         
-        // 1. à¸ªà¸±à¹ˆà¸‡à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™ Tab
+        // 1. สั่งเปลี่ยน Tab
         showTab(tabId);
 
-        // 2. âœ¨ à¸¢à¹‰à¸²à¸¢ Logic à¸¡à¸²à¹„à¸§à¹‰à¸•à¸£à¸‡à¸™à¸µà¹‰ (à¸—à¸³à¸‡à¸²à¸™à¸«à¸¥à¸±à¸‡à¸ˆà¸²à¸à¸à¸”à¸›à¸¸à¹ˆà¸¡)
-        // à¸–à¹‰à¸²à¹€à¸›à¹‡à¸™ Tab 'schedule' à¹à¸¥à¸°à¸›à¸à¸´à¸—à¸´à¸™à¸–à¸¹à¸à¸ªà¸£à¹‰à¸²à¸‡à¹à¸¥à¹‰à¸§ à¹ƒà¸«à¹‰à¸›à¸£à¸±à¸šà¸‚à¸™à¸²à¸”
+        // 2. ✨ ย้าย Logic มาไว้ตรงนี้ (ทำงานหลังจากกดปุ่ม)
+        // ถ้าเป็น Tab 'schedule' และปฏิทินถูกสร้างแล้ว ให้ปรับขนาด
         if (tabId === 'schedule' && typeof combinedCalendarInstance !== 'undefined' && combinedCalendarInstance) {
-             console.log('ðŸ“… Updating Calendar Size...');
+             console.log('📅 Updating Calendar Size...');
              setTimeout(() => combinedCalendarInstance.updateSize(), 200); 
         }
       }
@@ -5152,25 +5155,25 @@ window.forceShowTabContent = function (tabId) {
 };
 
 window.loadCombinedSchedule = async function (forceReload = false, targetDate) {
-  console.log('ðŸ“… loadCombinedSchedule() -> start', { forceReload, targetDate });
+  console.log('📅 loadCombinedSchedule() -> start', { forceReload, targetDate });
 
   let overlayOpened = false;
 
   try {
     if (typeof apiCall !== 'function') {
-      console.error('âŒ FAIL loadCombinedSchedule: apiCall() not found');
+      console.error('❌ FAIL loadCombinedSchedule: apiCall() not found');
       if (typeof renderCombinedError === 'function') renderCombinedError('apiCall() not found');
       return { ok: false, error: 'apiCall not found', slots: [] };
     }
 
-    // âœ… init state
+    // ✅ init state
     if (!window.combinedState || typeof window.combinedState !== 'object') window.combinedState = {};
     if (!window.combinedState.cache || typeof window.combinedState.cache !== 'object') {
       window.combinedState.cache = { slots: null, fetchedAt: 0, dateKey: '', weekKey: '' };
     }
     if (!window.combinedLoadToken) window.combinedLoadToken = 0;
 
-    // âœ… 1) Resolve date (timezone-safe)
+    // ✅ 1) Resolve date (timezone-safe)
     const dateObj = targetDate
       ? new Date(targetDate)
       : (window.currentDate ? new Date(window.currentDate) : new Date());
@@ -5188,33 +5191,33 @@ window.loadCombinedSchedule = async function (forceReload = false, targetDate) {
     }
 
     if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey))) {
-      console.error('âŒ FAIL loadCombinedSchedule: invalid dateKey ->', dateKey);
-      if (typeof renderCombinedError === 'function') renderCombinedError('à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¹à¸ªà¸”à¸‡: dateISO à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡');
+      console.error('❌ FAIL loadCombinedSchedule: invalid dateKey ->', dateKey);
+      if (typeof renderCombinedError === 'function') renderCombinedError('ข้อมูลไม่แสดง: dateISO ไม่ถูกต้อง');
       return { ok: false, error: 'invalid dateISO', slots: [] };
     }
 
-    console.log('ðŸ“… Fetching Combined Schedule for:', dateKey);
+    console.log('📅 Fetching Combined Schedule for:', dateKey);
 
-    // âœ… 2) Token guard (anti race)
+    // ✅ 2) Token guard (anti race)
     window.combinedLoadToken++;
     const myToken = window.combinedLoadToken;
 
-    // âœ… 3) Loading UI shell/spinner (à¸—à¸³à¸à¹ˆà¸­à¸™ à¹€à¸žà¸·à¹ˆà¸­à¸à¸±à¸™à¸§à¸¹à¸š)
+    // ✅ 3) Loading UI shell/spinner (ทำก่อน เพื่อกันวูบ)
     const currentView = (typeof getCombinedView === 'function')
       ? getCombinedView()
       : (window.combinedViewMode || 'summary');
 
     if (typeof setCombinedView === 'function') setCombinedView(currentView, null);
 
-    // âœ… 4) Cache TTL (à¸•à¸£à¸§à¸ˆ cache à¸à¹ˆà¸­à¸™à¹€à¸›à¸´à¸” overlay)
+    // ✅ 4) Cache TTL (ตรวจ cache ก่อนเปิด overlay)
     const cache = window.combinedState.cache;
     const now = Date.now();
-    const ttlMs = 60 * 1000; // 1 à¸™à¸²à¸—à¸µ
+    const ttlMs = 60 * 1000; // 1 นาที
     const isFresh = cache.fetchedAt && (now - cache.fetchedAt < ttlMs) && cache.dateKey === dateKey;
     const hasData = Array.isArray(cache.slots);
 
     if (!forceReload && isFresh && hasData) {
-      console.log('â™»ï¸ Using fresh cache', { count: cache.slots.length, dateKey });
+      console.log('♻️ Using fresh cache', { count: cache.slots.length, dateKey });
       if (typeof setCombinedView === 'function') setCombinedView(currentView, cache.slots);
       return { ok: true, cached: true, count: cache.slots.length, slots: cache.slots, dateISO: dateKey };
     }
@@ -6612,7 +6615,7 @@ function ensureCombinedDayModal() {
   document.body.appendChild(div.firstElementChild);
 }
 
-// âœ… Helper: updateCombinedWeekLabel
+// ✅ Helper: updateCombinedWeekLabel
 window.updateCombinedWeekLabel = function(date) {
   let d;
   if (date instanceof Date) {
@@ -6638,8 +6641,8 @@ window.updateCombinedWeekLabel = function(date) {
   sunday.setDate(monday.getDate() + 6);
 
   const thaiMonthsShort = [
-    "à¸¡.à¸„.", "à¸.à¸ž.", "à¸¡à¸µ.à¸„.", "à¹€à¸¡.à¸¢.", "à¸ž.à¸„.", "à¸¡à¸´.à¸¢.",
-    "à¸.à¸„.", "à¸ª.à¸„.", "à¸.à¸¢.", "à¸•.à¸„.", "à¸ž.à¸¢.", "à¸˜.à¸„."
+    "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+    "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
   ];
 
   const startDay = monday.getDate();
@@ -6651,8 +6654,8 @@ window.updateCombinedWeekLabel = function(date) {
   const endYear = sunday.getFullYear() + 543;
 
   // Desktop:
-  // Same year: "8 à¸¡à¸´.à¸¢. - 14 à¸¡à¸´.à¸¢. 2569" or "29 à¸¡à¸´.à¸¢. - 5 à¸.à¸„. 2569"
-  // Cross year: "29 à¸˜.à¸„. 2569 - 4 à¸¡.à¸„. 2570"
+  // Same year: "8 มิ.ย. - 14 มิ.ย. 2569" or "29 มิ.ย. - 5 ก.ค. 2569"
+  // Cross year: "29 ธ.ค. 2569 - 4 ม.ค. 2570"
   let desktopStr = "";
   if (monday.getFullYear() !== sunday.getFullYear()) {
     desktopStr = `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
@@ -6661,9 +6664,9 @@ window.updateCombinedWeekLabel = function(date) {
   }
 
   // Mobile:
-  // Same month: "8 - 14 à¸¡à¸´.à¸¢."
-  // Cross month: "29 à¸¡à¸´.à¸¢. - 5 à¸.à¸„."
-  // Cross year: "29 à¸˜.à¸„. 69 - 4 à¸¡.à¸„. 70"
+  // Same month: "8 - 14 มิ.ย."
+  // Cross month: "29 มิ.ย. - 5 ก.ค."
+  // Cross year: "29 ธ.ค. 69 - 4 ม.ค. 70"
   let mobileStr = "";
   if (monday.getFullYear() !== sunday.getFullYear()) {
     const startYearShort = String(startYear).slice(-2);
@@ -6680,7 +6683,7 @@ window.updateCombinedWeekLabel = function(date) {
   if (desktopEl) desktopEl.textContent = desktopStr;
   if (mobileEl) mobileEl.textContent = mobileStr;
 
-  // Update "à¸ªà¸±à¸›à¸”à¸²à¸«à¹Œà¸™à¸µà¹‰" active/disabled state
+  // Update "สัปดาห์นี้" active/disabled state
   const today = new Date();
   const todayDay = today.getDay();
   const todayDayAdjusted = (todayDay === 0) ? 7 : todayDay;
@@ -6706,7 +6709,7 @@ window.updateCombinedWeekLabel = function(date) {
   }
 };
 
-// âœ… Helper: setCombinedNavButtonsLoading
+// ✅ Helper: setCombinedNavButtonsLoading
 window.setCombinedNavButtonsLoading = function(isLoading) {
   const prevBtn = document.getElementById('combinedPrevWeekBtn');
   const thisBtn = document.getElementById('combinedThisWeekBtn');
@@ -6718,7 +6721,7 @@ window.setCombinedNavButtonsLoading = function(isLoading) {
     if (isLoading) {
       btn.classList.add('disabled');
     } else {
-      // Check if it's "à¸ªà¸±à¸›à¸”à¸²à¸«à¹Œà¸™à¸µà¹‰" button and it should remain disabled if we are currently on the current week
+      // Check if it's "สัปดาห์นี้" button and it should remain disabled if we are currently on the current week
       if (btn.id === 'combinedThisWeekBtn') {
         const currentIso = window.currentDate || new Date().toISOString().split('T')[0];
         let dateObj;
@@ -6755,7 +6758,7 @@ window.setCombinedNavButtonsLoading = function(isLoading) {
   });
 };
 
-// âœ… Helper: changeCombinedWeek
+// ✅ Helper: changeCombinedWeek
 window.changeCombinedWeek = async function(delta) {
   let currentIso = window.currentDate || new Date().toISOString().split('T')[0];
   let dateObj;
@@ -6774,7 +6777,7 @@ window.changeCombinedWeek = async function(delta) {
   const dd = String(dateObj.getDate()).padStart(2, '0');
   const newDateISO = `${yy}-${mm}-${dd}`;
 
-  console.log(`ðŸ“… Navigating Combined Week: ${delta} -> ${newDateISO}`);
+  console.log(`📅 Navigating Combined Week: ${delta} -> ${newDateISO}`);
 
   window.currentDate = newDateISO;
   const dateInput = document.getElementById('selectedDate');
@@ -6788,7 +6791,7 @@ window.changeCombinedWeek = async function(delta) {
   }
 };
 
-// âœ… Helper: changeCombinedToCurrentWeek
+// ✅ Helper: changeCombinedToCurrentWeek
 window.changeCombinedToCurrentWeek = async function() {
   const today = new Date();
   const yy = today.getFullYear();
@@ -6796,7 +6799,7 @@ window.changeCombinedToCurrentWeek = async function() {
   const dd = String(today.getDate()).padStart(2, '0');
   const newDateISO = `${yy}-${mm}-${dd}`;
 
-  console.log(`ðŸ“… Navigating Combined Week to Current: ${newDateISO}`);
+  console.log(`📅 Navigating Combined Week to Current: ${newDateISO}`);
 
   window.currentDate = newDateISO;
   const dateInput = document.getElementById('selectedDate');
@@ -7521,9 +7524,9 @@ function repairBookingChartLayout(source) {
         try {
             window.bookingChart.resize();
             if (typeof window.bookingChart.update === 'function') window.bookingChart.update('none');
-            console.log('âœ… repairBookingChartLayout:', source || 'manual');
+            console.log('✅ repairBookingChartLayout:', source || 'manual');
         } catch (e) {
-            console.warn('âš ï¸ repairBookingChartLayout failed:', e);
+            console.warn('⚠️ repairBookingChartLayout failed:', e);
         }
     });
 }
