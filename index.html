@@ -817,7 +817,7 @@
                                 <div class="card border-0 shadow-sm rounded-4 h-100 chart-card">
                                     <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                                         <h5 class="fw-bold mb-0">สถิติการใช้งาน</h5>
-                                        <div class="d-flex align-items-center gap-2">
+                                        <div class="d-flex align-items-center gap-2 dashboard-filter">
                                             <!-- ปุ่ม Report PDF -->
                                             <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="openReportModal()">
                                                 <i class="fas fa-file-pdf me-1"></i> รายงาน PDF
@@ -825,7 +825,7 @@
                                             <select class="form-select form-select-sm w-auto border-0 bg-light rounded-pill" id="chartRoomFilter" onchange="updateChart()">
                                                 <option value="">ทุกห้องเรียน</option>
                                             </select>
-                                            <select class="form-select form-select-sm w-auto border-0 bg-light rounded-pill" id="chartPeriod" onchange="updateChart()">
+                                            <select class="form-select form-select-sm w-auto border-0 bg-light rounded-pill dashboard-period" id="chartPeriod" onchange="updateChart()">
                                                 <option value="week">สัปดาห์นี้</option>
                                                 <option value="month">เดือนนี้</option>
                                                 <option value="year">รายปี</option>
