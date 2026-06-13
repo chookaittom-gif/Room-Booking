@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --primary: #0d6efd;
     --primary-rgb: 13, 110, 253;
     --secondary: #6c757d;
@@ -378,7 +378,7 @@ h1, h2, h3, h4, h5, h6 {
     position: sticky;
     top: 60px;
     z-index: 990;
-    /* à¹€à¸žà¸´à¹ˆà¸¡à¸žà¸·à¹‰à¸™à¸«à¸¥à¸±à¸‡à¹à¸šà¸š Blur à¹ƒà¸«à¹‰à¸”à¸¹à¹à¸žà¸‡à¹€à¸§à¸¥à¸²à¹€à¸¥à¸·à¹ˆà¸­à¸™à¸œà¹ˆà¸²à¸™ */
+    /* เพิ่มพื้นหลังแบบ Blur ให้ดูแพงเวลาเลื่อนผ่าน */
     background: rgba(var(--bg-secondary-rgb, 248, 249, 250), 0.95);
     backdrop-filter: blur(10px);
     border-radius: 0 0 20px 20px;
@@ -389,25 +389,25 @@ h1, h2, h3, h4, h5, h6 {
 .tab-nav {
     display: flex;
     gap: 0.75rem;
-    background: transparent; /* à¸¥à¸šà¸žà¸·à¹‰à¸™à¸«à¸¥à¸±à¸‡à¹€à¸—à¸²à¹† à¹€à¸”à¸´à¸¡à¸­à¸­à¸à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸”à¸¹à¸„à¸¥à¸µà¸™ */
+    background: transparent; /* ลบพื้นหลังเทาๆ เดิมออกเพื่อให้ดูคลีน */
     padding: 0.5rem;
     border-radius: 50px;
-    /* box-shadow: var(--shadow-sm); à¸¥à¸šà¹€à¸‡à¸²à¸à¸¥à¹ˆà¸­à¸‡à¹€à¸”à¸´à¸¡à¸­à¸­à¸ */
+    /* box-shadow: var(--shadow-sm); ลบเงากล่องเดิมออก */
     border: none;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    justify-content: center; /* à¸ˆà¸±à¸”à¸à¸¶à¹ˆà¸‡à¸à¸¥à¸²à¸‡à¸—à¸µà¹ˆà¸•à¸±à¸§ Container à¸«à¸¥à¸±à¸à¸”à¹‰à¸§à¸¢ */
+    justify-content: center; /* จัดกึ่งกลางที่ตัว Container หลักด้วย */
 }
 
 .tab-nav::-webkit-scrollbar {
     display: none;
 }
 
-/* à¸›à¸¸à¹ˆà¸¡à¹à¸—à¹‡à¸šà¹à¸šà¸šà¹ƒà¸«à¸¡à¹ˆ */
+/* ปุ่มแท็บแบบใหม่ */
 .tab-btn {
-    flex: initial; /* à¹„à¸¡à¹ˆà¸¢à¸·à¸”à¸ˆà¸™à¹€à¸ªà¸µà¸¢à¸—à¸£à¸‡ */
-    background: var(--bg-card); /* à¸žà¸·à¹‰à¸™à¸«à¸¥à¸±à¸‡à¸‚à¸²à¸§ */
+    flex: initial; /* ไม่ยืดจนเสียทรง */
+    background: var(--bg-card); /* พื้นหลังขาว */
     border: 1px solid var(--border-color);
     padding: 0.85rem 2rem;
     border-radius: 50px;
@@ -417,7 +417,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px; /* à¸£à¸°à¸¢à¸°à¸«à¹ˆà¸²à¸‡à¹„à¸­à¸„à¸­à¸™ */
+    gap: 12px; /* ระยะห่างไอคอน */
     cursor: pointer;
     min-width: 140px;
     white-space: nowrap;
@@ -425,7 +425,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .tab-btn i {
-    font-size: 1.1em; /* à¸‚à¸¢à¸²à¸¢à¹„à¸­à¸„à¸­à¸™à¸™à¸´à¸”à¸™à¸¶à¸‡ */
+    font-size: 1.1em; /* ขยายไอคอนนิดนึง */
 }
 
 .tab-btn:hover {
@@ -450,17 +450,17 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 
-/* à¹à¸ªà¸”à¸‡à¹€à¸‰à¸žà¸²à¸°à¹à¸—à¹‡à¸šà¸—à¸µà¹ˆ Active */
+/* แสดงเฉพาะแท็บที่ Active */
 .tab-content.active {
   display: block !important;
-  opacity: 1;
-  visibility: visible;
-  height: auto;
-  overflow: visible;
+  opacity: 1 !important;
+  visibility: visible !important;
+  height: auto !important;
+  overflow: visible !important;
   animation: fadeIn 0.3s ease-in-out;
 }
 
-/* à¸›à¹‰à¸­à¸‡à¸à¸±à¸™à¸•à¸²à¸£à¸²à¸‡à¸¥à¹‰à¸™ */
+/* ป้องกันตารางล้น */
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -541,8 +541,8 @@ h1, h2, h3, h4, h5, h6 {
 /* ========== Enhanced Time Slots (Interactive) ========== */
 .time-slot {
     background: var(--bg-card);
-    border: 1px solid var(--border-color); /* à¹€à¸ªà¹‰à¸™à¸‚à¸­à¸šà¸›à¸à¸•à¸´ */
-    border-left-width: 5px; /* à¹à¸–à¸šà¸ªà¸µà¸”à¹‰à¸²à¸™à¸‹à¹‰à¸²à¸¢à¸«à¸™à¸²à¸«à¸™à¹ˆà¸­à¸¢ */
+    border: 1px solid var(--border-color); /* เส้นขอบปกติ */
+    border-left-width: 5px; /* แถบสีด้านซ้ายหนาหน่อย */
     border-radius: 16px;
     padding: 1.25rem;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -555,19 +555,19 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-/* à¸–à¹‰à¸²à¸¡à¸µà¸à¸²à¸£à¹ƒà¸ªà¹ˆ onclick (à¸à¸”à¹„à¸”à¹‰) à¹ƒà¸«à¹‰à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹€à¸¡à¸²à¸ªà¹Œà¹€à¸›à¹‡à¸™à¸£à¸¹à¸›à¸¡à¸·à¸­ */
+/* ถ้ามีการใส่ onclick (กดได้) ให้เปลี่ยนเมาส์เป็นรูปมือ */
 .time-slot[onclick] {
     cursor: pointer;
 }
 
-/* Hover Effect: à¸¢à¸à¸•à¸±à¸§à¸‚à¸¶à¹‰à¸™ + à¹€à¸‡à¸² */
+/* Hover Effect: ยกตัวขึ้น + เงา */
 .time-slot[onclick]:hover {
     transform: translateY(-4px) scale(1.01);
     box-shadow: 0 10px 20px rgba(0,0,0,0.08);
-    border-color: var(--primary); /* à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸ªà¸µà¸‚à¸­à¸šà¹€à¸¡à¸·à¹ˆà¸­à¸Šà¸µà¹‰ */
+    border-color: var(--primary); /* เปลี่ยนสีขอบเมื่อชี้ */
 }
 
-/* Active Effect: à¸à¸”à¸¢à¸¸à¸šà¸¥à¸‡ */
+/* Active Effect: กดยุบลง */
 .time-slot[onclick]:active {
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.06);
@@ -575,13 +575,13 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- Color Variants (Status) --- */
 
-/* 1. à¸§à¹ˆà¸²à¸‡ (Available) */
+/* 1. ว่าง (Available) */
 .time-slot.available {
     border-left-color: var(--info);
     background: linear-gradient(to right, rgba(13, 202, 240, 0.05), transparent);
 }
 
-/* 2. à¸•à¸²à¸£à¸²à¸‡à¸ªà¸­à¸™ (Class) - à¸ªà¸µà¹€à¸‚à¹‰à¸¡ */
+/* 2. ตารางสอน (Class) - สีเข้ม */
 .time-slot.class {
     border-left-color: var(--dark);
     background: linear-gradient(to right, rgba(33, 37, 41, 0.05), transparent);
@@ -589,21 +589,21 @@ h1, h2, h3, h4, h5, h6 {
 .time-slot.class .slot-title { color: var(--dark); }
 .time-slot.class .status-badge { background: var(--dark); color: white; }
 
-/* 3. à¸£à¸­à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ (Pending) - à¸ªà¸µà¹€à¸«à¸¥à¸·à¸­à¸‡ */
+/* 3. รออนุมัติ (Pending) - สีเหลือง */
 .time-slot.pending {
     border-left-color: var(--warning);
     background: linear-gradient(to right, rgba(255, 193, 7, 0.1), transparent);
 }
 .time-slot.pending .status-badge { background: var(--warning); color: #000; }
 
-/* 4. à¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ (Approved) - à¸ªà¸µà¸™à¹‰à¸³à¹€à¸‡à¸´à¸™ */
+/* 4. อนุมัติ (Approved) - สีน้ำเงิน */
 .time-slot.approved {
     border-left-color: var(--success);
     background: linear-gradient(to right, rgba(25, 135, 84, 0.05), transparent);
 }
 .time-slot.approved .status-badge { background: var(--success); color: white; }
 
-/* 5. à¸¢à¸à¹€à¸¥à¸´à¸/à¹„à¸¡à¹ˆà¸­à¸™à¸¸à¸¡à¸±à¸•à¸´ (Rejected) */
+/* 5. ยกเลิก/ไม่อนุมัติ (Rejected) */
 .time-slot.rejected, .time-slot.cancelled {
     border-left-color: var(--danger);
     opacity: 0.7;
@@ -633,7 +633,7 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1rem;
     line-height: 1.4;
     
-    /* à¸•à¸±à¸”à¸„à¸³à¸–à¹‰à¸²à¸¢à¸²à¸§à¹€à¸à¸´à¸™ */
+    /* ตัดคำถ้ายาวเกิน */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -650,7 +650,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .slot-status {
     display: flex;
-    justify-content: space-between; /* à¸ˆà¸±à¸” Badge à¸‹à¹‰à¸²à¸¢ à¸›à¸¸à¹ˆà¸¡à¸”à¸¹à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸” à¸‚à¸§à¸² */
+    justify-content: space-between; /* จัด Badge ซ้าย ปุ่มดูรายละเอียด ขวา */
     align-items: center;
     margin-top: auto;
     padding-top: 0.5rem;
@@ -666,7 +666,7 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.5px;
 }
 
-/* à¸Šà¸´à¸› "à¸„à¸¥à¸´à¸à¹€à¸žà¸·à¹ˆà¸­à¸”à¸¹" (à¸ˆà¸°à¹‚à¸œà¸¥à¹ˆà¸¡à¸²à¹€à¸¡à¸·à¹ˆà¸­ Hover) */
+/* ชิป "คลิกเพื่อดู" (จะโผล่มาเมื่อ Hover) */
 .click-hint {
     font-size: 0.75rem;
     color: var(--primary);
@@ -799,7 +799,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Main Container for Charts & Recent Items */
 .charts-row {
     display: grid;
-    /* à¸ˆà¸­à¹ƒà¸«à¸à¹ˆ: à¸à¸£à¸²à¸Ÿà¸à¸´à¸™à¸žà¸·à¹‰à¸™à¸—à¸µà¹ˆ 70% (à¸«à¸£à¸·à¸­à¸ˆà¸°à¹ƒà¸«à¹‰à¹€à¸•à¹‡à¸¡ 100% à¸à¹‡à¸›à¸£à¸±à¸šà¹€à¸›à¹‡à¸™ 1fr à¹„à¸”à¹‰à¹€à¸¥à¸¢à¸–à¹‰à¸²à¸•à¹‰à¸­à¸‡à¸à¸²à¸£à¹à¸–à¸§à¹€à¸”à¸µà¸¢à¸§) */
+    /* จอใหญ่: กราฟกินพื้นที่ 70% (หรือจะให้เต็ม 100% ก็ปรับเป็น 1fr ได้เลยถ้าต้องการแถวเดียว) */
     grid-template-columns: 2fr 1fr; 
     gap: 1.5rem;
     margin-bottom: 2rem;
@@ -832,7 +832,7 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     padding: 1rem;
     width: 100%;
-    min-height: 350px; /* à¹€à¸žà¸´à¹ˆà¸¡à¸„à¸§à¸²à¸¡à¸ªà¸¹à¸‡à¹ƒà¸«à¹‰à¸à¸£à¸²à¸Ÿà¸”à¸¹à¹€à¸•à¹‡à¸¡à¸•à¸²à¹ƒà¸™à¸ˆà¸­à¸„à¸­à¸¡ */
+    min-height: 350px; /* เพิ่มความสูงให้กราฟดูเต็มตาในจอคอม */
     max-height: 500px;
     display: flex;
     align-items: center;
@@ -841,20 +841,20 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- Responsive Breakpoints --- */
 
-/* Tablet & Smaller Laptops (à¸•à¹ˆà¸³à¸à¸§à¹ˆà¸² 992px) */
+/* Tablet & Smaller Laptops (ต่ำกว่า 992px) */
 @media (max-width: 1200px) {
     .charts-row {
-        /* à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¹€à¸›à¹‡à¸™à¹à¸™à¸§à¸•à¸±à¹‰à¸‡ à¸à¸£à¸²à¸Ÿà¸­à¸¢à¸¹à¹ˆà¸šà¸™ à¸£à¸²à¸¢à¸à¸²à¸£à¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¸­à¸¢à¸¹à¹ˆà¸¥à¹ˆà¸²à¸‡ */
+        /* เปลี่ยนเป็นแนวตั้ง กราฟอยู่บน รายการล่าสุดอยู่ล่าง */
         grid-template-columns: 1fr; 
         gap: 2rem;
     }
 
     .chart-body {
-        min-height: 300px; /* à¸¥à¸”à¸„à¸§à¸²à¸¡à¸ªà¸¹à¸‡à¸¥à¸‡à¸™à¸´à¸”à¸«à¸™à¹ˆà¸­à¸¢ */
+        min-height: 300px; /* ลดความสูงลงนิดหน่อย */
     }
 }
 
-/* Mobile Phones (à¸•à¹ˆà¸³à¸à¸§à¹ˆà¸² 576px) */
+/* Mobile Phones (ต่ำกว่า 576px) */
 @media (max-width: 576px) {
     .chart-header {
         flex-direction: column;
@@ -863,11 +863,11 @@ h1, h2, h3, h4, h5, h6 {
     }
     
     .chart-header select {
-        width: 100%; /* Dropdown à¹€à¸•à¹‡à¸¡à¸„à¸§à¸²à¸¡à¸à¸§à¹‰à¸²à¸‡ */
+        width: 100%; /* Dropdown เต็มความกว้าง */
     }
 
     .chart-body {
-        min-height: 250px; /* à¸à¸£à¸²à¸Ÿà¹€à¸¥à¹‡à¸à¸¥à¸‡à¸žà¸­à¸”à¸µà¸ˆà¸­à¸¡à¸·à¸­à¸–à¸·à¸­ */
+        min-height: 250px; /* กราฟเล็กลงพอดีจอมือถือ */
         padding: 0.5rem;
     }
 }
@@ -939,7 +939,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 12px;
     color: var(--text-primary);
     transition: all var(--transition-normal);
-    min-height: 52px; /* à¹€à¸žà¸´à¹ˆà¸¡à¸„à¸§à¸²à¸¡à¸ªà¸¹à¸‡à¹€à¸¥à¹‡à¸à¸™à¹‰à¸­à¸¢à¹€à¸žà¸·à¹ˆà¸­à¸„à¸§à¸²à¸¡à¸ªà¸§à¸¢à¸‡à¸²à¸¡ */
+    min-height: 52px; /* เพิ่มความสูงเล็กน้อยเพื่อความสวยงาม */
 }
 
 /* Input Styles */
@@ -948,7 +948,7 @@ h1, h2, h3, h4, h5, h6 {
     height: calc(3.5rem + 2px);
 }
 
-/* Select Styles - à¹à¸à¹‰à¹„à¸‚ Padding à¹„à¸¡à¹ˆà¹ƒà¸«à¹‰à¸—à¸±à¸š Label */
+/* Select Styles - แก้ไข Padding ไม่ให้ทับ Label */
 .form-floating > .form-select {
     padding-top: 1.625rem;
     padding-bottom: 0.625rem;
@@ -957,14 +957,14 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.25;
 }
 
-/* Label Styles - à¹€à¸žà¸´à¹ˆà¸¡ z-index à¸›à¹‰à¸­à¸‡à¸à¸±à¸™à¸à¸²à¸£à¸—à¸±à¸šà¸‹à¹‰à¸­à¸™ */
+/* Label Styles - เพิ่ม z-index ป้องกันการทับซ้อน */
 .form-floating > label {
     padding: 1rem 0.75rem;
     color: var(--text-secondary);
     transition: all var(--transition-normal);
     height: 100%;
     z-index: 2;
-    pointer-events: none; /* à¹ƒà¸«à¹‰à¸„à¸¥à¸´à¸à¸—à¸°à¸¥à¸¸ Label à¹„à¸›à¸—à¸µà¹ˆ Input à¹„à¸”à¹‰ */
+    pointer-events: none; /* ให้คลิกทะลุ Label ไปที่ Input ได้ */
 }
 
 .form-floating > label::after {
@@ -1115,24 +1115,24 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ========== Enhanced Modals (Berry Glass Style) ========== */
 .modal-content {
-    /* à¹ƒà¸Šà¹‰ rgba à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸žà¸·à¹‰à¸™à¸«à¸¥à¸±à¸‡à¹‚à¸›à¸£à¹ˆà¸‡à¹à¸ªà¸‡ (à¸ªà¸³à¸„à¸±à¸à¸¡à¸²à¸à¸ªà¸³à¸«à¸£à¸±à¸š Glass Effect) */
+    /* ใช้ rgba เพื่อให้พื้นหลังโปร่งแสง (สำคัญมากสำหรับ Glass Effect) */
     background: rgba(255, 255, 255, 0.85); 
     
-    /* à¹€à¸ªà¹‰à¸™à¸‚à¸­à¸šà¸ˆà¸²à¸‡à¹† à¹ƒà¸«à¹‰à¸”à¸¹à¸¡à¸µà¸¡à¸´à¸•à¸´ */
+    /* เส้นขอบจางๆ ให้ดูมีมิติ */
     border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 24px; /* à¹€à¸žà¸´à¹ˆà¸¡à¸„à¸§à¸²à¸¡à¸¡à¸™à¹ƒà¸«à¹‰à¸”à¸¹à¸™à¸¸à¹ˆà¸¡à¸™à¸§à¸¥ */
+    border-radius: 24px; /* เพิ่มความมนให้ดูนุ่มนวล */
     
-    /* à¹€à¸‡à¸²à¸Ÿà¸¸à¹‰à¸‡à¹† à¹ƒà¸«à¹‰à¸”à¸¹à¸¥à¸­à¸¢à¸­à¸­à¸à¸¡à¸² */
+    /* เงาฟุ้งๆ ให้ดูลอยออกมา */
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     
-    /* à¸žà¸£à¸°à¹€à¸­à¸à¸‚à¸­à¸‡à¹€à¸£à¸²: à¹€à¸­à¸Ÿà¹€à¸Ÿà¸à¸•à¹Œà¹€à¸šà¸¥à¸­à¸‰à¸²à¸à¸«à¸¥à¸±à¸‡ */
+    /* พระเอกของเรา: เอฟเฟกต์เบลอฉากหลัง */
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     
-    overflow: hidden; /* à¹€à¸žà¸·à¹ˆà¸­à¹„à¸¡à¹ˆà¹ƒà¸«à¹‰à¹€à¸™à¸·à¹‰à¸­à¸«à¸²à¸¥à¹‰à¸™à¸¡à¸¸à¸¡à¹‚à¸„à¹‰à¸‡ */
+    overflow: hidden; /* เพื่อไม่ให้เนื้อหาล้นมุมโค้ง */
 }
 
-/* à¸ªà¹ˆà¸§à¸™à¸«à¸±à¸§ Modal */
+/* ส่วนหัว Modal */
 .modal-header {
     background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.08), transparent);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -1148,24 +1148,24 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1.25rem;
 }
 
-/* à¸ªà¹ˆà¸§à¸™à¹€à¸™à¸·à¹‰à¸­à¸«à¸² */
+/* ส่วนเนื้อหา */
 .modal-body { 
     padding: 2rem; 
     max-height: 70vh; 
     overflow-y: auto;
-    /* à¸›à¸£à¸±à¸š Scrollbar à¹ƒà¸«à¹‰à¸ªà¸§à¸¢à¸‡à¸²à¸¡ */
+    /* ปรับ Scrollbar ให้สวยงาม */
     scrollbar-width: thin; 
 }
 
-/* à¸ªà¹ˆà¸§à¸™à¸—à¹‰à¸²à¸¢ Modal */
+/* ส่วนท้าย Modal */
 .modal-footer {
-    background: rgba(var(--bg-secondary-rgb), 0.5); /* à¹‚à¸›à¸£à¹ˆà¸‡à¹à¸ªà¸‡à¸™à¸´à¸”à¹† à¹ƒà¸«à¹‰à¸à¸¥à¸·à¸™à¸à¸±à¸™ */
+    background: rgba(var(--bg-secondary-rgb), 0.5); /* โปร่งแสงนิดๆ ให้กลืนกัน */
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     padding: 1.25rem 2rem;
-    backdrop-filter: blur(10px); /* à¹€à¸šà¸¥à¸­à¸‹à¹‰à¸­à¸™à¹€à¸šà¸¥à¸­ */
+    backdrop-filter: blur(10px); /* เบลอซ้อนเบลอ */
 }
 
-/* à¸›à¸£à¸±à¸šà¹à¸•à¹ˆà¸‡à¸›à¸¸à¹ˆà¸¡à¸›à¸´à¸” */
+/* ปรับแต่งปุ่มปิด */
 .btn-close {
     background: transparent;
     opacity: 0.5;
@@ -1177,7 +1177,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-close:hover { 
     opacity: 1; 
     background: rgba(0,0,0,0.05);
-    transform: rotate(90deg); /* à¸¥à¸¹à¸à¹€à¸¥à¹ˆà¸™à¸«à¸¡à¸¸à¸™à¸›à¸¸à¹ˆà¸¡ */
+    transform: rotate(90deg); /* ลูกเล่นหมุนปุ่ม */
 }
 
 
@@ -2044,7 +2044,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .has-error::after {
-  content: 'âš ï¸';
+  content: '⚠️';
   position: absolute;
   top: -8px;
   right: -8px;
@@ -2125,7 +2125,7 @@ h1, h2, h3, h4, h5, h6 {
   max-height: 50vh;
 }
 
-/* à¸ªà¸¹à¸‡à¸žà¸­à¸”à¸µà¸à¸±à¸šà¸«à¸™à¹‰à¸²à¸ˆà¸­à¸ªà¸³à¸«à¸£à¸±à¸š Tablet/Mobile */
+/* สูงพอดีกับหน้าจอสำหรับ Tablet/Mobile */
 @media (max-width: 991.98px) {
   .chart-body {
     height: 220px;
@@ -2398,17 +2398,17 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =========================================================
-   âœ… BERRY UI/UX â€” FULL REPLACEMENT BLOCK
-   âœ… Modern + Responsive (Desktop & Mobile) + Theme Friendly
-   âœ… Paste & Replace: NewFeatures + FinalPolish + ModernSchedule + Berry Blocks
+   ✅ BERRY UI/UX — FULL REPLACEMENT BLOCK
+   ✅ Modern + Responsive (Desktop & Mobile) + Theme Friendly
+   ✅ Paste & Replace: NewFeatures + FinalPolish + ModernSchedule + Berry Blocks
    ========================================================= */
 
 /* ===========================
-   âœ… TAB CONTENT SAFETY FIX
-   (à¸à¸±à¸™à¸ˆà¸­à¸§à¸¹à¸šà¸•à¸­à¸™à¸ªà¸¥à¸±à¸š tab/view)
+   ✅ TAB CONTENT SAFETY FIX
+   (กันจอวูบตอนสลับ tab/view)
    =========================== */
 
-/* à¹ƒà¸Šà¹‰à¸£à¸°à¸šà¸šà¹€à¸”à¸µà¸¢à¸§: JS à¸„à¸¸à¸¡ display à¸œà¹ˆà¸²à¸™ class active/d-none */
+/* ใช้ระบบเดียว: JS คุม display ผ่าน class active/d-none */
 .tab-content{
   display: none;
   opacity: 0;
@@ -2419,30 +2419,30 @@ h1, h2, h3, h4, h5, h6 {
   will-change: opacity, transform;
 }
 
-/* tab à¸—à¸µà¹ˆ active à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™à¸—à¸µà¹ˆà¹‚à¸Šà¸§à¹Œ */
+/* tab ที่ active เท่านั้นที่โชว์ */
 .tab-content.active{
-  display: block;
-  opacity: 1;
-  visibility: visible;
-  overflow: visible;
-  transform: translateY(0);
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible !important;
+  transform: translateY(0) !important;
   animation: berryFadeIn 0.25s ease-in-out;
 }
 
-/* à¹€à¸œà¸·à¹ˆà¸­à¸šà¸²à¸‡à¸à¸£à¸“à¸µ JS à¹ƒà¸ªà¹ˆ show à¸”à¹‰à¸§à¸¢ */
+/* เผื่อบางกรณี JS ใส่ show ด้วย */
 .tab-content.show{
   opacity: 1;
   visibility: visible;
 }
 
-/* à¸à¸±à¸™ Bootstrap d-none à¸Šà¸™à¸à¸±à¸š active: à¸–à¹‰à¸² active à¹à¸¥à¹‰à¸§ à¹ƒà¸«à¹‰à¸›à¸¥à¹ˆà¸­à¸¢ display */
+/* กัน Bootstrap d-none ชนกับ active: ถ้า active แล้ว ให้ปล่อย display */
 .tab-content.active.d-none{
   display: block !important;
 }
 
 
 /* ===========================
-   âœ… SMALL UTILITIES
+   ✅ SMALL UTILITIES
    =========================== */
 .bg-soft-primary{
   background-color: rgba(13,110,253,0.10);
@@ -2455,14 +2455,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… DAY GROUP / CARD POLISH
+   ✅ DAY GROUP / CARD POLISH
    =========================== */
 .card{
   border-radius:16px;
   margin-bottom:1.5rem;
 }
 
-/* à¸à¸¥à¹ˆà¸­à¸‡à¸£à¸§à¸¡à¸•à¹ˆà¸­à¸§à¸±à¸™ */
+/* กล่องรวมต่อวัน */
 .day-schedule-group{
   background: rgba(255,255,255,0.96);
   border-radius: 16px;
@@ -2472,7 +2472,7 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(0,0,0,0.06);
 }
 
-/* day-header (unified) â€” à¸à¸±à¸™à¸‹à¹‰à¸³à¸à¸±à¸š day-header-modern */
+/* day-header (unified) — กันซ้ำกับ day-header-modern */
 .day-header{
   margin-top: 0;
   font-size: 1.2rem;
@@ -2485,7 +2485,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… COMPACT BOOKING FORM
+   ✅ COMPACT BOOKING FORM
    =========================== */
 .equipment-grid-compact{
   display:grid;
@@ -2549,7 +2549,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… TABLE POLISH (GENERAL)
+   ✅ TABLE POLISH (GENERAL)
    =========================== */
 .table thead th{
   font-weight:800;
@@ -2566,7 +2566,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… BOOKING MODAL ANIMATION
+   ✅ BOOKING MODAL ANIMATION
    =========================== */
 .modal.fade .modal-dialog{
   transform: scale(0.985);
@@ -2578,7 +2578,7 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 1;
 }
 
-/* Badge à¹à¸ªà¸”à¸‡à¸§à¸±à¸™à¸—à¸µà¹ˆ à¸ž.à¸¨. à¸‚à¹‰à¸²à¸‡ Input */
+/* Badge แสดงวันที่ พ.ศ. ข้าง Input */
 .date-be-display{
   display:block;
   margin-top: .25rem;
@@ -2592,7 +2592,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… CANCEL MODAL STYLES
+   ✅ CANCEL MODAL STYLES
    =========================== */
 #cancelBookingModal .modal-header{
   background-color: #fff3cd;
@@ -2611,7 +2611,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… LOADING MODAL + BACKDROP
+   ✅ LOADING MODAL + BACKDROP
    =========================== */
 .animate-fade-in{
   animation: berryFadeIn .45s ease-out forwards;
@@ -2629,7 +2629,7 @@ h1, h2, h3, h4, h5, h6 {
   height: 4rem;
 }
 
-/* à¸—à¸³à¹ƒà¸«à¹‰ Background à¸«à¸¥à¸±à¸‡ Modal à¸ˆà¸²à¸‡à¸¥à¸‡à¹à¸šà¸š Blur */
+/* ทำให้ Background หลัง Modal จางลงแบบ Blur */
 .modal-backdrop.show{
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -2637,7 +2637,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… BOOKING MODAL â€” STICKY SUMMARY & FOOTER
+   ✅ BOOKING MODAL — STICKY SUMMARY & FOOTER
    =========================== */
 #bookingModal .booking-summary-bar{
   position: sticky;
@@ -2681,7 +2681,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… MODERN DAY CARDS (SCHEDULE VIEW)
+   ✅ MODERN DAY CARDS (SCHEDULE VIEW)
    =========================== */
 .day-card, .combined-day-card{
   border:0;
@@ -2708,7 +2708,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-/* à¸ªà¸µà¸›à¸£à¸°à¸ˆà¸³à¸§à¸±à¸™ (à¸•à¸£à¸‡à¸à¸±à¸š JS) */
+/* สีประจำวัน (ตรงกับ JS) */
 .day-mon .day-header-modern { background: linear-gradient(135deg, #FFC107 0%, #FFB300 100%); color: #4e342e; }
 .day-tue .day-header-modern { background: linear-gradient(135deg, #EC407A 0%, #E91E63 100%); }
 .day-wed .day-header-modern { background: linear-gradient(135deg, #43A047 0%, #2E7D32 100%); }
@@ -2718,7 +2718,7 @@ h1, h2, h3, h4, h5, h6 {
 .day-sun .day-header-modern { background: linear-gradient(135deg, #E53935 0%, #C62828 100%); }
 
 /* ===========================
-   âœ… MODERN TABLE (SCHEDULE VIEW)
+   ✅ MODERN TABLE (SCHEDULE VIEW)
    =========================== */
 .modern-table{
   margin-bottom: 0;
@@ -2789,7 +2789,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… COMBINED WEEK HEADER
+   ✅ COMBINED WEEK HEADER
    =========================== */
 .combined-week-header{
   display:flex;
@@ -2816,7 +2816,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =========================================================
-   âœ… BERRY ROOM CARDS (SIDEBAR) â€” RESPONSIVE + LONG TEXT SAFE
+   ✅ BERRY ROOM CARDS (SIDEBAR) — RESPONSIVE + LONG TEXT SAFE
    ========================================================= */
 .room-list{
   display:flex;
@@ -2902,7 +2902,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content:center;
 }
 
-/* âœ… Long text safe: clamp 2 lines desktop / 3 lines mobile */
+/* ✅ Long text safe: clamp 2 lines desktop / 3 lines mobile */
 .room-card-title{
   font-weight: 900;
   font-size:.95rem;
@@ -2967,7 +2967,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =========================================================
-   âœ… MOBILE ROOM PILLS â€” LONG TEXT SAFE
+   ✅ MOBILE ROOM PILLS — LONG TEXT SAFE
    ========================================================= */
 .mobile-room-wrapper{
   background: rgba(255,255,255,0.92);
@@ -3059,8 +3059,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… RESPONSIVE TABLE â€” BOTH .table AND .modern-table (Mobile Cards)
-   (à¸›à¹‰à¸­à¸‡à¸à¸±à¸™à¸Šà¸™à¸‹à¹‰à¸³ + à¸—à¸³à¹ƒà¸«à¹‰à¸”à¸¹à¸”à¸µ)
+   ✅ RESPONSIVE TABLE — BOTH .table AND .modern-table (Mobile Cards)
+   (ป้องกันชนซ้ำ + ทำให้ดูดี)
    =========================== */
 @media (max-width: 768px){
   /* classic bootstrap table -> cards */
@@ -3086,7 +3086,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================
-   âœ… MODAL FULLSCREEN ON MOBILE
+   ✅ MODAL FULLSCREEN ON MOBILE
    =========================== */
 @media (max-width: 576px){
   .modal-fullscreen-sm-down .modal-content{
@@ -3099,7 +3099,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =========================================================
-   âœ… CALENDAR GRID (7 DAYS + TODAY HIGHLIGHT) â€” MATCH THEME
+   ✅ CALENDAR GRID (7 DAYS + TODAY HIGHLIGHT) — MATCH THEME
    ========================================================= */
 .combined-calendar-grid-wrap{ width:100%; }
 
@@ -3113,7 +3113,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 10px 24px rgba(0,0,0,0.04);
 }
 
-/* à¹ƒà¸«à¹‰ Scroll à¹à¸™à¸§à¸™à¸­à¸™à¹„à¸”à¹‰ */
+/* ให้ Scroll แนวนอนได้ */
 .combined-cal-head,
 .combined-cal-body .combined-cal-row{
   min-width: 980px;
@@ -3150,7 +3150,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 900;
 }
 .combined-cal-head-day.is-today::after{
-  content:"à¸§à¸±à¸™à¸™à¸µà¹‰";
+  content:"วันนี้";
   display:inline-block;
   margin-left: 8px;
   padding: 3px 10px;
@@ -4105,7 +4105,7 @@ body.app-loaded .page-shell {
     border-radius: 999px !important;
   }
 
-  /* 3. Room Pills / à¹à¸–à¸šà¹€à¸¥à¸·à¸­à¸à¸«à¹‰à¸­à¸‡à¸šà¸™à¸¡à¸·à¸­à¸–à¸·à¸­ */
+  /* 3. Room Pills / แถบเลือกห้องบนมือถือ */
   .modern-room-pill {
     min-height: 54px !important;
     height: 54px !important;
@@ -4242,7 +4242,7 @@ body {
 }
 
 /* =========================================================
-   âœ… FIX TODAY CELL CONTRAST & STYLING (Weekly & Monthly Grids)
+   ✅ FIX TODAY CELL CONTRAST & STYLING (Weekly & Monthly Grids)
    ========================================================= */
 
 /* 1. Custom Weekly & Monthly Table Grids */
@@ -4268,7 +4268,7 @@ body {
   color: #ffffff !important;
 }
 
-/* Style the "à¸§à¸±à¸™à¸™à¸µà¹‰" badge/date badge inside today cell/header to stand out with high contrast */
+/* Style the "วันนี้" badge/date badge inside today cell/header to stand out with high contrast */
 .table thead th.bg-primary .badge.bg-primary,
 .table thead th.bg-primary .badge,
 .month-cell.today .badge.bg-primary,
@@ -4300,7 +4300,7 @@ body {
 }
 
 /* =========================================================
-   âœ… CUSTOM MONTH VIEW GRID & COMPACT READABLE CARD
+   ✅ CUSTOM MONTH VIEW GRID & COMPACT READABLE CARD
    ========================================================= */
 .monthly-calendar {
   display: grid !important;
@@ -4489,7 +4489,7 @@ body {
   padding: 4px 6px !important;
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease !important;
-  flex-shrink: 0 !important; /* à¸›à¹‰à¸­à¸‡à¸à¸±à¸™à¸à¸²à¸£à¸šà¸µà¸šà¸à¸¥à¹ˆà¸­à¸‡à¸ˆà¸™à¸•à¸±à¸§à¸«à¸™à¸±à¸‡à¸ªà¸·à¸­à¸‹à¹‰à¸­à¸™à¸—à¸±à¸šà¸à¸±à¸™ */
+  flex-shrink: 0 !important; /* ป้องกันการบีบกล่องจนตัวหนังสือซ้อนทับกัน */
 }
 
 .month-schedule-event:hover {
@@ -4782,7 +4782,7 @@ body {
 }
 
 /* =========================================================
-   ðŸ“± MOBILE WEEK AGENDA VIEW (< 768px)
+   📱 MOBILE WEEK AGENDA VIEW (< 768px)
    Ensures weeklyScheduleGrid uses vertical card list only
    ========================================================= */
 @media (max-width: 767.98px) {
@@ -5650,7 +5650,7 @@ body {
 }
 
 .combined-week-nav .btn-nav {
-    min-height: 44px; /* Touch target â‰¥ 44px */
+    min-height: 44px; /* Touch target ≥ 44px */
     display: inline-flex;
     align-items: center;
     justify-content: center;
