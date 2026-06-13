@@ -2056,6 +2056,7 @@ function renderTimetableWeekAgenda(slots, mondayDateInput) {
     window._currentWeekDisplayDate = new Date(mondayDate);
 
     const monthNames = ['\u0E21\u0E01\u0E23\u0E32\u0E04\u0E21','\u0E01\u0E38\u0E21\u0E20\u0E32\u0E1E\u0E31\u0E19\u0E18\u0E4C','\u0E21\u0E35\u0E19\u0E32\u0E04\u0E21','\u0E40\u0E21\u0E29\u0E32\u0E22\u0E19','\u0E1E\u0E24\u0E29\u0E20\u0E32\u0E04\u0E21','\u0E21\u0E34\u0E16\u0E38\u0E19\u0E32\u0E22\u0E19','\u0E01\u0E23\u0E01\u0E0E\u0E32\u0E04\u0E21','\u0E2A\u0E34\u0E07\u0E2B\u0E32\u0E04\u0E21','\u0E01\u0E31\u0E19\u0E22\u0E32\u0E22\u0E19','\u0E15\u0E38\u0E25\u0E32\u0E04\u0E21','\u0E1E\u0E24\u0E28\u0E08\u0E34\u0E01\u0E32\u0E22\u0E19','\u0E18\u0E31\u0E19\u0E27\u0E32\u0E04\u0E21'];
+    const monthNamesShort = ['\u0E21.\u0E04.','\u0E01.\u0E1E.','\u0E21\u0E35.\u0E04.','\u0E40\u0E21.\u0E22.','\u0E1E.\u0E04.','\u0E21\u0E34.\u0E22.','\u0E01.\u0E04.','\u0E2A.\u0E04.','\u0E01.\u0E22.','\u0E15.\u0E04.','\u0E1E.\u0E22.','\u0E18.\u0E04.'];
     const todayISO = toLocalISO(new Date());
 
     // Build 7-day date array (Mon-Sun)
@@ -2067,19 +2068,19 @@ function renderTimetableWeekAgenda(slots, mondayDateInput) {
     }
     const rangeStart = weekDates[0].dateObj;
     const rangeEnd   = weekDates[6].dateObj;
-    const fmt = (d) => `${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()+543}`;
+    const fmtShort = (d) => `${d.getDate()} ${monthNamesShort[d.getMonth()]} ${d.getFullYear()+543}`;
 
     let html = `
         <div class="d-flex justify-content-between align-items-center mb-3 px-2 bg-white rounded-pill shadow-sm py-2 border">
             <button class="btn btn-sm btn-outline-primary rounded-circle border-0 ms-1"
-                    onclick="changeTimetableWeek(-1)" style="min-width:44px;min-height:44px;">
+                    onclick="changeTimetableWeek(-1)" style="min-width:40px;min-height:40px;width:40px;height:40px;padding:0;">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <h5 class="fw-bold text-primary mb-0 user-select-none" style="font-size:0.82rem;text-align:center;">
-                <i class="fas fa-calendar-week me-1 opacity-50"></i>${fmt(rangeStart)} – ${fmt(rangeEnd)}
+            <h5 class="fw-bold text-primary mb-0 user-select-none" style="font-size:15px;font-weight:600;text-align:center;">
+                <i class="fas fa-calendar-week me-1 opacity-50"></i>${fmtShort(rangeStart)} – ${fmtShort(rangeEnd)}
             </h5>
             <button class="btn btn-sm btn-outline-primary rounded-circle border-0 me-1"
-                    onclick="changeTimetableWeek(1)" style="min-width:44px;min-height:44px;">
+                    onclick="changeTimetableWeek(1)" style="min-width:40px;min-height:40px;width:40px;height:40px;padding:0;">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
