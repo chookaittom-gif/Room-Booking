@@ -6151,4 +6151,116 @@ video {
     min-height: 48px !important;
   }
 }
+
+/* ANCHOR: MOBILE MAIN TAB TEXT FIX */
+@media (max-width: 575.98px) {
+  .custom-tabs,
+  .tab-nav,
+  .nav-pills-scrollable {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    padding: 6px !important;
+  }
+
+  .custom-tabs {
+    display: block !important;
+  }
+
+  .tab-nav,
+  .nav-pills-scrollable {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .custom-tabs .tabs-scroll {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    overflow: visible !important;
+    min-width: 0 !important;
+  }
+
+  .custom-tabs #mainTab,
+  .custom-tabs #nav-tab {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .tab-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 52px !important;
+    height: auto !important;
+    padding: 6px 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+  }
+
+  .custom-tabs .tab-btn i,
+  .custom-tabs .tab-btn .tab-icon,
+  .tab-btn i,
+  .tab-btn .tab-icon {
+    display: block !important;
+    flex: 0 0 auto !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .custom-tabs .tab-btn span,
+  .custom-tabs .tab-btn .tab-label,
+  .tab-btn span,
+  .tab-btn .tab-label {
+    display: block !important;
+    max-width: 100% !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+  }
+
+  .custom-tabs .tab-btn.active,
+  .custom-tabs .tab-btn:hover,
+  .tab-btn.active,
+  .tab-btn:hover {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 430.98px) {
+  .custom-tabs .tab-btn,
+  .nav-pills-scrollable .tab-btn,
+  .tab-btn {
+    font-size: 10.5px !important;
+    min-height: 54px !important;
+    padding: 5px 3px !important;
+  }
+
+  .custom-tabs .tab-btn i,
+  .custom-tabs .tab-btn .tab-icon,
+  .tab-btn i,
+  .tab-btn .tab-icon {
+    font-size: 13px !important;
+  }
+}
 </style>
