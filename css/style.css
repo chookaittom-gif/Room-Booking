@@ -6365,3 +6365,160 @@ video {
   }
 }
 
+/* ANCHOR: MOBILE DASHBOARD FILTER FIX */
+@media (max-width: 575.98px) {
+  .dashboard-filter,
+  .dashboard-report-filter,
+  .dashboard-report-actions,
+  .usage-filter,
+  .stats-filter,
+  .report-filter-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+
+  .dashboard-filter > *,
+  .dashboard-report-filter > *,
+  .dashboard-report-actions > *,
+  .usage-filter > *,
+  .stats-filter > *,
+  .report-filter-row > * {
+    min-width: 0 !important;
+  }
+
+  .dashboard-filter .btn,
+  .dashboard-report-btn,
+  .report-pdf-btn,
+  #downloadPdfBtn,
+  #exportPdfBtn,
+  .btn-pdf {
+    flex: 0 0 auto !important;
+    min-width: 118px !important;
+    max-width: 140px !important;
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  .dashboard-filter .btn i,
+  .dashboard-report-btn i,
+  .report-pdf-btn i,
+  #downloadPdfBtn i,
+  #exportPdfBtn i,
+  .btn-pdf i {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .dashboard-filter select,
+  .dashboard-report-filter select,
+  .usage-filter select,
+  .stats-filter select,
+  .report-filter-row select,
+  #chartRoomFilter,
+  #chartPeriod,
+  #dashboardRoomFilter,
+  #roomFilter {
+    flex: 1 1 128px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 8px 34px 8px 12px !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .dashboard-period-tabs,
+  .dashboard-period-controls,
+  .dashboard-range-tabs {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    overflow: hidden !important;
+  }
+
+  .dashboard-period-tabs .btn,
+  .dashboard-period-controls .btn,
+  .dashboard-range-tabs .btn {
+    min-width: 0 !important;
+    min-height: 44px !important;
+    padding: 6px 4px !important;
+    font-size: 12px !important;
+    line-height: 1.15 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: normal !important;
+  }
+
+  .dashboard-period-tabs .btn i,
+  .dashboard-period-controls .btn i,
+  .dashboard-range-tabs .btn i {
+    flex: 0 0 auto !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .dashboard-card,
+  .dashboard-section,
+  .usage-card,
+  .stats-card,
+  .chart-card {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+}
+
+@media (max-width: 389.98px) {
+  .dashboard-filter .btn,
+  .dashboard-report-btn,
+  .report-pdf-btn,
+  #downloadPdfBtn,
+  #exportPdfBtn,
+  .btn-pdf {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .dashboard-filter select,
+  .dashboard-report-filter select,
+  .usage-filter select,
+  .stats-filter select,
+  .report-filter-row select,
+  #chartRoomFilter,
+  #chartPeriod,
+  #dashboardRoomFilter,
+  #roomFilter {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+}
+
