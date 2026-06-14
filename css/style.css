@@ -7230,3 +7230,38 @@ video {
   }
 }
 
+
+
+/* ===== Mobile Fix: #monthDaySlotsModal card badge+title wrap ===== */
+@media (max-width: 576px) {
+  /* à¸šà¸±à¸‡à¸„à¸±à¸š row à¸—à¸µà¹ˆà¸¡à¸µ badge + h6 à¹ƒà¸«à¹‰ wrap à¹€à¸¡à¸·à¹ˆà¸­à¸ˆà¸­à¹à¸„à¸š */
+  #monthDaySlotsModal .agenda-item-card .d-flex.align-items-center.gap-2.mb-1 {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    min-width: 0 !important;
+  }
+
+  /* badge: à¹„à¸¡à¹ˆà¸«à¸” à¹„à¸¡à¹ˆà¸‚à¸¢à¸²à¸¢ à¸‚à¸™à¸²à¸”à¸„à¸‡à¸—à¸µà¹ˆ */
+  #monthDaySlotsModal .agenda-item-card .badge {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  /* h6 à¸Šà¸·à¹ˆà¸­à¸«à¹‰à¸­à¸‡/à¸Šà¸·à¹ˆà¸­à¸§à¸´à¸Šà¸²: à¸‚à¸¢à¸²à¸¢à¹€à¸•à¹‡à¸¡à¹à¸–à¸§ à¸¢à¸­à¸¡ wrap à¸šà¸£à¸£à¸—à¸±à¸”à¹ƒà¸«à¸¡à¹ˆà¹„à¸”à¹‰ */
+  #monthDaySlotsModal .agenda-item-card h6.text-truncate {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    -webkit-line-clamp: unset !important;
+  }
+
+  /* à¹€à¸ªà¸£à¸´à¸¡: à¸à¸¥à¹ˆà¸­à¸‡à¹€à¸§à¸¥à¸²à¸‹à¹‰à¸²à¸¢à¸¡à¸µà¸‚à¸™à¸²à¸”à¹€à¸¥à¹‡à¸à¸¥à¸‡à¹€à¸¥à¹‡à¸à¸™à¹‰à¸­à¸¢à¸šà¸™à¸¡à¸·à¸­à¸–à¸·à¸­ */
+  #monthDaySlotsModal .agenda-item-card .card-body > .me-3 {
+    flex: 0 0 64px !important;
+    min-width: 64px !important;
+  }
+}
