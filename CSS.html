@@ -6408,4 +6408,143 @@ video {
     padding-right: 8px !important;
   }
 }
+
+/* ANCHOR: MOBILE CALENDAR GRID COUNT FIX */
+@media (max-width: 575.98px) {
+  .combined-calendar-grid,
+  .calendar-grid,
+  .combined-grid,
+  #combinedCalendarGrid,
+  #combinedCalendarGrid .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  #combinedCalendarGrid .table {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  #combinedCalendarGrid th,
+  #combinedCalendarGrid td,
+  .combined-calendar-cell,
+  .calendar-cell,
+  .combined-day-cell,
+  .day-cell {
+    min-width: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  #combinedCalendarGrid th:first-child,
+  #combinedCalendarGrid td:first-child {
+    width: 48px !important;
+    max-width: 48px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  #combinedCalendarGrid th:not(:first-child),
+  #combinedCalendarGrid td:not(:first-child) {
+    width: calc((100% - 48px) / 7) !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+
+  #combinedCalendarGrid td > .d-flex,
+  .combined-calendar-cell .event-preview,
+  .calendar-cell .event-preview,
+  .combined-day-cell .event-preview {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  #combinedCalendarGrid td > .d-flex {
+    align-items: flex-start !important;
+  }
+
+  .calendar-event-count,
+  .event-count-badge,
+  .summary-count,
+  .slot-count,
+  .combined-count-badge,
+  #combinedCalendarGrid td .badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    min-height: 24px !important;
+
+    padding: 3px 6px !important;
+    border-radius: 999px !important;
+
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    flex-shrink: 0 !important;
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  .combined-calendar-cell .text-muted,
+  .calendar-cell .text-muted,
+  .combined-day-cell .text-muted,
+  #combinedCalendarGrid td small.text-muted {
+    display: block !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-size: 10.5px !important;
+    line-height: 1.2 !important;
+  }
+
+  .combined-calendar-cell .badge,
+  .calendar-cell .badge,
+  .combined-day-cell .badge {
+    max-width: none !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 389.98px) {
+  #combinedCalendarGrid th:first-child,
+  #combinedCalendarGrid td:first-child {
+    width: 44px !important;
+    max-width: 44px !important;
+  }
+
+  #combinedCalendarGrid th:not(:first-child),
+  #combinedCalendarGrid td:not(:first-child) {
+    width: calc((100% - 44px) / 7) !important;
+  }
+
+  .calendar-event-count,
+  .event-count-badge,
+  .summary-count,
+  .slot-count,
+  .combined-count-badge,
+  #combinedCalendarGrid td .badge {
+    padding: 3px 5px !important;
+    font-size: 10px !important;
+  }
+}
 </style>
