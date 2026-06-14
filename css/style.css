@@ -7126,3 +7126,61 @@ video {
   }
 }
 
+/* ANCHOR: MOBILE MODAL BOOKING HEADER TYPESET FIX */
+@media (max-width: 767.98px) {
+  #combinedDayModal,
+  #combinedDayModal .modal-dialog,
+  #combinedDayModal .modal-content,
+  #combinedDayModal .modal-body,
+  #combinedDayModal .card,
+  #combinedDayModal .card-body {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  #combinedDayModal .booking-header {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 6px 8px !important;
+    min-width: 0 !important;
+  }
+
+  #combinedDayModal .booking-header > .d-flex {
+    display: contents !important;
+  }
+
+  #combinedDayModal .booking-room-name {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    line-height: 1.4 !important;
+    font-size: 0.875rem !important;
+    text-align: left !important;
+  }
+
+  #combinedDayModal .booking-time {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.35 !important;
+    white-space: nowrap !important;
+  }
+
+  #combinedDayModal .booking-status {
+    align-self: flex-start !important;
+    max-width: 100% !important;
+    min-height: 26px !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
