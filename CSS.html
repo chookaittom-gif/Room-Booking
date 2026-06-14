@@ -6964,4 +6964,38 @@ video {
     gap: 8px !important;
   }
 }
+
+/* ===== Mobile Fix: #monthDaySlotsModal card badge+title wrap ===== */
+@media (max-width: 576px) {
+  /* บังคับ row ที่มี badge + h6 ให้ wrap เมื่อจอแคบ */
+  #monthDaySlotsModal .agenda-item-card .d-flex.align-items-center.gap-2.mb-1 {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    min-width: 0 !important;
+  }
+
+  /* badge: ไม่หด ไม่ขยาย ขนาดคงที่ */
+  #monthDaySlotsModal .agenda-item-card .badge {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+
+  /* h6 ชื่อห้อง/ชื่อวิชา: ขยายเต็มแถว ยอม wrap บรรทัดใหม่ได้ */
+  #monthDaySlotsModal .agenda-item-card h6.text-truncate {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    -webkit-line-clamp: unset !important;
+  }
+
+  /* เสริม: กล่องเวลาซ้ายมีขนาดเล็กลงเล็กน้อยบนมือถือ */
+  #monthDaySlotsModal .agenda-item-card .card-body > .me-3 {
+    flex: 0 0 64px !important;
+    min-width: 64px !important;
+  }
+}
 </style>
