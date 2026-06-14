@@ -7083,4 +7083,71 @@ video {
     min-height: 44px;
   }
 }
+
+/* ===== Mobile Booking Buttons Polish ===== */
+@media (max-width: 576px) {
+  /* ปุ่มจองห้องด้านบน */
+  .day-booking-btn,
+  .booking-add-btn,
+  .btn-book-room,
+  .mobile-booking-btn,
+  button[onclick*="showBookingForm"] {
+    min-height: 44px !important;
+    padding: 0 14px !important;
+    font-size: 0.9rem !important;
+    font-weight: 800 !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+  }
+
+  .day-booking-btn i,
+  .booking-add-btn i,
+  .btn-book-room i,
+  .mobile-booking-btn i,
+  button[onclick*="showBookingForm"] i {
+    font-size: 0.85rem !important;
+    margin-right: 4px !important;
+  }
+
+  /* ปุ่มสถานะสีเขียวในการ์ด */
+  .mobile-status-badge,
+  .month-event-status,
+  .month-schedule-event-status,
+  .status-badge {
+    min-height: 28px !important;
+    padding: 5px 11px !important;
+    font-size: 0.72rem !important;
+    line-height: 1.15 !important;
+    border-radius: 999px !important;
+    white-space: nowrap !important;
+    width: auto !important;
+    max-width: max-content !important;
+  }
+
+  /* จัดปุ่มสถานะให้อยู่ขวาบนของการ์ด */
+  .mobile-event-top {
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .mobile-room-badge {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 86px) !important;
+  }
+
+  .mobile-status-badge {
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+  }
+
+  /* กันปุ่มสถานะใหญ่จนกินพื้นที่การ์ด */
+  .time-slot.approved .status-badge,
+  .mobile-status-badge.is-approved {
+    min-width: 64px !important;
+    max-width: 76px !important;
+    text-align: center !important;
+  }
+}
 </style>
