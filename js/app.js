@@ -7527,7 +7527,12 @@ function waitForBookingChartCanvas(canvas, maxFrames) {
 }
 
 function repairBookingChartLayout(source) {
-    if (!window.bookingChart || typeof window.bookingChart.resize !== 'function') return;
+    if (!window.bookingChart || typeof window.bookingChart.resize !== 'function') {
+        if (window.chartAllZero && typeof showChartEmptyState === 'function') {
+            showChartEmptyState(window.lastChartMessage || 'ไม่พบข้อมูลการจองในช่วงเวลานี้');
+        }
+        return;
+    }
     requestAnimationFrame(() => {
         try {
             window.bookingChart.resize();
@@ -7585,6 +7590,7 @@ function showChartEmptyState(msg) {
 
 function hideChartEmptyState() {
     // \u0E43\u0E19 Canvas \u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E48\u0E19\u0E19\u0E35\u0E49 \u0E01\u0E32\u0E23\u0E27\u0E32\u0E14\u0E17\u0E31\u0E1A\u0E08\u0E30\u0E40\u0E04\u0E25\u0E35\u0E22\u0E23\u0E4C\u0E02\u0E2D\u0E07\u0E40\u0E01\u0E48\u0E32\u0E40\u0E2D\u0E07 \u0E41\u0E15\u0E48\u0E40\u0E15\u0E23\u0E35\u0E22\u0E21\u0E1F\u0E31\u0E07\u0E01\u0E4C\u0E0A\u0E31\u0E19\u0E44\u0E27\u0E49\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E21\u0E1A\u0E39\u0E23\u0E13\u0E4C
+    // \u0E43\u0E19 Canvas \u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E48\u0E19\u0E19\u0E35\u0E49 \u0E01\u0E32\u0E23\u0E27\u0E32\u0E14\u0E17\u0E31\u0E1A\u0E08\u0E30\u0E40\u0E04\u0E25\u0E35\u0E22\u0E23\u0E4C\u0E02\u0E2D\u0E07\u0E40\u0E01\u0E48\u0E32\u0E40\u0E2D\u0E07 \u0E41\u0E15\u0E48\u0E40\u0E15\u0E23\u0E35\u0E22\u0E21\u0E1F\u0E31\u0E07\u0E01\u0E4C\u0E0A\u0E31\u0E19\u0E44\u0E27\u0E49\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E21\u0E1A\u0E39\u0E23\u0E13\u0E49
 }
 
 // --- Main Chart Functions ---
@@ -7721,11 +7727,14 @@ function createEnhancedBookingChart(chartData, period) {
 
   // 3. \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E25\u0E22 \u0E43\u0E2B\u0E49\u0E41\u0E2A\u0E14\u0E07\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E41\u0E17\u0E19\u0E01\u0E23\u0E32\u0E1F
   if (allZero) {
+    window.chartAllZero = true;
+    window.lastChartMessage = '\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E01\u0E32\u0E23\u0E08\u0E2D\u0E07\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49';
     if (typeof showChartEmptyState === 'function') {
       showChartEmptyState('\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E01\u0E32\u0E23\u0E08\u0E2D\u0E07\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49');
     }
     return; 
   } else {
+    window.chartAllZero = false;
     if (typeof hideChartEmptyState === 'function') hideChartEmptyState();
   }
 
@@ -7836,6 +7845,8 @@ function renderBookingChart(period, chartData) {
             if (typeof window.bookingChart.destroy === 'function') window.bookingChart.destroy();
             window.bookingChart = null;
         }
+        window.chartAllZero = true;
+        window.lastChartMessage = '\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25';
         showChartEmptyState('\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25');
         return;
     }
