@@ -6417,7 +6417,7 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
           <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
               <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-primary"></h5>
+                <h5 class="modal-title fw-bold"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body p-4" id="combinedDayModalBody"></div>
@@ -6505,7 +6505,7 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
           : '';
 
         // \u2705 \u0E16\u0E49\u0E32\u0E27\u0E48\u0E32\u0E07 -> \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E42\u0E0A\u0E27\u0E4C\u0E2D\u0E30\u0E44\u0E23 (\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48 "-")
-        const metaRoom = room ? `<span class="badge bg-white text-primary border">${escapeHtml(room)}</span>` : '';
+        const metaRoom = room ? `<span class="badge bg-white text-primary border booking-room-name">${escapeHtml(room)}</span>` : '';
         const metaWho = who ? `<small class="text-muted text-truncate"><i class="fas fa-user me-1"></i>${escapeHtml(who)}</small>` : '';
 
         // Optional detail fields (only if exists)
@@ -6522,15 +6522,15 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
         return `
           <div class="card mb-2 border-0 shadow-sm bg-light ${canOpenDetail ? 'hover-shadow' : ''}" ${clickAttr}>
             <div class="card-body p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1 gap-2">
-                <div class="d-flex align-items-center gap-2 min-w-0">
-                  ${metaRoom}
-                  <span class="small text-muted flex-shrink-0"><i class="fas fa-clock me-1"></i>${timeText}</span>
+              <div class="d-flex justify-content-between align-items-center mb-1 gap-2 booking-header">
+                ${metaRoom}
+                <div class="d-flex align-items-center gap-2 min-w-0 booking-meta-row">
+                  <span class="small text-muted flex-shrink-0 booking-time"><i class="fas fa-clock me-1"></i>${timeText}</span>
+                  ${badgeHtml(s)}
                 </div>
-                ${badgeHtml(s)}
               </div>
 
-              <h6 class="fw-bold mb-1 text-truncate">${escapeHtml(title)}</h6>
+              <h6 class="fw-bold mb-1 text-truncate booking-title">${escapeHtml(title)}</h6>
 
               <div class="d-flex justify-content-between align-items-end gap-2">
                 ${metaWho || '<span></span>'}
