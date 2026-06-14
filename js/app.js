@@ -1501,11 +1501,11 @@ function renderWeeklyGrid_V2(mondayDate, slots) {
             if(slot.type === 'booking') cls = slot.status === 'approved' ? 'approved' : 'pending';
 
             html += `<div class="cal-event ${cls}" style="top:${top}px; height:${height}px;"
-                          onclick="event.stopPropagation(); showEventDetail('${slot.type}', '${sanitizeText(slot.title)}', '${slot.start}-${slot.end}', '${slot.bookingId||''}')"
+                          onclick="event.stopPropagation(); showEventDetail('${slot.type}', '${sanitizeText(slot.title)}', '${slot.start}-${slot.end}', '${slot.bookingId||''}', '${sanitizeText(slot.teacherName || slot.instructor || slot.booker || '')}')"
                           title="${slot.title}">
                         <div class="cal-event-time">${slot.start}-${slot.end}</div>
                         <div class="cal-event-title">${sanitizeText(slot.title)}</div>
-                        <div class="cal-event-instructor"><i class="fas fa-user-circle me-1"></i>${sanitizeText(slot.instructor)}</div>
+                        <div class="cal-event-instructor booking-teacher"><i class="fas fa-chalkboard-teacher me-1 opacity-60"></i>👨‍🏫 ${sanitizeText(slot.teacherName || slot.instructor || slot.booker || '-')}
                      </div>`;
         });
         html += `</div>`;
@@ -1558,13 +1558,13 @@ function renderMonthlyGrid(firstDate, slots) {
             const colorClass = isClass ? 'bg-dark text-white' : (isApproved ? 'bg-success text-white' : 'bg-warning text-dark');
             const timeText = `${s.start || '-'} - ${s.end || '-'}`;
             const typeLabel = isClass ? 'ตารางสอน' : (isApproved ? 'อนุมัติแล้ว' : 'รออนุมัติ');
-            const instructorText = s.instructor || s.booker || '-';
+            const instructorText = s.teacherName || s.instructor || s.booker || '-';
             const tooltipContent = `[${typeLabel}] ${sanitizeText(s.title)}\nเวลา: ${timeText} น.\nผู้สอน/ผู้จอง: ${sanitizeText(instructorText)}`;
             
             html += `<div class="month-event-bar d-flex align-items-center justify-content-center gap-1 rounded-2 px-2 py-1 ${colorClass}" 
                           style="font-size: 0.72rem; font-weight: 600; margin: 1px 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border: 1px solid rgba(0,0,0,0.08);"
                           title="${tooltipContent}"
-                          onclick="event.stopPropagation(); showEventDetail('${s.type}', '${sanitizeText(s.title)}', '${s.start}-${s.end}', '${s.bookingId||''}')">
+                          onclick="event.stopPropagation(); showEventDetail('${s.type}', '${sanitizeText(s.title)}', '${s.start}-${s.end}', '${s.bookingId||''}', '${sanitizeText(s.teacherName || s.instructor || s.booker || '')}')">
                         <i class="far fa-clock" style="font-size:0.65rem; opacity:0.85;"></i>
                         <span class="font-monospace">${formatShortTimeRange(s.start, s.end)}</span>
                      </div>`;
@@ -1736,8 +1736,8 @@ function renderTimetableDayGrid(slots) {
 
             html += `
             <div class="card border-0 shadow-sm ${colorClass} cursor-pointer hover-up transition-all" tabindex="0" 
-                 onclick="showEventDetail('${s.type}', '${sanitizeText(s.title)}', '${s.start}-${s.end}', '${s.bookingId||''}')"
-                 onkeydown="handleActivateKeydown(event, 'showEventDetail', '${s.type}', '${sanitizeText(s.title)}', '${s.start}-${s.end}', '${s.bookingId||''}')">
+                 onclick="showEventDetail('${s.type}', '${sanitizeText(s.title)}', '${s.start}-${s.end}', '${s.bookingId||''}', '${sanitizeText(s.teacherName || s.instructor || s.booker || '')}')"
+                 onkeydown="handleActivateKeydown(event, 'showEventDetail', '${s.type}', '${sanitizeText(s.title)}', '${s.start}-${s.end}', '${s.bookingId||''}', '${sanitizeText(s.teacherName || s.instructor || s.booker || '')}')">
                 <div class="card-body p-3 d-flex align-items-center">
                     <div class="me-3 pe-3 border-end text-center" style="min-width: 85px;">
                         <div class="fw-bold fs-5 font-monospace text-dark">${s.start}</div>
@@ -1746,10 +1746,10 @@ function renderTimetableDayGrid(slots) {
                     <div class="flex-grow-1 min-w-0">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             ${badge}
-                            <h6 class="mb-0 fw-bold text-dark text-truncate">${sanitizeText(s.title)}</h6>
+                            <h6 class="mb-0 fw-bold text-dark text-truncate booking-title">${sanitizeText(s.title)}</h6>
                         </div>
                         <div class="text-muted small text-truncate">
-                            <i class="fas fa-user-circle me-1 opacity-50"></i>${sanitizeText(s.instructor || s.booker || '-')}
+                            👨‍🏫 ${sanitizeText(s.teacherName || s.instructor || s.booker || '-')}
                         </div>
                     </div>
                     <div class="ms-2 text-secondary opacity-50">
@@ -1830,12 +1830,13 @@ function renderTimetableDayAgenda(slots) {
             const rawTimeRange = `${s.start||''}-${s.end||''}`;
             const hour = parseInt(String(s.start||'0').split(':')[0], 10);
             const icon = hour < 12 ? '🕘' : '🕐';
-            const instructorLine = (s.instructor || s.booker)
-                ? `<span class="d-block" style="font-size:0.82rem;color:#64748b;margin-top:0.2rem;"><i class="fas fa-user-circle me-1 opacity-60"></i>${safeText(s.instructor||s.booker)}</span>`
-                : '';
+            const displayTeacher = s.teacherName || s.instructor || s.booker || '-';
+            const instructorLine = `<span class="d-block booking-teacher" style="font-size:0.82rem;color:#64748b;margin-top:0.2rem;">👨‍🏫 ${safeText(displayTeacher)}</span>`;
+            const isClass = s.type === 'class';
+            const statusClass = isClass ? 'month-schedule-event-bar--class' : (s.status === 'approved' ? 'month-schedule-event-bar--approved' : 'month-schedule-event-bar--pending');
             html += `
-                <button type="button" class="month-agenda-event"
-                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')})">
+                <button type="button" class="month-agenda-event ${statusClass}"
+                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">`
                     <span class="month-agenda-event-time">${icon} ${safeText(timeText)}</span>
                     <span class="month-agenda-event-title">${safeText(s.title||'\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E34\u0E0A\u0E32')}</span>
                     ${instructorLine}
@@ -1949,7 +1950,7 @@ window.renderTimetableWeekGrid = function(arg1, arg2) {
                 const isClass = (slot.type === 'class' || slot.status === 'class');
                 
                 const rawTitle = slot.title || slot.Title || slot.subject || slot.Subject || slot.Purpose || slot.purpose || (isClass ? '\u0E27\u0E34\u0E0A\u0E32\u0E40\u0E23\u0E35\u0E22\u0E19' : '\u0E08\u0E2D\u0E07\u0E2B\u0E49\u0E2D\u0E07');
-                const rawSub = slot.instructor || slot.Instructor || slot.booker || slot.BookerName || '';
+                const rawSub = slot.teacherName || slot.instructor || slot.Instructor || slot.booker || slot.BookerName || '';
                 
                 // \uD83D\uDD25 COLOR THEME FIX: \u0E1B\u0E23\u0E31\u0E1A\u0E2A\u0E35\u0E43\u0E2B\u0E49\u0E15\u0E31\u0E14\u0E01\u0E31\u0E19\u0E0A\u0E31\u0E14\u0E40\u0E08\u0E19 (High Contrast)
                 let cardClass = 'bg-warning bg-opacity-10 border-start border-4 border-warning text-dark'; 
@@ -1978,21 +1979,21 @@ window.renderTimetableWeekGrid = function(arg1, arg2) {
                                  style="font-size:0.82rem; cursor:pointer; min-height: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.05);"
                                  title="${sanitizeText(rawTitle)}"
                                  tabindex="0"
-                                 onclick="showEventDetail('${slot.type}', '${sanitizeText(rawTitle)}', '${slot.start}-${slot.end}', '${slot.bookingId||''}')"
-                                 onkeydown="handleActivateKeydown(event, 'showEventDetail', '${slot.type}', '${sanitizeText(rawTitle)}', '${slot.start}-${slot.end}', '${slot.bookingId||''}')">
+                                 onclick="showEventDetail('${slot.type}', '${sanitizeText(rawTitle)}', '${slot.start}-${slot.end}', '${slot.bookingId||''}', '${sanitizeText(slot.teacherName || slot.instructor || slot.booker || '')}')"
+                                 onkeydown="handleActivateKeydown(event, 'showEventDetail', '${slot.type}', '${sanitizeText(rawTitle)}', '${slot.start}-${slot.end}', '${slot.bookingId||''}', '${sanitizeText(slot.teacherName || slot.instructor || slot.booker || '')}')">
                                 
                                 <div class="d-flex justify-content-between align-items-center pb-1 mb-1 border-bottom border-secondary border-opacity-10">
                                     <span class="fw-bold font-monospace" style="font-size:0.78rem; opacity: 0.9;">${slot.start}-${slot.end}</span>
                                     <i class="fas ${icon} ${iconClass}"></i>
                                 </div>
                                 
-                                <div class="fw-bold text-dark" style="line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; font-size: 0.82rem;">
+                                <div class="fw-bold text-dark booking-title" style="line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; font-size: 0.82rem;">
                                     ${sanitizeText(rawTitle)}
                                 </div>
                                 
                                 ${rawSub ? `
-                                <div class="mt-auto pt-1 text-secondary text-truncate" style="font-size:0.75rem; font-weight:500;">
-                                    <i class="fas fa-user-circle me-1 opacity-50"></i>${sanitizeText(rawSub)}
+                                <div class="mt-auto pt-1 text-secondary text-truncate booking-teacher" style="font-size:0.75rem; font-weight:500;">
+                                    👨‍🏫 ${sanitizeText(rawSub)}
                                 </div>` : ''}
                             </div>
                          </td>`;
@@ -2120,12 +2121,13 @@ function renderTimetableWeekAgenda(slots, mondayDateInput) {
             const rawTimeRange = `${s.start||''}-${s.end||''}`;
             const hour = parseInt(String(s.start||'0').split(':')[0], 10);
             const icon = hour < 12 ? '🕘' : '🕐';
-            const instructorLine = (s.instructor || s.booker)
-                ? `<span class="d-block" style="font-size:0.82rem;color:#64748b;margin-top:0.2rem;"><i class="fas fa-user-circle me-1 opacity-60"></i>${safeText(s.instructor||s.booker)}</span>`
-                : '';
+            const displayTeacher = s.teacherName || s.instructor || s.booker || '-';
+            const instructorLine = `<span class="d-block booking-teacher" style="font-size:0.82rem;color:#64748b;margin-top:0.2rem;">👨‍🏫 ${safeText(displayTeacher)}</span>`;
+            const isClass = s.type === 'class';
+            const statusClass = isClass ? 'month-schedule-event-bar--class' : (s.status === 'approved' ? 'month-schedule-event-bar--approved' : 'month-schedule-event-bar--pending');
             html += `
-                <button type="button" class="month-agenda-event"
-                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')})">
+                <button type="button" class="month-agenda-event ${statusClass}"
+                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">`
                     <span class="month-agenda-event-time">${icon} ${safeText(timeText)}</span>
                     <span class="month-agenda-event-title">${safeText(s.title||'\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E34\u0E0A\u0E32')}</span>
                     ${instructorLine}
@@ -2272,7 +2274,7 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
     const getSlotTitle = (s) => String((s && (s.title || s.subject || s.SubjectName || s.purpose || s.Purpose)) || 'ไม่ระบุชื่อวิชา').trim();
-    const getSlotPerson = (s) => String((s && (s.instructor || s.teacher || s.booker || s.BookerName)) || '').trim();
+    const getSlotPerson = (s) => String((s && (s.teacherName || s.instructor || s.teacher || s.booker || s.BookerName)) || '').trim();
     const getSlotTone = (s) => {
         const type = String((s && s.type) || '').toLowerCase();
         const status = String((s && s.status) || '').toLowerCase();
@@ -2352,12 +2354,12 @@ window.renderTimetableMonthAgenda = function(slots, firstDate) {
                 <button type="button" class="month-agenda-event ${tone.className}"
                         title="${safeText(detailLabel)}"
                         aria-label="${safeText(detailLabel)}"
-                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(titleText)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId || '')})">
+                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(titleText)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId || '')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">
                     <span class="month-agenda-event-time"><i class="far fa-clock"></i> ${safeText(timeText)}</span>
                     <span class="month-agenda-event-title">${safeText(titleText)}</span>
                     <span class="month-agenda-event-meta">
                         <span class="month-event-status">${safeText(tone.label)}</span>
-                        ${personText ? `<span><i class="fas fa-user-circle me-1"></i>${safeText(personText)}</span>` : ''}
+                        ${personText ? `<span>👨‍🏫 ${safeText(personText)}</span>` : ''}
                     </span>
                 </button>`;
         });
@@ -2399,7 +2401,7 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
     const getSlotTitle = (s) => String((s && (s.title || s.subject || s.SubjectName || s.purpose || s.Purpose)) || 'ไม่ระบุชื่อวิชา').trim();
-    const getSlotPerson = (s) => String((s && (s.instructor || s.teacher || s.booker || s.BookerName)) || '').trim();
+    const getSlotPerson = (s) => String((s && (s.teacherName || s.instructor || s.teacher || s.booker || s.BookerName)) || '').trim();
     const getSlotTone = (s) => {
         const type = String((s && s.type) || '').toLowerCase();
         const status = String((s && s.status) || '').toLowerCase();
@@ -2788,8 +2790,8 @@ window.renderTimetableMonthGrid = function(slots, firstDate) {
                         <button type="button" class="month-schedule-event-bar ${tone.className}" 
                              title="${tooltipContent}"
                              tabindex="0"
-                             onclick="event.stopPropagation(); showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(titleText)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId || '')})"
-                             onkeydown="handleActivateKeydown(event, 'showEventDetail', ${safeJsArg(s.type)}, ${safeJsArg(titleText)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId || '')})">
+                             onclick="event.stopPropagation(); showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(titleText)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId || '')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})"
+                             onkeydown="handleActivateKeydown(event, 'showEventDetail', ${safeJsArg(s.type)}, ${safeJsArg(titleText)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId || '')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">
                             <span class="month-schedule-event-time"><i class="far fa-clock"></i>${formatShortTimeRange(s.start, s.end)}</span>
                             <span class="month-schedule-event-title">${safeText(titleText)}</span>
                             <span class="month-schedule-event-status">${safeText(tone.label)}</span>
@@ -2910,10 +2912,10 @@ window.selectMonthGridDate = function(dateISO) {
                         <div class="flex-grow-1 min-w-0">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 ${badge}
-                                <h6 class="mb-0 fw-bold text-dark text-truncate" style="font-size:0.9rem;">${sanitizeText(s.title)}</h6>
+                                <h6 class="mb-0 fw-bold text-dark text-truncate booking-title" style="font-size:0.9rem;">${sanitizeText(s.title)}</h6>
                             </div>
-                            <div class="text-muted small text-truncate" style="font-size:0.8rem;">
-                                <i class="fas fa-user-circle me-1 opacity-50"></i>${sanitizeText(s.instructor || s.booker || '-')}
+                            <div class="booking-teacher text-muted small text-truncate" style="font-size:0.8rem;">
+                                👨‍🏫 ${sanitizeText(s.teacherName || s.instructor || s.booker || '-')}
                             </div>
                         </div>
                         <div class="ms-2 text-secondary opacity-50">
@@ -2937,7 +2939,7 @@ window.selectMonthGridDate = function(dateISO) {
 };
 
 // ANCHOR:CLIENT.showEventDetail:REPLACE
-function showEventDetail(type, title, timeStr, id) {
+function showEventDetail(type, title, timeStr, id, teacherName) {
     // ตรวจสอบว่า monthDaySlotsModal กำลังเปิดอยู่ไหม
     const dayModalEl = document.getElementById('monthDaySlotsModal');
     const bsDayModal = dayModalEl ? bootstrap.Modal.getInstance(dayModalEl) : null;
@@ -2966,8 +2968,11 @@ function showEventDetail(type, title, timeStr, id) {
                             <i class="fas fa-chalkboard-teacher me-2"></i>ตารางสอน
                         </span>
                     </div>
-                    <h4 class="fw-bold text-dark mb-2">${sanitizeText(title)}</h4>
-                    <div class="text-muted mb-4 small">
+                    <h4 class="fw-bold text-dark mb-2 booking-detail-title">${sanitizeText(title)}</h4>
+                    <div class="booking-teacher booking-detail-teacher justify-content-center mb-2" style="font-size:0.9rem; color:#64748b;">
+                        👨‍🏫 อ.ผู้สอน: <span class="fw-bold text-dark">${sanitizeText(teacherName || '-')}</span>
+                    </div>
+                    <div class="text-muted mb-4 small booking-detail-meta">
                         <i class="fas fa-clock me-1"></i> ${sanitizeText(timeStr)} น.
                     </div>
                     <div class="alert alert-warning border-0 bg-warning bg-opacity-10 small text-start">
@@ -3098,7 +3103,8 @@ function showMonthDaySlots(dateISO) {
 
             html += `
                 <div class="card border-0 shadow-sm ${borderClass} agenda-item-card cursor-pointer" 
-                     onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')})">
+                     onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})"
+                     onkeydown="handleActivateKeydown(event, 'showEventDetail', ${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div class="me-3 text-center border-end pe-3" style="min-width: 90px;">
                             <div class="fw-bold font-monospace text-dark" style="font-size:0.95rem;">${s.start}</div>
@@ -3110,7 +3116,7 @@ function showMonthDaySlots(dateISO) {
                                 <h6 class="mb-0 fw-bold text-dark text-truncate" style="font-size:0.9rem;">${sanitizeText(s.title)}</h6>
                             </div>
                             <div class="text-muted small text-truncate" style="font-size:0.8rem;">
-                                <i class="fas fa-user-circle me-1 opacity-50"></i>${sanitizeText(s.instructor || s.booker || '-')}
+                                👨‍🏫 ${sanitizeText(s.teacherName || s.instructor || s.booker || '-')}
                             </div>
                         </div>
                         <div class="ms-2 text-secondary opacity-50">
@@ -3823,8 +3829,9 @@ function renderBookingDetailsModal(detail) {
     <div class="p-2">
       <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
         <div>
-          <h5 class="fw-bold text-dark mb-1"><i class="fas fa-bookmark text-primary me-2"></i>${safe(detail.Purpose)}</h5>
-          <div class="text-muted small">ID: <span class="font-monospace text-dark select-all">${safe(bookingId)}</span></div>
+          <h5 class="fw-bold text-dark mb-1 booking-detail-title"><i class="fas fa-bookmark text-primary me-2"></i>${safe(detail.Purpose)}</h5>
+          <div class="booking-teacher booking-detail-teacher text-muted small mt-1">👨‍🏫 อ.ผู้สอน: <span class="fw-bold text-dark">${safe(detail.teacherName || '-')}</span></div>
+          <div class="text-muted small booking-detail-meta mt-1">ID: <span class="font-monospace text-dark select-all">${safe(bookingId)}</span></div>
           ${displayApprovedBy ? `<div class="text-muted small mt-1"><i class="fas fa-user-check me-1"></i>\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E42\u0E14\u0E22: <span class="fw-bold text-dark">${safe(displayApprovedBy)}</span></div>` : ``}
         </div>
         <div class="text-end">
@@ -5837,7 +5844,7 @@ function renderCombinedCalendar(slots) {
       eventClick: (info) => {
         const p = info.event.extendedProps;
         if (typeof showEventDetail === 'function') {
-          showEventDetail(p.type, info.event.title, '', p.bookingId);
+          showEventDetail(p.type, p.title || p.subject || info.event.title, `${p.start}-${p.end}`, p.bookingId, p.teacherName || p.instructor || p.booker || '');
         }
       },
 

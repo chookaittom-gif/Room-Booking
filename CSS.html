@@ -6998,4 +6998,89 @@ video {
     min-width: 64px !important;
   }
 }
+
+/* ===== Impeccable Design: responsive card & modal typography/spacing ===== */
+.booking-title,
+.booking-room,
+.booking-teacher,
+.booking-meta,
+.booking-time {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.booking-title,
+.booking-room,
+.booking-teacher {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.booking-teacher {
+  font-size: 0.9rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.booking-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .booking-card-header,
+  .booking-meta-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .booking-title {
+    font-size: 0.95rem;
+  }
+
+  .booking-teacher,
+  .booking-time {
+    font-size: 0.85rem;
+  }
+
+  .booking-status {
+    align-self: flex-start;
+  }
+}
+
+/* Modal CSS */
+@media (max-width: 768px) {
+  .booking-detail-modal,
+  .modal-content {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+
+  .booking-detail-title,
+  .booking-detail-teacher,
+  .booking-detail-meta {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+  }
+
+  .booking-detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .booking-detail-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
 </style>
