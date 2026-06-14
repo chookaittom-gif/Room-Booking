@@ -1836,7 +1836,7 @@ function renderTimetableDayAgenda(slots) {
             const statusClass = isClass ? 'month-schedule-event-bar--class' : (s.status === 'approved' ? 'month-schedule-event-bar--approved' : 'month-schedule-event-bar--pending');
             html += `
                 <button type="button" class="month-agenda-event ${statusClass}"
-                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">`
+                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">
                     <span class="month-agenda-event-time">${icon} ${safeText(timeText)}</span>
                     <span class="month-agenda-event-title">${safeText(s.title||'\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E34\u0E0A\u0E32')}</span>
                     ${instructorLine}
@@ -2127,7 +2127,7 @@ function renderTimetableWeekAgenda(slots, mondayDateInput) {
             const statusClass = isClass ? 'month-schedule-event-bar--class' : (s.status === 'approved' ? 'month-schedule-event-bar--approved' : 'month-schedule-event-bar--pending');
             html += `
                 <button type="button" class="month-agenda-event ${statusClass}"
-                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">`
+                        onclick="showEventDetail(${safeJsArg(s.type)}, ${safeJsArg(s.title)}, ${safeJsArg(rawTimeRange)}, ${safeJsArg(s.bookingId||'')}, ${safeJsArg(s.teacherName || s.instructor || s.booker || '')})">
                     <span class="month-agenda-event-time">${icon} ${safeText(timeText)}</span>
                     <span class="month-agenda-event-title">${safeText(s.title||'\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E34\u0E0A\u0E32')}</span>
                     ${instructorLine}
