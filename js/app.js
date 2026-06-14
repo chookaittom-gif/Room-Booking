@@ -6176,8 +6176,9 @@ window.renderCombinedSummary = function(slots) {
                      </div>`;
         } else {
             // Table Header
+            let mobileRows = '';
             html += `
-            <div class="table-responsive">
+            <div class="table-responsive combined-summary-table-wrap">
                 <table class="table table-hover mb-0 align-middle combined-table combined-summary-table">
                     <thead class="table-light small text-secondary">
                         <tr>
@@ -6206,6 +6207,10 @@ window.renderCombinedSummary = function(slots) {
                 if(isClass) statusBadge = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">\u0E40\u0E23\u0E35\u0E22\u0E19</span>';
                 else if(item.status === 'approved') statusBadge = '<span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34</span>';
                 else statusBadge = '<span class="badge bg-warning bg-opacity-10 text-dark border border-warning-subtle">\u0E23\u0E2D</span>';
+                const statusRaw = String(item.status || '').trim().toLowerCase();
+                const isCancelled = ['cancelled', 'canceled', 'rejected', '\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01', '\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34'].includes(statusRaw);
+                const mobileStatusLabel = isClass ? '\u0E40\u0E23\u0E35\u0E22\u0E19' : (isCancelled ? '\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01' : (statusRaw === 'approved' || statusRaw === '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' ? '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' : '\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34'));
+                const mobileStatusClass = isClass ? 'is-class' : (isCancelled ? 'is-cancelled' : (statusRaw === 'approved' || statusRaw === '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' ? 'is-approved' : 'is-pending'));
 
                 // --- \u0E1B\u0E38\u0E48\u0E21\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 (Logic \u0E43\u0E2B\u0E21\u0E48) ---
                 let detailBtn = '';
@@ -6220,6 +6225,18 @@ window.renderCombinedSummary = function(slots) {
 
                 // Row Click (Optional: \u0E04\u0E25\u0E34\u0E01\u0E41\u0E16\u0E27\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E44\u0E14\u0E49\u0E40\u0E2B\u0E21\u0E37\u0E2D\u0E19\u0E01\u0E31\u0E19)
                 const rowClick = bookingId ? `style="cursor:pointer" onclick="openBookingDetail('${bookingId}')"` : '';
+                const mobileClick = bookingId ? ` role="button" tabindex="0" onclick="openBookingDetail('${bookingId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBookingDetail('${bookingId}')}"` : '';
+
+                mobileRows += `
+                <article class="combined-summary-mobile-card"${mobileClick}>
+                    <div class="combined-mobile-card-top">
+                        <span class="combined-mobile-time">${time}</span>
+                        <span class="combined-mobile-status ${mobileStatusClass}">${mobileStatusLabel}</span>
+                    </div>
+                    <div class="combined-mobile-room">${room}</div>
+                    <div class="combined-mobile-title">${title}</div>
+                    <div class="combined-mobile-person"><i class="fas fa-user me-1 opacity-50" aria-hidden="true"></i>${who}</div>
+                </article>`;
 
                 html += `
                 <tr ${rowClick}>
@@ -6235,7 +6252,7 @@ window.renderCombinedSummary = function(slots) {
                     </td>
                 </tr>`;
             });
-            html += `</tbody></table></div>`;
+            html += `</tbody></table></div><div class="combined-summary-mobile-list">${mobileRows}</div>`;
         }
         
         html += `</div></div>`; 
