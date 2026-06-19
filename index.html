@@ -21,28 +21,9 @@
 
     <link rel="icon" href="https://img2.pic.in.th/logo-room.png">
 
-    <?!= include('CSS'); ?>
+    <link rel="stylesheet" href="./style.css">
 
 <script>
-  // ป้องกันการแครชจากการเข้าถึง localStorage ใน iframe (เช่น บน Google Apps Script Web App)
-  try {
-      const testStorageKey = 'storageTest';
-      window.localStorage.setItem(testStorageKey, 'test');
-      window.localStorage.removeItem(testStorageKey);
-  } catch (e) {
-      console.warn('⚠️ localStorage is not available, using in-memory mock storage.');
-      const mockStorageMap = {};
-      Object.defineProperty(window, 'localStorage', {
-          value: {
-              getItem: function(key) { return mockStorageMap[key] || null; },
-              setItem: function(key, val) { mockStorageMap[key] = String(val); },
-              removeItem: function(key) { delete mockStorageMap[key]; },
-              clear: function() { for (const k in mockStorageMap) delete mockStorageMap[k]; }
-          },
-          configurable: true
-      });
-  }
-
   // กำหนดค่าเริ่มต้นว่างเพื่อรอ Asynchronous Fetch
   window.__INITIAL__ = { rooms: [] };
   window.roomsData = [];
@@ -53,20 +34,29 @@
           showLoading(true, 'กำลังโหลดข้อมูลเริ่มต้น...');
       }
       try {
-          console.log('📦 Fetching initial data from API...');
-          const apiCallFn = await new Promise(resolve => {
-              if (typeof window.apiCall === 'function') {
-                  resolve(window.apiCall);
-              } else {
-                  const apiInterval = setInterval(() => {
+          // รอจนกว่า window.apiCall พร้อมใช้งานแบบปลอดภัย
+          if (typeof window.apiCall !== 'function') {
+              console.warn('⚠️ window.apiCall is not ready. Waiting...');
+              await new Promise((resolve) => {
+                  const checkInterval = setInterval(() => {
                       if (typeof window.apiCall === 'function') {
-                          clearInterval(apiInterval);
-                          resolve(window.apiCall);
+                          clearInterval(checkInterval);
+                          resolve();
                       }
                   }, 50);
-              }
-          });
-          const response = await apiCallFn('getInitialData');
+                  setTimeout(() => {
+                      clearInterval(checkInterval);
+                      resolve();
+                  }, 10000);
+              });
+          }
+
+          if (typeof window.apiCall !== 'function') {
+              throw new Error('window.apiCall is not defined or failed to load.');
+          }
+
+          console.log('📦 Fetching initial data from API...');
+          const response = await window.apiCall('getInitialData');
           if (response && response.ok && response.data) {
               const payload = response.data;
               if (payload && payload.data) {
@@ -1289,9 +1279,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" charset="utf-8"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" charset="utf-8"></script>
            
-    <?!= include('JavaScript'); ?>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
 
 </body>
 </html>
-
-
