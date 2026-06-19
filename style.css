@@ -965,7 +965,7 @@ h1, h2, h3, h4, h5, h6 {
     height: 100%;
     z-index: 2;
     pointer-events: none; /* ให้คลิกทะลุ Label ไปที่ Input ได้ */
-    font-size: 0.85rem;
+    font-size: 0.78rem;
 }
 
 .form-floating > label::after {
