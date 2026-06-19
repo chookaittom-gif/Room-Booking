@@ -21,7 +21,7 @@
 
     <link rel="icon" href="https://img2.pic.in.th/logo-room.png">
 
-    <link rel="stylesheet" href="./css/style.css">
+    <?!= include('CSS'); ?>
 
 <script>
   // กำหนดค่าเริ่มต้นว่างเพื่อรอ Asynchronous Fetch
@@ -498,8 +498,8 @@
                             </h6>
                             
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control rounded-4 bg-light border-0" id="searchRoom" placeholder="ค้นหาห้อง" oninput="filterRooms()">
-                                <label class="text-secondary"><i class="fas fa-search me-2"></i>ค้นหาห้อง</label>
+                                <input type="text" class="form-control rounded-4 bg-light border-0" id="searchRoom" placeholder="ค้นหาห้อง / รายวิชา / อาจารย์">
+                                <label class="text-secondary"><i class="fas fa-search me-2"></i>ค้นหาห้อง / รายวิชา / อาจารย์</label>
                             </div>
                             
                             <div class="form-floating mb-3">
@@ -585,6 +585,14 @@
                             </button>
                         </div>
                     </header>
+
+                    <!-- Mobile search input -->
+                    <div class="d-lg-none mb-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control rounded-4 bg-light border-0" id="searchRoomMobile" placeholder="ค้นหาห้อง / รายวิชา / อาจารย์">
+                            <label class="text-secondary"><i class="fas fa-search me-2"></i>ค้นหาห้อง / รายวิชา / อาจารย์</label>
+                        </div>
+                    </div>
 
                     <nav class="custom-tabs mb-3 section-surface px-2 py-2">
                         <div class="tabs-scroll">
@@ -1250,8 +1258,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" charset="utf-8"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" charset="utf-8"></script>
            
-    <script src="./js/config.js"></script>
-    <script src="./js/app.js"></script>
+    <?!= include('JavaScript'); ?>
 
 </body>
 </html>
+
+

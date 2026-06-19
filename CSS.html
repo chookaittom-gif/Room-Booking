@@ -7312,4 +7312,26 @@ video {
     text-align: center !important;
   }
 }
+
+/* Optimize search inputs for desktop sidebar and mobile */
+#searchRoom, #searchRoomMobile {
+  font-size: 0.85rem !important;
+  padding-top: 1.625rem !important;
+  padding-bottom: 0.625rem !important;
+}
+#searchRoom ~ label, #searchRoomMobile ~ label {
+  font-size: 0.85rem !important;
+  padding: 1rem 0.75rem !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+#searchRoom:focus ~ label,
+#searchRoom:not(:placeholder-shown) ~ label,
+#searchRoomMobile:focus ~ label,
+#searchRoomMobile:not(:placeholder-shown) ~ label {
+  font-size: 0.72rem !important;
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem) !important;
+}
 </style>

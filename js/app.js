@@ -190,33 +190,60 @@ function initializeUI() {
 
 function filterRooms() {
     const searchInput = document.getElementById('searchRoom');
-    if (!searchInput) return;
+    const searchInputMobile = document.getElementById('searchRoomMobile');
+    if (!searchInput && !searchInputMobile) return;
     
-    const query = searchInput.value.toLowerCase().trim();
+    // Sync values between the two search inputs
+    let query = '';
+    if (searchInput && document.activeElement === searchInput) {
+        query = searchInput.value.toLowerCase().trim();
+        if (searchInputMobile) searchInputMobile.value = searchInput.value;
+    } else if (searchInputMobile && document.activeElement === searchInputMobile) {
+        query = searchInputMobile.value.toLowerCase().trim();
+        if (searchInput) searchInput.value = searchInputMobile.value;
+    } else {
+        query = (searchInput ? searchInput.value : (searchInputMobile ? searchInputMobile.value : '')).toLowerCase().trim();
+    }
+    
     const roomList = document.getElementById('roomList');
+    if (!roomList) return;
     
     // 1. Filter Room Cards
     const cards = roomList.querySelectorAll('.room-card');
-    let hasVisibleRoom = false;
     
     cards.forEach(card => {
+        const roomId = String(card.dataset.roomId || '').toLowerCase();
         const title = card.querySelector('.room-card-title').textContent.toLowerCase();
-        // \u0E16\u0E49\u0E32\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E40\u0E08\u0E2D \u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E2D\u0E30\u0E44\u0E23\u0E40\u0E25\u0E22 \u0E43\u0E2B\u0E49\u0E41\u0E2A\u0E14\u0E07
-        if (title.includes(query) || query === '') {
+        
+        // Check if room name or ID matches query
+        let match = title.includes(query) || roomId.includes(query) || query === '';
+        
+        // If not matched yet, check if any slot in this room matches the subject or teacher
+        if (!match && query !== '' && Array.isArray(window.combinedScheduleSlots)) {
+            match = window.combinedScheduleSlots.some(slot => {
+                const slotRoomId = String(slot.roomId || slot.RoomID || '').toLowerCase();
+                if (slotRoomId !== roomId) return false;
+                
+                const subject = String(slot.subject || slot.title || slot.Purpose || '').toLowerCase();
+                const teacher = String(slot.teacherName || slot.instructor || slot.teacher || slot.booker || slot.BookerName || '').toLowerCase();
+                
+                return subject.includes(query) || teacher.includes(query);
+            });
+        }
+        
+        if (match) {
             card.style.display = 'flex';
-            hasVisibleRoom = true;
         } else {
             card.style.display = 'none';
         }
     });
 
-    // 2. Manage Group Titles (\u0E0B\u0E48\u0E2D\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2B\u0E49\u0E2D\u0E07\u0E43\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21\u0E19\u0E31\u0E49\u0E19\u0E41\u0E2A\u0E14\u0E07)
+    // 2. Manage Group Titles
     const groups = roomList.querySelectorAll('.room-group-title');
     groups.forEach(group => {
         let next = group.nextElementSibling;
         let groupHasVisible = false;
         
-        // \u0E27\u0E19\u0E14\u0E39\u0E25\u0E39\u0E01\u0E19\u0E49\u0E2D\u0E07 (Room Cards) \u0E08\u0E19\u0E01\u0E27\u0E48\u0E32\u0E08\u0E30\u0E40\u0E08\u0E2D Group Title \u0E16\u0E31\u0E14\u0E44\u0E1B
         while(next && !next.classList.contains('room-group-title')) {
             if (next.classList.contains('room-card') && next.style.display !== 'none') {
                 groupHasVisible = true;
@@ -225,17 +252,40 @@ function filterRooms() {
             next = next.nextElementSibling;
         }
         
-        // \u0E16\u0E49\u0E32\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E2D\u0E22\u0E39\u0E48 \u0E43\u0E2B\u0E49\u0E0B\u0E48\u0E2D\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E01\u0E25\u0E38\u0E48\u0E21\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07
-        // \u0E41\u0E15\u0E48\u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E04\u0E49\u0E19\u0E2B\u0E32 (query\u0E27\u0E48\u0E32\u0E07) \u0E43\u0E2B\u0E49\u0E42\u0E0A\u0E27\u0E4C\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E01\u0E25\u0E38\u0E48\u0E21\u0E40\u0E2A\u0E21\u0E2D
         if (query !== '') {
              group.style.display = groupHasVisible ? 'flex' : 'none';
         } else {
              group.style.display = 'flex';
         }
     });
+
+    // 3. If the combined schedule view is active, trigger re-render of combined schedule
+    if (window.currentActiveTab === 'schedule' && typeof window.setCombinedView === 'function') {
+        window.setCombinedView(window.combinedViewMode);
+    }
 }
 
-// ANCHOR:CLIENT.setupEventListeners:REPLACE
+function updateSearchPlaceholder() {
+  const searchInput = document.getElementById('searchRoom');
+  const searchInputMobile = document.getElementById('searchRoomMobile');
+  const text = window.innerWidth < 768 ? 'ห้อง / วิชา / อาจารย์' : 'ค้นหาห้อง / วิชา / อาจารย์';
+  
+  if (searchInput) {
+    searchInput.placeholder = text;
+    const label = searchInput.nextElementSibling;
+    if (label && label.tagName === 'LABEL') {
+      label.innerHTML = `<i class="fas fa-search me-2"></i>${text}`;
+    }
+  }
+  if (searchInputMobile) {
+    searchInputMobile.placeholder = text;
+    const labelMobile = searchInputMobile.nextElementSibling;
+    if (labelMobile && labelMobile.tagName === 'LABEL') {
+      labelMobile.innerHTML = `<i class="fas fa-search me-2"></i>${text}`;
+    }
+  }
+}
+
 function setupEventListeners() {
   const roomList = document.getElementById('roomList');
   if (roomList) {
@@ -275,14 +325,24 @@ function setupEventListeners() {
   }
 
   const searchEl = document.getElementById('searchRoom');
+  const searchElMobile = document.getElementById('searchRoomMobile');
+  let t;
+  const handleSearchInput = function () {
+    clearTimeout(t);
+    t = setTimeout(() => {
+      if (typeof filterRooms === 'function') filterRooms();
+    }, 300);
+  };
   if (searchEl) {
-    let t;
-    searchEl.addEventListener('input', function () {
-      clearTimeout(t);
-      const q = this.value.toLowerCase();
-      t = setTimeout(() => filterRooms?.(q), 300);
-    });
+    searchEl.addEventListener('input', handleSearchInput);
   }
+  if (searchElMobile) {
+    searchElMobile.addEventListener('input', handleSearchInput);
+  }
+
+  // Update placeholder initially and bind window resize event
+  updateSearchPlaceholder();
+  window.addEventListener('resize', updateSearchPlaceholder);
 
   const uploadEl = document.getElementById('fileUpload');
   if (uploadEl) {
@@ -5584,14 +5644,14 @@ window.getCombinedView = function () {
 // ANCHOR:CLIENT.setCombinedView:REPLACE
 window.setCombinedView = function (view, slotsInput) {
   try {
-    // \u2705 Render token guard (\u0E01\u0E31\u0E19\u0E2A\u0E25\u0E31\u0E1A\u0E23\u0E31\u0E27\u0E41\u0E25\u0E49\u0E27 render \u0E17\u0E31\u0E1A)
+    // โ… Render token guard (เธเธฑเธเธชเธฅเธฑเธเธฃเธฑเธงเนเธฅเนเธง render เธ—เธฑเธ)
     if (!window.combinedRenderToken) window.combinedRenderToken = 0;
     window.combinedRenderToken++;
     const myRenderToken = window.combinedRenderToken;
 
     const safeView = (view === 'calendar') ? 'calendar' : 'summary';
 
-    // \u2705 Resolve slots (Input > Cache > Global > null)
+    // โ… Resolve slots (Input > Cache > Global > null)
     let slots = slotsInput;
     if (!Array.isArray(slots)) {
       if (window.combinedState && window.combinedState.cache && Array.isArray(window.combinedState.cache.slots)) {
@@ -5599,25 +5659,45 @@ window.setCombinedView = function (view, slotsInput) {
       } else if (Array.isArray(window.combinedScheduleSlots)) {
         slots = window.combinedScheduleSlots;
       } else {
-        slots = null; // \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E08\u0E23\u0E34\u0E07
+        slots = null; // เธขเธฑเธเนเธกเนเธเธฃเนเธญเธกเธเธฃเธดเธ
       }
     }
 
-    console.log(`\uD83D\uDC41\uFE0F setCombinedView: ${safeView}, slotsType=${Array.isArray(slots) ? 'array' : typeof slots}, count=${Array.isArray(slots) ? slots.length : '-'}`);
+    // Apply search filter if query exists
+    const searchInput = document.getElementById('searchRoom') || document.getElementById('searchRoomMobile');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    let filteredSlots = slots;
+    if (query !== '' && Array.isArray(slots)) {
+      filteredSlots = slots.filter(item => {
+        const roomId = String(item.roomId || item.RoomID || '').toLowerCase();
+        const roomObj = window.roomsData && window.roomsData.find(r => String(r.RoomID || r.roomId || '').toLowerCase() === roomId);
+        const roomName = roomObj ? String(roomObj.RoomName || '').toLowerCase() : roomId;
+        
+        const subject = String(item.subject || item.title || item.Purpose || '').toLowerCase();
+        const teacher = String(item.teacherName || item.instructor || item.teacher || item.booker || item.BookerName || '').toLowerCase();
+        
+        return roomId.includes(query) ||
+               roomName.includes(query) ||
+               subject.includes(query) ||
+               teacher.includes(query);
+      });
+    }
 
-    // \u2705 Root
+    console.log(`๐‘๏ธ setCombinedView: ${safeView}, slotsType=${Array.isArray(filteredSlots) ? 'array' : typeof filteredSlots}, count=${Array.isArray(filteredSlots) ? filteredSlots.length : '-'}`);
+
+    // โ… Root
     const root = document.getElementById('combinedScheduleGrid');
     if (!root) {
-      console.error('\u274C Missing #combinedScheduleGrid');
+      console.error('โ Missing #combinedScheduleGrid');
       return false;
     }
 
-    // \u2705 Save state
+    // โ… Save state
     if (!window.combinedState) window.combinedState = {};
     window.combinedState.view = safeView;
     window.combinedViewMode = safeView;
 
-    // \u2705 Toggle button
+    // โ… Toggle button
     const btnToggle = document.getElementById('btnCombinedToggleView');
     if (btnToggle) {
       btnToggle.innerHTML = (safeView === 'calendar')
@@ -5627,15 +5707,15 @@ window.setCombinedView = function (view, slotsInput) {
       btnToggle.classList.remove('disabled');
     }
 
-    // \u2705 Spinner template
+    // โ… Spinner template
     const spinnerHtml = `
       <div class="text-center py-5 animate-fade-in">
         <div class="spinner-border text-primary"></div>
-        <p class="mt-2 text-muted mb-0">\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14...</p>
+        <p class="mt-2 text-muted mb-0">เธเธณเธฅเธฑเธเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเธฅเนเธฒเธชเธธเธ”...</p>
       </div>`;
 
     // =====================================================
-    // \u2705 Ensure shell exists (\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E16\u0E49\u0E32\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35)
+    // โ… Ensure shell exists (เธชเธฃเนเธฒเธเน€เธเธเธฒเธฐเธ–เนเธฒเธขเธฑเธเนเธกเนเธกเธต)
     // =====================================================
     const ensureSummaryShell = () => {
       if (!document.getElementById('combinedSummaryGrid')) {
@@ -5652,7 +5732,7 @@ window.setCombinedView = function (view, slotsInput) {
     };
 
     // =====================================================
-    // \u2705 Switch view + show spinner first (\u0E01\u0E31\u0E19\u0E08\u0E2D\u0E27\u0E39\u0E1A)
+    // โ… Switch view + show spinner first (เธเธฑเธเธเธญเธงเธนเธ)
     // =====================================================
     if (safeView === 'calendar') {
       const calGrid = ensureCalendarShell();
@@ -5668,25 +5748,44 @@ window.setCombinedView = function (view, slotsInput) {
       }
     }
 
-    // \u2705 \u0E16\u0E49\u0E32 slots \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21 \u0E43\u0E2B\u0E49\u0E2B\u0E22\u0E38\u0E14\u0E41\u0E04\u0E48 spinner
-    if (!Array.isArray(slots)) {
-      console.log('\u23F3 setCombinedView: slots not ready -> show spinner only');
+    // โ… เธ–เนเธฒ slots เธขเธฑเธเนเธกเนเธเธฃเนเธญเธก เนเธซเนเธซเธขเธธเธ”เนเธเน spinner
+    if (!Array.isArray(filteredSlots)) {
+      console.log('โณ setCombinedView: slots not ready -> show spinner only');
+      return true;
+    }
+
+    // Render custom empty state if search query matches nothing
+    if (query !== '' && filteredSlots.length === 0) {
+      const gridElement = (safeView === 'calendar')
+        ? document.getElementById('combinedCalendarGrid')
+        : document.getElementById('combinedSummaryGrid');
+      
+      if (gridElement) {
+        const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        gridElement.innerHTML = `
+          <div class="text-center py-5 text-muted animate-fade-in">
+            <div class="mb-3"><i class="fas fa-search-minus fa-3x opacity-50"></i></div>
+            <h5 class="fw-bold text-secondary mb-1">\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E01\u0E32\u0E23\u0E04\u0E49\u0E19\u0E2B\u0E32</h5>
+            <p class="small mb-0">\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2B\u0E49\u0E2D\u0E07 \u0E23\u0E32\u0E22\u0E27\u0E34\u0E0A\u0E32 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E32\u0E08\u0E32\u0E23\u0E22\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E25\u0E07\u0E01\u0E31\u0E1A "${escapeHtml(query)}"</p>
+          </div>`;
+        gridElement.dataset.hasRendered = '1';
+      }
       return true;
     }
 
     // =====================================================
-    // \u2705 Render after DOM settle (better than Promise.then)
+    // โ… Render after DOM settle (better than Promise.then)
     // =====================================================
     requestAnimationFrame(() => {
       if (myRenderToken !== window.combinedRenderToken) {
-        console.warn('\uD83D\uDED1 setCombinedView: render skipped (newer render requested)');
+        console.warn('๐‘ setCombinedView: render skipped (newer render requested)');
         return;
       }
 
       if (safeView === 'calendar') {
         const calGrid = document.getElementById('combinedCalendarGrid');
         if (typeof window.renderCombinedCalendarGrid === 'function') {
-          const ok = window.renderCombinedCalendarGrid(slots);
+          const ok = window.renderCombinedCalendarGrid(filteredSlots);
           if (calGrid) calGrid.dataset.hasRendered = ok ? '1' : '0';
         } else {
           if (calGrid) {
@@ -5697,7 +5796,7 @@ window.setCombinedView = function (view, slotsInput) {
       } else {
         const sumGrid = document.getElementById('combinedSummaryGrid');
         if (typeof window.renderCombinedSummary === 'function') {
-          const ok = window.renderCombinedSummary(slots);
+          const ok = window.renderCombinedSummary(filteredSlots);
           if (sumGrid) sumGrid.dataset.hasRendered = ok ? '1' : '0';
         } else {
           if (sumGrid) {
@@ -5711,10 +5810,10 @@ window.setCombinedView = function (view, slotsInput) {
     return true;
 
   } catch (e) {
-    console.error('\u274C FAIL setCombinedView:', e);
+    console.error('โ FAIL setCombinedView:', e);
     return false;
   }
-};
+}
 // ANCHOR:CLIENT.setCombinedView:END
 
 
@@ -9493,3 +9592,5 @@ window.showManualBookingId = typeof showManualBookingId === 'function' ? showMan
 window.openGlobalCancelModal = typeof openGlobalCancelModal === 'function' ? openGlobalCancelModal : (typeof openCancelModal === 'function' ? openCancelModal : window.openGlobalCancelModal);
 
 })(); 
+
+
