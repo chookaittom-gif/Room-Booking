@@ -35,7 +35,19 @@
       }
       try {
           console.log('📦 Fetching initial data from API...');
-          const response = await window.apiCall('getInitialData');
+          const apiCallFn = await new Promise(resolve => {
+              if (typeof window.apiCall === 'function') {
+                  resolve(window.apiCall);
+              } else {
+                  const apiInterval = setInterval(() => {
+                      if (typeof window.apiCall === 'function') {
+                          clearInterval(apiInterval);
+                          resolve(window.apiCall);
+                      }
+                  }, 50);
+              }
+          });
+          const response = await apiCallFn('getInitialData');
           if (response && response.ok && response.data) {
               const payload = response.data;
               if (payload && payload.data) {
