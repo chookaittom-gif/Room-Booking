@@ -7457,3 +7457,29 @@ video {
     min-width: 64px !important;
   }
 }
+
+/* Custom Search Input Styling for Premium Look */
+#searchRoom,
+#searchRoomMobile {
+    font-size: 15px !important;
+    min-height: 52px !important;
+    padding-left: 48px !important;
+    padding-right: 16px !important;
+    border-radius: 16px !important;
+}
+
+#searchRoom ~ label,
+#searchRoomMobile ~ label {
+    padding-left: 48px !important;
+    padding-right: 16px !important;
+    font-size: 0.78rem !important; /* Keep the small font size that fits the Sidebar perfectly */
+}
+
+#searchRoom ~ label i,
+#searchRoomMobile ~ label i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 0 !important;
+}
