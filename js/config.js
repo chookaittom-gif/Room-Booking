@@ -1,6 +1,7 @@
 // กำหนด URL ของ Google Apps Script Web App Backend
-window.APP_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA/exec'
+const isVercel = window.location.hostname.includes('vercel.app') || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+window.appConfig = {
+  apiUrl: isVercel ? '/api/gas' : 'https://script.google.com/macros/s/AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA/exec'
 };
 
 // จำลองการใช้ google.script.run ด้วย Proxy Pattern (สำหรับความเข้ากันได้ย้อนหลัง 100%)

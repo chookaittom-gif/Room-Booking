@@ -780,8 +780,8 @@ window.selectRoom = function(room) {
       }
     }, timeoutMs);
 
-    const url = window.APP_CONFIG && window.APP_CONFIG.API_URL
-      ? window.APP_CONFIG.API_URL
+    const url = window.appConfig && window.appConfig.apiUrl
+      ? window.appConfig.apiUrl
       : 'https://script.google.com/macros/s/AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA/exec';
 
     const requestBody = {
@@ -895,36 +895,70 @@ function hideLegacyLoadingModal() {
   }
 }
 
+window.activeRequests = window.activeRequests || new Map();
+
 async function apiCall(fnName, payload = {}, options = {}) {
     const { timeoutMs = 25000, signal = null } = options;
 
-    // \u0E16\u0E49\u0E32\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E23\u0E35\u0E22\u0E01 \u0E01\u0E47\u0E08\u0E1A\u0E40\u0E25\u0E22
     if (signal?.aborted) {
         return Promise.reject(new DOMException('Aborted', 'AbortError'));
     }
 
-    return new Promise((resolve, reject) => {
-        // \u0E15\u0E31\u0E27\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E01\u0E32\u0E23\u0E2A\u0E31\u0E48\u0E07\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01 (Abort)
-        const abortHandler = () => {
-            reject(new DOMException('Aborted', 'AbortError'));
-        };
+    const requestKey = JSON.stringify({ fnName, payload });
+    if (window.activeRequests.has(requestKey)) {
+        console.warn(`🔄 Duplicate request detected for ${fnName}, returning existing promise.`);
+        return window.activeRequests.get(requestKey);
+    }
 
-        // \u0E40\u0E23\u0E34\u0E48\u0E21\u0E1F\u0E31\u0E07\u0E04\u0E33\u0E2A\u0E31\u0E48\u0E07\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01
-        if (signal) {
-            signal.addEventListener('abort', abortHandler, { once: true });
-        }
+    const promise = (async () => {
+        let attempts = 0;
+        const maxAttempts = 2; // Initial try + 1 retry
+        
+        while (attempts < maxAttempts) {
+            attempts++;
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    const abortHandler = () => {
+                        reject(new DOMException('Aborted', 'AbortError'));
+                    };
 
-        // \u0E40\u0E23\u0E35\u0E22\u0E01 Server \u0E08\u0E23\u0E34\u0E07
-        callServer(fnName, payload, timeoutMs)
-            .then(resolve)
-            .catch(reject)
-            .finally(() => {
-                // \u0E17\u0E33\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E30\u0E2D\u0E32\u0E14\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E08\u0E1A\u0E07\u0E32\u0E19
-                if (signal) {
-                    signal.removeEventListener('abort', abortHandler);
+                    if (signal) {
+                        signal.addEventListener('abort', abortHandler, { once: true });
+                    }
+
+                    callServer(fnName, payload, timeoutMs)
+                        .then(resolve)
+                        .catch(err => {
+                            if (err.message && (err.message.includes('message channel closed') || err.message.includes('Could not establish connection'))) {
+                                console.warn('⚠️ Chrome extension message channel error ignored:', err.message);
+                            }
+                            reject(err);
+                        })
+                        .finally(() => {
+                            if (signal) {
+                                signal.removeEventListener('abort', abortHandler);
+                            }
+                        });
+                });
+                return result;
+            } catch (err) {
+                if (attempts >= maxAttempts || (signal && signal.aborted)) {
+                    throw err;
                 }
-            });
-    });
+                console.warn(`⚠️ API Call to ${fnName} failed (Attempt ${attempts}/${maxAttempts}), retrying...`, err);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
+    })();
+
+    window.activeRequests.set(requestKey, promise);
+
+    try {
+        const res = await promise;
+        return res;
+    } finally {
+        window.activeRequests.delete(requestKey);
+    }
 }
 
 

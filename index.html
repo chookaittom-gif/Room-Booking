@@ -28,11 +28,18 @@
   window.__INITIAL__ = { rooms: [] };
   window.roomsData = [];
   window.currentDate = new Date().toISOString().split('T')[0];
+  window.appInitialized = false;
 
-  document.addEventListener('DOMContentLoaded', async function() {
+  async function loadApp() {
+      if (window.appInitialized) return;
+
       if (typeof showLoading === 'function') {
           showLoading(true, 'กำลังโหลดข้อมูลเริ่มต้น...');
       }
+
+      const errOverlay = document.getElementById('initialLoadErrorOverlay');
+      if (errOverlay) errOverlay.remove();
+
       try {
           // รอจนกว่า window.apiCall พร้อมใช้งานแบบปลอดภัย
           if (typeof window.apiCall !== 'function') {
@@ -68,6 +75,7 @@
                   window.currentDate = payload.currentDate;
               }
               console.log(`✅ Initial Ready: ${window.roomsData.length} Rooms`);
+              window.appInitialized = true;
               if (typeof initializeApplication === 'function') {
                   initializeApplication();
               } else {
@@ -77,15 +85,50 @@
                       if (typeof renderRooms === 'function') renderRooms(window.roomsData);
                   }
               }
+          } else {
+              throw new Error(response ? response.message || 'รูปแบบการตอบกลับไม่ถูกต้อง' : 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
           }
       } catch (err) {
           console.error('❌ Initial load error:', err);
+          showInitialLoadError(err.message || err);
       } finally {
           if (typeof showLoading === 'function') {
               showLoading(false);
           }
       }
-  });
+  }
+
+  function showInitialLoadError(message) {
+      if (typeof showLoading === 'function') {
+          showLoading(false);
+      }
+      
+      let errOverlay = document.getElementById('initialLoadErrorOverlay');
+      if (!errOverlay) {
+          errOverlay = document.createElement('div');
+          errOverlay.id = 'initialLoadErrorOverlay';
+          errOverlay.style.cssText = 'position: fixed; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(248,250,252,0.95)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 100000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;';
+          errOverlay.innerHTML = `
+              <div class="card shadow-lg border-danger p-4 rounded-4" style="max-width: 480px; width: 100%; background: white;">
+                  <div class="card-body d-flex flex-column align-items-center">
+                      <div class="rounded-circle bg-danger-subtle d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                          <i class="fas fa-exclamation-triangle text-danger" style="font-size: 40px;"></i>
+                      </div>
+                      <h4 class="card-title text-danger fw-bold mb-2">ไม่สามารถเชื่อมต่อระบบได้</h4>
+                      <p class="card-text text-muted mb-4" id="initialLoadErrorMessage"></p>
+                      <button id="initialLoadRetryButton" class="btn btn-primary btn-lg rounded-pill px-5 py-2 fw-bold" style="touch-action: manipulation; min-height: 44px;">
+                          <i class="fas fa-sync-alt me-2"></i> ลองใหม่อีกครั้ง
+                      </button>
+                  </div>
+              </div>
+          `;
+          document.body.appendChild(errOverlay);
+          document.getElementById('initialLoadRetryButton').addEventListener('click', loadApp);
+      }
+      document.getElementById('initialLoadErrorMessage').innerText = message + ' (โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือการตั้งค่า CORS)';
+  }
+
+  document.addEventListener('DOMContentLoaded', loadApp);
 </script>
 
     <style>
