@@ -1,0 +1,31 @@
+# Dependencies & Cache
+node_modules/
+/graft/
+.DS_Store
+Thumbs.db
+
+# Backend (Google Apps Script)
+Code/
+
+# AI configs & logs
+.claude/
+.gemini/
+.cursor/
+.adal/
+.kiro/
+.windsurf/
+.clasp.json
+.mcp.json
+.ignore
+opencode.json
+skills-lock.json
+agent/
+AGENTS.md
+GEMINI.md
+
+# Documentation, Prompts & Local Resources
+*.docx
+*.pdf
+*.txt
+Pic/
+คู่มือระบบจองห้องเรียน 1.4/

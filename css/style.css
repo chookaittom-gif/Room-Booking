@@ -1494,6 +1494,13 @@ h1, h2, h3, h4, h5, h6 {
 .bg-primary { background-color: var(--primary) !important; color: white; }
 .bg-secondary { background-color: var(--secondary) !important; color: white; }
 
+.bg-success.bg-opacity-10 { background-color: rgba(16, 185, 129, 0.12) !important; color: inherit !important; }
+.bg-warning.bg-opacity-10 { background-color: rgba(245, 158, 11, 0.12) !important; color: inherit !important; }
+.bg-danger.bg-opacity-10 { background-color: rgba(239, 68, 68, 0.12) !important; color: inherit !important; }
+.bg-primary.bg-opacity-10 { background-color: rgba(13, 110, 253, 0.1) !important; color: inherit !important; }
+.bg-secondary.bg-opacity-10 { background-color: rgba(100, 116, 139, 0.1) !important; color: inherit !important; }
+.bg-info.bg-opacity-10 { background-color: rgba(6, 182, 212, 0.12) !important; color: inherit !important; }
+
 /* ========== Enhanced Toast ========== */
 .toast {
     background: var(--bg-card);
@@ -4507,6 +4514,26 @@ body {
 .timeline-container .card {
   border-radius: var(--timetable-card-radius) !important;
   box-shadow: var(--timetable-card-shadow) !important;
+}
+
+.timeline-container .card {
+  background: #ffffff !important;
+  color: var(--text-primary, #1e293b) !important;
+}
+
+.timeline-container .card.bg-success.bg-opacity-10 {
+  background: #f0fdf4 !important;
+  color: #14532d !important;
+}
+
+.timeline-container .card.bg-warning.bg-opacity-10 {
+  background: #fffbeb !important;
+  color: #78350f !important;
+}
+
+.timeline-container .card.bg-light {
+  background: #f8fafc !important;
+  color: #1e293b !important;
 }
 
 .month-schedule-event-text {
