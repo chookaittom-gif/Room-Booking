@@ -111,30 +111,6 @@ function handleApiRequest(action, payload) {
 }
 // ANCHOR:SERVER.doGet:END
 
-// ANCHOR:SERVER.include:UTF8
-function include(filename) {
-  try {
-    return HtmlService.createHtmlOutputFromFile(filename).getContent();
-  } catch (e) {
-    Logger.log('include fatal error: ' + e);
-    return '<!-- include error: ' + filename + ' -->';
-  }
-}
-
-function createErrorPage(msg) {
-  const html = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ข้อผิดพลาด</title>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600&display=swap" rel="stylesheet">
-  <style>body{font-family:'Prompt',sans-serif;background:#f8f9fa;color:#343a40;padding:40px;text-align:center}
-  .c{max-width:640px;margin:auto;background:#fff;padding:30px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.08)}
-  h1{color:#dc3545}button{background:#0d6efd;color:#fff;border:0;border-radius:8px;padding:10px 20px;cursor:pointer}
-  </style></head><body><div class=c>
-  <h1>เกิดข้อผิดพลาด</h1><p>ไม่สามารถโหลดระบบได้ กรุณาติดต่อผู้ดูแลระบบ</p>
-  <p><small>Error: ${msg}</small></p><button onclick="location.reload()">ลองอีกครั้ง</button></div></body></html>`;
-  // ✅ FIX: ใช้ HtmlService สำหรับ HTML rendering ที่ถูกต้อง
-  return HtmlService.createHtmlOutput(html);
-}
-
 // ====== Result helpers ======
 function ok_(data)  { return { ok: true,  data }; }
 function fail_(err) { return { ok: false, error: String(err || 'unknown') }; }
