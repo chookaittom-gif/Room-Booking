@@ -3924,7 +3924,7 @@ function renderBookingDetailsModal(detail) {
       <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
         <div>
           <h5 class="fw-bold text-dark mb-1 booking-detail-title"><i class="fas fa-bookmark text-primary me-2"></i>${safe(detail.Purpose)}</h5>
-          <div class="booking-teacher booking-detail-teacher text-muted small mt-1">👨‍🏫 อ.ผู้สอน: <span class="fw-bold text-dark">${safe(detail.teacherName || '-')}</span></div>
+          <div class="booking-teacher booking-detail-teacher text-muted small mt-1">👨‍🏫 อ.ผู้สอน: <span class="fw-bold text-dark">${safe(detail.teacherName || detail.TeacherName || detail.instructor || detail.BookerName || '-')}</span></div>
           <div class="text-muted small booking-detail-meta mt-1">ID: <span class="font-monospace text-dark select-all">${safe(bookingId)}</span></div>
           ${displayApprovedBy ? `<div class="text-muted small mt-1"><i class="fas fa-user-check me-1"></i>\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E42\u0E14\u0E22: <span class="fw-bold text-dark">${safe(displayApprovedBy)}</span></div>` : ``}
         </div>
