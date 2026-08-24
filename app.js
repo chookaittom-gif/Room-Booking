@@ -3979,12 +3979,14 @@ function renderBookingDetailsModal(detail) {
   if (isAdmin && isPending) {
     actionsHtml = `
       <button type="button" class="btn btn-outline-secondary rounded-pill fw-medium" data-bs-dismiss="modal">\u0E1B\u0E34\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E48\u0E32\u0E07</button>
-      <button type="button" class="btn btn-danger rounded-pill px-4 ms-auto shadow-sm" id="btnRejectBooking">
-        <i class="fas fa-times me-2"></i>\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
+      <div class="admin-booking-actions">
+      <button type="button" class="btn btn-danger rounded-pill px-4 ms-auto shadow-sm admin-booking-action admin-booking-action-reject" id="btnRejectBooking">
+        <i class="fas fa-times me-2"></i>\u274C \u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
       </button>
-      <button type="button" class="btn btn-success rounded-pill px-4 ms-2 shadow-sm" id="btnApproveBooking">
-        <i class="fas fa-check me-2"></i>\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
+      <button type="button" class="btn btn-success rounded-pill px-4 ms-2 shadow-sm admin-booking-action admin-booking-action-approve" id="btnApproveBooking">
+        <i class="fas fa-check me-2"></i>\u2705 \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
       </button>
+      </div>
     `;
   }
 
@@ -4161,9 +4163,9 @@ function showNotification(msg, type = 'info') {
 // Helper \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E2A\u0E23\u0E49\u0E32\u0E07 Badge \u0E2A\u0E16\u0E32\u0E19\u0E30
 function getStatusBadge(status) {
     const map = {
-        '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34': '<span class="badge bg-success"><i class="fas fa-check me-1"></i>\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34</span>',
-        '\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34': '<span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34</span>',
-        '\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34': '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34</span>',
+        '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34': '<span class="badge bg-success"><i class="fas fa-check me-1"></i>\u2705 \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34</span>',
+        '\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34': '<span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>\u23F3 \u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34</span>',
+        '\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34': '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>\u274C \u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34</span>',
         '\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01': '<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01</span>'
     };
     return map[status] || `<span class="badge bg-secondary">${status}</span>`;
@@ -4603,6 +4605,18 @@ async function performBookingAction(action, bookingId) {
   const adminName = String(session.displayName || session.username || session.user || 'Admin').trim();
   const act = String(action || '').trim().toLowerCase();
 
+  if (!['approve', 'reject'].includes(act)) {
+    showToast('\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14', 'Unknown action: ' + act, 'error');
+    return;
+  }
+
+  const actionLocks = window.__adminBookingActionLocks || (window.__adminBookingActionLocks = new Set());
+  if (actionLocks.has(id)) {
+    showToast('\u0E01\u0E33\u0E25\u0E31\u0E07\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23', '\u0E04\u0E33\u0E02\u0E2D\u0E19\u0E35\u0E49\u0E01\u0E33\u0E25\u0E31\u0E07\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23\u0E2D\u0E22\u0E39\u0E48', 'info');
+    return;
+  }
+  actionLocks.add(id);
+
   let actionText = '';
   const payload = {
     bookingId: id,
@@ -4612,6 +4626,8 @@ async function performBookingAction(action, bookingId) {
     remark: ''
   };
 
+  const modalEl = document.getElementById('bookingDetailsModal');
+  try {
   // UI & Logic Prep
   if (act === 'approve') {
     actionText = '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34';
@@ -4627,7 +4643,6 @@ async function performBookingAction(action, bookingId) {
   }
 
   // Hide Details Modal First
-  const modalEl = document.getElementById('bookingDetailsModal');
   if (modalEl) {
       const inst = bootstrap.Modal.getInstance(modalEl);
       if(inst) inst.hide();
@@ -4636,7 +4651,6 @@ async function performBookingAction(action, bookingId) {
   // Start Loading
   showLoading(true, `\u0E01\u0E33\u0E25\u0E31\u0E07\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23 ${actionText}...`);
 
-  try {
     const res = await callServer('processBookingAction', payload, 25000);
 
     const ok = !!(res && (res.ok === true || res.success === true));
@@ -4658,6 +4672,7 @@ async function performBookingAction(action, bookingId) {
     if(modalEl && typeof openBookingDetail === 'function') openBookingDetail(id);
 
   } finally {
+    actionLocks.delete(id);
     showLoading(false);
   }
 }
@@ -8317,14 +8332,14 @@ function renderRecentBookings(bookings) {
     let actionButtons = '';
     if (isAdmin && (rawStatus === '\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' || rawLower === 'pending')) {
       actionButtons = `
-        <div class="mt-2 mt-md-0 ms-md-3 d-flex gap-2 justify-content-end">
-          <button class="btn btn-sm btn-outline-success rounded-pill px-3"
-                  onclick="event.stopPropagation(); performBookingAction('approve','${id}')">
-            <i class="fas fa-check me-1"></i>\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
-          </button>
-          <button class="btn btn-sm btn-outline-danger rounded-pill px-3"
+        <div class="admin-booking-actions mt-2 mt-md-0 ms-md-3">
+          <button class="btn btn-sm btn-outline-danger rounded-pill px-3 admin-booking-action admin-booking-action-reject"
                   onclick="event.stopPropagation(); performBookingAction('reject','${id}')">
-            <i class="fas fa-times me-1"></i>\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18
+            <i class="fas fa-times me-1"></i>\u274C \u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
+          </button>
+          <button class="btn btn-sm btn-outline-success rounded-pill px-3 admin-booking-action admin-booking-action-approve"
+                  onclick="event.stopPropagation(); performBookingAction('approve','${id}')">
+            <i class="fas fa-check me-1"></i>\u2705 \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
           </button>
         </div>
       `;
@@ -8408,16 +8423,16 @@ function renderRecentBookingsPage() {
     let actionButtons = '';
     if (isAdmin && (rawStatus === '\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' || rawLower === 'pending')) {
       actionButtons = `
-        <div class="mt-2 mt-md-0 ms-md-3 d-flex gap-2 justify-content-end">
-          <button class="btn btn-sm btn-outline-success rounded-pill px-3"
-                  onclick="event.stopPropagation(); performBookingAction('approve','${id}')"
-                  title="\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34">
-            <i class="fas fa-check me-1"></i>\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
-          </button>
-          <button class="btn btn-sm btn-outline-danger rounded-pill px-3"
+        <div class="admin-booking-actions mt-2 mt-md-0 ms-md-3">
+          <button class="btn btn-sm btn-outline-danger rounded-pill px-3 admin-booking-action admin-booking-action-reject"
                   onclick="event.stopPropagation(); performBookingAction('reject','${id}')"
                   title="\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34">
-            <i class="fas fa-times me-1"></i>\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18
+            <i class="fas fa-times me-1"></i>\u274C \u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
+          </button>
+          <button class="btn btn-sm btn-outline-success rounded-pill px-3 admin-booking-action admin-booking-action-approve"
+                  onclick="event.stopPropagation(); performBookingAction('approve','${id}')"
+                  title="\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34">
+            <i class="fas fa-check me-1"></i>\u2705 \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34
           </button>
         </div>
       `;
