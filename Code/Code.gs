@@ -22,8 +22,15 @@ function doGet(e) {
     }
   }
 
-  // 2. GAS เป็น API-only แล้ว ให้ Vercel รับผิดชอบการ render frontend
-  return corsResponse(fail_('Missing action parameter'));
+  // 2. เปิด frontend production เมื่อเปิด GAS URL โดยตรง
+  const frontendUrl = 'https://room-booking-omega-three.vercel.app/';
+  return HtmlService.createHtmlOutput(
+    '<!doctype html><html><head><meta charset="UTF-8">' +
+    '<meta http-equiv="refresh" content="0;url=' + frontendUrl + '">' +
+    '</head><body><p>กำลังเปิดระบบจองห้องเรียน...</p>' +
+    '<p><a href="' + frontendUrl + '" target="_top" rel="noopener">เปิดระบบจองห้องเรียน</a></p>' +
+    '</body></html>'
+  );
 }
 
 // อัปโหลดและรับ JSON API ทาง POST
