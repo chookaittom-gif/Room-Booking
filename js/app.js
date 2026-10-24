@@ -4603,6 +4603,18 @@ async function performBookingAction(action, bookingId) {
   const adminName = String(session.displayName || session.username || session.user || 'Admin').trim();
   const act = String(action || '').trim().toLowerCase();
 
+  if (!['approve', 'reject'].includes(act)) {
+    showToast('ข้อผิดพลาด', 'Unknown action: ' + act, 'error');
+    return;
+  }
+
+  const actionLocks = window.__adminBookingActionLocks || (window.__adminBookingActionLocks = new Set());
+  if (actionLocks.has(id)) {
+    showToast('กำลังดำเนินการ', 'คำขอนี้กำลังดำเนินการอยู่', 'info');
+    return;
+  }
+  actionLocks.add(id);
+
   let actionText = '';
   const payload = {
     bookingId: id,
@@ -4658,6 +4670,7 @@ async function performBookingAction(action, bookingId) {
     if(modalEl && typeof openBookingDetail === 'function') openBookingDetail(id);
 
   } finally {
+    actionLocks.delete(id);
     showLoading(false);
   }
 }
@@ -5387,7 +5400,11 @@ window.loadCombinedSchedule = async function (forceReload = false, targetDate) {
     return { ok: true, count: slots.length, slots: slots, dateISO: dateKey };
 
   } catch (err) {
-    console.error('\u274C FAIL loadCombinedSchedule exception:', err);
+    if (err.name === 'AbortError') {
+      console.log('🛑 loadCombinedSchedule: fetch request aborted');
+      return { ok: false, cancelled: true, slots: [] };
+    }
+    console.error('❌ FAIL loadCombinedSchedule exception:', err);
     if (typeof renderCombinedError === 'function') renderCombinedError(err.message || String(err));
     return { ok: false, error: err.message || String(err), slots: [] };
 
