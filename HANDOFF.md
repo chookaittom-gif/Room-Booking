@@ -38,14 +38,13 @@ The recent development focused on cleaning legacy redundant files and delivering
 - Both admin tabs are initialized with `style="display: none;"`. When an Admin or SuperAdmin logs in, `updateAdminNavVisibility(isAdmin)` sets `style.display = ''`.
 
 ### B. Timetable Editor (`scheduleEditor`)
-- UI Container: `#scheduleEditorPane` in `index.html`.
-- State Store: `scheduleEditorState` in `js/app.js` holds current classroom, term, academic year, and slot data mapped by `day-period` (Monday–Friday, Periods 1–10).
-- Slot Editing Modal: `#slotEditModal` allows editing:
-  - Subject Code & Name
-  - Teacher Name
-  - Grade/Class Level
-  - Start & End Period
-  - Notes
+- UI Container: `#scheduleEditorContent` in `index.html` (tab button `#scheduleEditor-tab`).
+- State Store: `window.__classScheduleState` in `js/app.js` (module scope `js/app.js:L9656-L10227`) holds current classroom and slot rows (`roomId, day, startTime, endTime, subject, instructor, validFrom, validTo`). Data loads via action `getClassScheduleAdmin`, saves via `saveClassSchedule`.
+- Slot Editing Modal: `#classSlotModal` allows editing:
+  - Subject (`slotSubject`) & Instructor (`slotInstructor`)
+  - Day (`slotDay`)
+  - Start & End Time (`slotStart` / `slotEnd`, e.g. `8:00`–`16:00` — times, not period numbers)
+  - Valid From / Valid To (`slotValidFrom` / `slotValidTo`)
 - Security: All dynamic slot outputs run through the `safe()` HTML escape helper to prevent XSS.
 
 ### C. Excel Export (A4 Landscape)
@@ -68,8 +67,12 @@ The recent development focused on cleaning legacy redundant files and delivering
 
 ## 4. Pending / Next Steps
 
-1. **GAS Backend Deployment Verification**:
-   - Ensure the GAS backend sheet contains the timetable schema matching `getTimetable` and `saveTimetableSlot` actions when connecting to live spreadsheets.
+1. **GAS Backend Deployment Verification** — ✅ VERIFIED (2026-10-24):
+   - The timetable editor does **not** use `getTimetable` / `saveTimetableSlot` (this document previously named those actions incorrectly). The real actions are **`getClassScheduleAdmin`** (load) and **`saveClassSchedule`** (save), both implemented in `Code/Code.gs` (L455 / L474) and whitelisted in `allowedActions` (Code.gs L96-97).
+   - Sheet schema: `ClassSchedule` with 8 columns `RoomID, Day, StartTime, EndTime, Subject, Instructor, ValidFrom, ValidTo` — matches frontend row fields exactly (`roomId, day, startTime, endTime, subject, instructor, validFrom, validTo`).
+   - `saveClassSchedule` uses `LockService` and replaces only the rows of the target `roomId`, keeping other rooms' rows.
+   - Live read-only test against the deployed web app (`AKfycby2...`): returned `{"ok":true}` with real timetable rows — PASSED.
+   - Write path (`saveClassSchedule`) intentionally **not** exercised against the live sheet; verify via real admin usage or a separate test spreadsheet.
 2. **Batch Import / Clone Feature (Optional Future Enhancement)**:
    - Provide ability to duplicate a timetable from one semester/classroom to another.
 3. **Automated End-to-End Testing**:
