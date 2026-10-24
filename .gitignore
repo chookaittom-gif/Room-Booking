@@ -1,5 +1,6 @@
 # Dependencies & Cache
 _backup_cleanup.zip
+.playwright-cli/
 node_modules/
 /graft/
 .DS_Store
