@@ -48,13 +48,9 @@ The recent development focused on cleaning legacy redundant files and delivering
 - Security: All dynamic slot outputs run through the `safe()` HTML escape helper to prevent XSS.
 
 ### C. Excel Export (A4 Landscape)
-- Utilizes `xlsx-js-style` / `XLSX` library.
-- Formats grid with:
-  - Headers in Thai: วัน / คาบที่ (1-10) with exact period timestamps.
-  - Font: **TH Sarabun New** (size 14 regular, 16 bold for titles/headers).
-  - Borders: Thin black borders across all data cells.
-  - Alignment: Centered horizontal & vertical alignment with text wrapping.
-  - Page Setup: Configured for **A4 Landscape** (`ws['!pageSetup'] = { orientation: 'landscape', paperSize: 9 }`).
+- Uses `xlsx-js-style` (loaded in `index.html` instead of plain SheetJS, which silently drops cell styles) plus `JSZip`.
+- `exportClassScheduleExcel` writes with `XLSX.write`, then injects `<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>` into the worksheet XML via JSZip before download — community SheetJS builds do not write `!pageSetup`.
+- Verified end-to-end on 2026-10-24 (browser export → file inspection): fonts TH Sarabun New (18 bold title, 12 subtitle, 14 body), thin borders, centered alignment with wrap, A4 landscape pageSetup present.
 
 ### D. File Structure
 - `index.html`: Main SPA frontend layout, modals, and CDN script dependencies.

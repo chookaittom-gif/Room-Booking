@@ -10024,7 +10024,7 @@ async function saveAllClassSchedule() {
   }
 }
 
-function exportClassScheduleExcel() {
+async function exportClassScheduleExcel() {
   if (typeof XLSX === 'undefined') {
     showToast('ไม่สามารถส่งออกได้', 'ไลบรารี SheetJS ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าเว็บ', 'error');
     return;
@@ -10204,7 +10204,36 @@ function exportClassScheduleExcel() {
 
     const nowStr = new Date().toISOString().slice(0, 10);
     const fileName = `ตารางสอน_${nowStr}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+
+    // xlsx-js-style เขียน cell styles ได้ แต่ไม่เขียน !pageSetup ให้ จึงต้อง
+    // ฉีด <pageSetup> ลงใน sheet XML ผ่าน JSZip ก่อนดาวน์โหลด
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const zip = await window.JSZip.loadAsync(wbout);
+    const sheetPath = Object.keys(zip.files).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+    let sheetXml = await zip.file(sheetPath).async('string');
+    if (!/<pageSetup/.test(sheetXml)) {
+      if (!/<sheetPr/.test(sheetXml)) {
+        sheetXml = sheetXml.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+      } else if (/<sheetPr\/>/.test(sheetXml)) {
+        sheetXml = sheetXml.replace('<sheetPr/>', '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+      } else {
+        sheetXml = sheetXml.replace(/<sheetPr(\s[^>]*)?>/, '$&<pageSetUpPr fitToPage="1"/>');
+      }
+      sheetXml = sheetXml.replace('</worksheet>', '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>');
+    }
+    zip.file(sheetPath, sheetXml);
+    const blob = await zip.generateAsync({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
 
     showNotification('ดาวน์โหลดสำเร็จ', `สร้างไฟล์ ${fileName} เรียบร้อยแล้ว`, 'success');
   } catch (err) {
