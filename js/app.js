@@ -81,7 +81,12 @@ function initializeApplication() {
       if (typeof startSessionTimer === 'function') startSessionTimer();
       if (typeof checkSessionTimeout === 'function') checkSessionTimeout();
     } else {
-      if (typeof setSession === 'function') setSession(null);
+      // session ของแอปนี้เป็นแบบ client-side (localStorage + เพดาน 8 ชม.) และ
+      // getInitialData ไม่ได้ส่ง token จึงตอบ session:null เสมอ — ห้ามให้
+      // setSession(null) ทับ session ที่ restore เก็บไว้ (อาการ: logout เอง
+      // ทุกครั้งที่โหลดหน้าทั้งที่ยังไม่ครบ 8 ชม.) ปล่อยให้ window load เป็นผู้
+      // ตรวจ restore/หมดอายุตามเกณฑ์จริงแทน
+      if (typeof setSession === 'function' && !localStorage.getItem('berry_user_session')) setSession(null);
     }
 
     // Tab Switching
