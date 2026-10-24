@@ -50,7 +50,8 @@ The recent development focused on cleaning legacy redundant files and delivering
 ### C. Excel Export (A4 Landscape)
 - Uses `xlsx-js-style` (loaded in `index.html` instead of plain SheetJS, which silently drops cell styles) plus `JSZip`.
 - `exportClassScheduleExcel` writes with `XLSX.write`, then injects `<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>` into the worksheet XML via JSZip before download — community SheetJS builds do not write `!pageSetup`.
-- Verified end-to-end on 2026-10-24 (browser export → file inspection): fonts TH Sarabun New (18 bold title, 12 subtitle, 14 body), thin borders, centered alignment with wrap, A4 landscape pageSetup present.
+- **Injection order matters**: OOXML requires `pageSetup` right after `pageMargins` and *before* `ignoredErrors` (which xlsx-js-style writes at the tail). Appending before `</worksheet>` puts it after `ignoredErrors` → Excel flags the sheet as corrupt, "repairs" it by dropping the whole sheet (user gets an empty workbook). openpyxl does *not* catch this — validate element order, not just parse. The code also strips XML-illegal control chars from the sheet as defense.
+- Verified end-to-end on 2026-10-24 (browser export → file inspection): fonts TH Sarabun New (18 bold title, 12 subtitle, 14 body), thin borders, centered alignment with wrap, A4 landscape pageSetup present, element order `pageMargins → pageSetup → ignoredErrors`.
 
 ### D. File Structure
 - `index.html`: Main SPA frontend layout, modals, and CDN script dependencies.

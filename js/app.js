@@ -10589,8 +10589,23 @@ async function exportClassScheduleExcel() {
       } else {
         sheetXml = sheetXml.replace(/<sheetPr(\s[^>]*)?>/, '$&<pageSetUpPr fitToPage="1"/>');
       }
-      sheetXml = sheetXml.replace('</worksheet>', '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>');
+      // OOXML กำหนดลำดับ: pageMargins → pageSetup → headerFooter → … → ignoredErrors
+      // ห้ามแทรกหลัง </worksheet> เพราะจะไปตกหลัง ignoredErrors ที่ xlsx-js-style
+      // เขียนไว้ท้ายสุด — Excel ถือว่า XML เสียและซ่อมด้วยการตัดทั้งชีตทิ้ง (ได้ไฟล์ว่าง)
+      const pageSetupXml = '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
+      if (/<pageMargins[^>]*\/>/.test(sheetXml)) {
+        sheetXml = sheetXml.replace(/(<pageMargins[^>]*\/>)/, '$1' + pageSetupXml);
+      } else if (/<pageMargins[^>]*>[\s\S]*?<\/pageMargins>/.test(sheetXml)) {
+        sheetXml = sheetXml.replace(/(<pageMargins[^>]*>[\s\S]*?<\/pageMargins>)/, '$1' + pageSetupXml);
+      } else if (/<ignoredErrors/.test(sheetXml)) {
+        sheetXml = sheetXml.replace('<ignoredErrors', pageSetupXml + '<ignoredErrors');
+      } else {
+        sheetXml = sheetXml.replace('</worksheet>', pageSetupXml + '</worksheet>');
+      }
     }
+    // ตัด control character ที่ XML 1.0 ห้าม — ถ้าข้อมูลจาก Sheet มีปนมา
+    // Excel จะถือว่าไฟล์เสียและซ่อมด้วยการตัดชีตทิ้งเช่นกัน
+    sheetXml = sheetXml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
     zip.file(sheetPath, sheetXml);
     const blob = await zip.generateAsync({
       type: 'blob',
