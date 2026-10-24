@@ -10483,9 +10483,9 @@ async function exportClassScheduleExcel() {
 
           if (matched.length > 0) {
             const texts = matched.map(m => {
-              return m.instructor ? `${m.subject} (${m.instructor})` : m.subject;
+              return m.instructor ? `${m.subject}\n${m.instructor}` : String(m.subject || '');
             });
-            rowCells.push(texts.join('\n'));
+            rowCells.push(texts.join('\n\n'));
           } else if (isLunch) {
             rowCells.push('— พักกลางวัน —');
           } else {
@@ -10498,7 +10498,16 @@ async function exportClassScheduleExcel() {
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       ws['!merges'] = merges;
-      ws['!cols'] = [{ wch: 18 }, ...days.map(() => ({ wch: 24 }))];
+      ws['!cols'] = [{ wch: 20 }, ...days.map(() => ({ wch: 28 }))];
+
+      // ความสูงแถว: ไฟล์ generate ไม่ auto-fit ใน Excel จริง — ตั้งเองตามจำนวนบรรทัดของเซลล์
+      ws['!rows'] = wsData.map((r, i) => {
+        if (i === 0) return { hpt: 34 };
+        if (i === 1) return { hpt: 18 };
+        if (i === 2) return { hpt: 28 };
+        const lines = Math.max(1, ...r.map(v => String(v == null ? '' : v).split('\n').length));
+        return { hpt: 22 * lines + 6 };
+      });
 
       // หน้ากระดาษ A4 แนวนอน (Landscape) + ขอบแคบ
       ws['!pageSetup'] = { paperSize: 9, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0, scale: 100 };
@@ -10515,7 +10524,7 @@ async function exportClassScheduleExcel() {
 
           cell.s.font = {
             name: 'TH Sarabun New',
-            sz: (R === 0) ? 18 : 12,
+            sz: (R === 0) ? 20 : ((R === 1) ? 12 : 16),
             bold: (R === 0 || R === 2)
           };
 
@@ -10570,7 +10579,14 @@ async function exportClassScheduleExcel() {
       ...roomSheets.map(rs => [rs.rmName, rs.slotCount, rs.activeDays.map(d => d.slice(0, 2)).join(', ') || '-', 'เปิดชีต →'])
     ];
     const toc = XLSX.utils.aoa_to_sheet(tocData);
-    toc['!cols'] = [{ wch: 28 }, { wch: 12 }, { wch: 22 }, { wch: 12 }];
+    toc['!cols'] = [{ wch: 30 }, { wch: 13 }, { wch: 24 }, { wch: 13 }];
+    toc['!rows'] = tocData.map((r, i) => {
+      if (i === 0) return { hpt: 34 };
+      if (i === 1) return { hpt: 18 };
+      if (i === 2) return { hpt: 10 };
+      if (i === 3) return { hpt: 28 };
+      return { hpt: 26 };
+    });
     toc['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }
@@ -10591,7 +10607,7 @@ async function exportClassScheduleExcel() {
         if (isLink && roomSheets[R - 4]) cell.l = { Target: `#'${roomSheets[R - 4].name}'!A1` };
         cell.s.font = {
           name: 'TH Sarabun New',
-          sz: (R === 0) ? 18 : 12,
+          sz: (R === 0) ? 20 : ((R === 1) ? 12 : 16),
           bold: (R === 0 || isHeader || isLink),
           color: isHeader ? { rgb: 'FFFFFF' } : (isLink ? { rgb: '4338CA' } : undefined),
           underline: isLink ? true : undefined
