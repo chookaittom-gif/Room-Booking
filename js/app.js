@@ -3046,50 +3046,15 @@ function showEventDetail(type, title, timeStr, id, teacherName) {
             return;
         }
 
-        // กรณีเป็น Class (ตารางสอน) -> แสดง Modal พร้อมปุ่ม "จองทับ"
-        const bodyEl = document.getElementById('bookingDetailsContent');
-        const footerEl = document.getElementById('bookingDetailsFooter');
-        const modalEl = document.getElementById('bookingDetailsModal');
-
-        // แปลงเวลา "09:00-12:00" ให้เป็นค่าพร้อมใช้งาน
-        const [start, end] = String(timeStr || '').split('-');
-
-        if (bodyEl) {
-            bodyEl.innerHTML = `
-                <div class="p-4 text-center">
-                    <div class="mb-3">
-                        <span class="badge bg-dark rounded-pill px-3 py-2 shadow-sm">
-                            <i class="fas fa-chalkboard-teacher me-2"></i>ตารางสอน
-                        </span>
-                    </div>
-                    <h4 class="fw-bold text-dark mb-2 booking-detail-title">${sanitizeText(title)}</h4>
-                    <div class="booking-teacher booking-detail-teacher justify-content-center mb-2" style="font-size:0.9rem; color:#64748b;">
-                        👨‍🏫 อ.ผู้สอน: <span class="fw-bold text-dark">${sanitizeText(teacherName || '-')}</span>
-                    </div>
-                    <div class="text-muted mb-4 small booking-detail-meta">
-                        <i class="fas fa-clock me-1"></i> ${sanitizeText(timeStr)} น.
-                    </div>
-                    <div class="alert alert-warning border-0 bg-warning bg-opacity-10 small text-start">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>คำเตือน:</strong> ช่วงเวลานี้มีการเรียนการสอน หากต้องการใช้ห้อง กรุณาตรวจสอบให้แน่ใจว่าได้ขออนุญาตอาจารย์ผู้สอนแล้ว
-                    </div>
-                </div>
-            `;
-        }
-
-        if (footerEl) {
-            footerEl.innerHTML = `
-                <div class="d-flex gap-2 w-100">
-                    <button type="button" class="btn btn-light text-secondary rounded-pill flex-grow-1" data-bs-dismiss="modal">ปิด</button>
-                    <button type="button" class="btn btn-primary rounded-pill flex-grow-1 shadow-sm fw-bold"
-                            onclick="bookOverClass('${start || ''}', '${end || ''}')">
-                        <i class="fas fa-calendar-plus me-2"></i>จองทับเวลานี้
-                    </button>
-                </div>
-            `;
-        }
-
-        if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        // กรณีเป็น Class (ตารางสอน) -> Modal รายละเอียดคาบเรียน + ปุ่ม "จองทับ"
+        const [start, end] = String(timeStr || '').split('-').map(t => (t || '').trim());
+        showClassSlotDetail({
+            subject: title,
+            teacher: teacherName,
+            timeLabel: timeStr,
+            roomLabel: lookupClassRoomLabel(),
+            bookOver: { start: start || '', end: end || '' }
+        });
     };
 
     // ถ้า monthDaySlotsModal เปิดอยู่ ต้องรอให้ปิดสนิทก่อน (ป้องกัน Bootstrap race condition)
@@ -3106,6 +3071,86 @@ function showEventDetail(type, title, timeStr, id, teacherName) {
         _doShowEventDetail();
     }
 }
+
+// แปลงค่าเป็น string literal ปลอดภัยสำหรับฝังใน onclick="fn(__jsArg(x))"
+// ต้อง escape double-quote เป็น &quot; เพราะ attribute ครอบด้วย " — ไม่งั้น string ใน JSON
+// จะปิด attribute กลางคันและ onclick กลายเป็น syntax error เงียบ ๆ
+window.__jsArg = function (v) {
+    return JSON.stringify(String(v == null ? '' : v)).replace(/"/g, '&quot;');
+};
+
+// หาชื่อห้องจากรายการห้อง (ใช้กับมุมมองห้องเดี่ยวที่รู้แค่ window.currentRoom)
+function lookupClassRoomLabel() {
+    const rid = window.currentRoom;
+    if (!rid) return '';
+    const list = window.roomsData || (window.__classScheduleState && window.__classScheduleState.rooms) || [];
+    const found = list.find(r => String(r.id || r.RoomID || '') === String(rid));
+    return found ? String(found.name || found.RoomName || rid) : String(rid);
+}
+
+// Modal รายละเอียดคาบเรียน (ตารางสอน) — ใช้ร่วมทุกมุมมอง: ห้องเดี่ยว / ตารางเรียนรวม-ปฏิทิน / ตารางเรียนรวม-ข้อความ
+function showClassSlotDetail(opts) {
+    const o = opts || {};
+    const esc = (v) => (typeof sanitizeText === 'function') ? sanitizeText(v) : String(v == null ? '' : v);
+    // รับได้ทั้งข้อความวันสำเร็จรูปและ ISO date (YYYY-MM-DD)
+    const fmtDay = (v) => {
+        const s = String(v || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+            try {
+                return new Date(s + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+            } catch (e) { return s; }
+        }
+        return s;
+    };
+    const bodyEl = document.getElementById('classDetailModalBody');
+    const footerEl = document.getElementById('classDetailModalFooter');
+    const modalEl = document.getElementById('classDetailModal');
+    if (!bodyEl || !modalEl) return;
+
+    const row = (icon, key, val) => val ? `
+        <div class="class-detail-row">
+            <dt><i class="fas ${icon} me-2 text-primary"></i>${key}</dt>
+            <dd>${esc(val)}</dd>
+        </div>` : '';
+
+    bodyEl.innerHTML = `
+        <div class="text-center mb-3">
+            <span class="badge bg-dark rounded-pill px-3 py-2 shadow-sm">
+                <i class="fas fa-chalkboard-teacher me-2"></i>ตารางสอน
+            </span>
+        </div>
+        <h4 class="fw-bold text-dark text-center mb-3 class-detail-title">${esc(o.subject || 'รายการเรียน')}</h4>
+        <div class="class-detail-rows">
+            ${row('fa-door-open', 'ห้องเรียน', o.roomLabel)}
+            ${row('fa-user-tie', 'ผู้สอน', o.teacher)}
+            ${row('fa-calendar-day', 'วัน', fmtDay(o.dayLabel))}
+            ${row('fa-clock', 'เวลา', o.timeLabel ? o.timeLabel + ' น.' : '')}
+        </div>
+        <div class="alert alert-warning border-0 bg-warning bg-opacity-10 small mt-3 mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>คำเตือน:</strong> ช่วงเวลานี้มีการเรียนการสอน หากต้องการใช้ห้อง กรุณาตรวจสอบให้แน่ใจว่าได้รับอนุญาตจากผู้สอนแล้ว
+        </div>
+    `;
+
+    if (footerEl) {
+        if (o.bookOver && o.bookOver.start && o.bookOver.end) {
+            footerEl.innerHTML = `
+                <div class="d-flex gap-2 w-100">
+                    <button type="button" class="btn btn-light text-secondary rounded-pill flex-grow-1" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-primary rounded-pill flex-grow-1 shadow-sm fw-bold"
+                            onclick="bookOverClass('${esc(o.bookOver.start)}', '${esc(o.bookOver.end)}')">
+                        <i class="fas fa-calendar-plus me-2"></i>จองทับเวลานี้
+                    </button>
+                </div>
+            `;
+        } else {
+            footerEl.innerHTML = `<button type="button" class="btn btn-light text-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิด</button>`;
+        }
+    }
+
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+window.showClassSlotDetail = showClassSlotDetail;
 
 function showMonthDaySlots(dateISO) {
     let modalEl = document.getElementById('monthDaySlotsModal');
@@ -6489,12 +6534,15 @@ window.renderCombinedSummary = function(slots) {
 
             list.forEach(item => {
                 const time = `${item.start} - ${item.end}`;
-                const title = escapeHtml(pick(item, 'subject', 'title', 'Purpose'));
-                const room = escapeHtml(pick(item, 'roomId', 'RoomID'));
-                const who = escapeHtml(pick(item, 'instructor', 'booker', 'BookerName'));
+                const titleRaw = pick(item, 'subject', 'title', 'Purpose') || '';
+                const roomRaw = pick(item, 'roomId', 'RoomID') || '';
+                const whoRaw = pick(item, 'instructor', 'booker', 'BookerName') || '';
+                const title = escapeHtml(titleRaw);
+                const room = escapeHtml(roomRaw);
+                const who = escapeHtml(whoRaw);
                 const isClass = item.type === 'class';
                 const bookingId = pick(item, 'bookingId', 'BookingID');
-                
+
                 // Status Badge
                 let statusBadge = '';
                 if(isClass) statusBadge = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">\u0E40\u0E23\u0E35\u0E22\u0E19</span>';
@@ -6505,20 +6553,34 @@ window.renderCombinedSummary = function(slots) {
                 const mobileStatusLabel = isClass ? '\u0E40\u0E23\u0E35\u0E22\u0E19' : (isCancelled ? '\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01' : (statusRaw === 'approved' || statusRaw === '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' ? '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' : '\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34'));
                 const mobileStatusClass = isClass ? 'is-class' : (isCancelled ? 'is-cancelled' : (statusRaw === 'approved' || statusRaw === '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' ? 'is-approved' : 'is-pending'));
 
+                // Args สำหรับเปิด modal รายละเอียดคาบเรียน (ใช้ทั้งปุ่มและการคลิกแถว)
+                const classArgs = `subject:${window.__jsArg(titleRaw)}, teacher:${window.__jsArg(whoRaw)}, timeLabel:${window.__jsArg(time)}, roomLabel:${window.__jsArg(roomRaw)}, dayLabel:${window.__jsArg(iso)}`;
+
                 // --- \u0E1B\u0E38\u0E48\u0E21\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 (Logic \u0E43\u0E2B\u0E21\u0E48) ---
                 let detailBtn = '';
                 if (bookingId && hasDetailContent(item)) {
                     detailBtn = `
                     <button class="btn btn-sm btn-outline-primary border-0 rounded-circle w-44px h-44px p-0 d-flex align-items-center justify-content-center mx-auto hover-scale"
-                            onclick="openBookingDetail('${bookingId}')" 
+                            onclick="openBookingDetail('${bookingId}')"
+                            title="\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14">
+                        <i class="fas fa-file-alt"></i>
+                    </button>`;
+                } else if (isClass && typeof showClassSlotDetail === 'function') {
+                    detailBtn = `
+                    <button class="btn btn-sm btn-outline-primary border-0 rounded-circle w-44px h-44px p-0 d-flex align-items-center justify-content-center mx-auto hover-scale"
+                            onclick="showClassSlotDetail({${classArgs}})"
                             title="\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14">
                         <i class="fas fa-file-alt"></i>
                     </button>`;
                 }
 
-                // Row Click (Optional: \u0E04\u0E25\u0E34\u0E01\u0E41\u0E16\u0E27\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E44\u0E14\u0E49\u0E40\u0E2B\u0E21\u0E37\u0E2D\u0E19\u0E01\u0E31\u0E19)
-                const rowClick = bookingId ? `style="cursor:pointer" onclick="openBookingDetail('${bookingId}')"` : '';
-                const mobileClick = bookingId ? ` role="button" tabindex="0" onclick="openBookingDetail('${bookingId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBookingDetail('${bookingId}')}"` : '';
+                // Row Click: การจอง → openBookingDetail, คาบเรียน → showClassSlotDetail
+                const rowClick = bookingId
+                    ? `style="cursor:pointer" onclick="openBookingDetail('${bookingId}')"`
+                    : (isClass ? `style="cursor:pointer" onclick="showClassSlotDetail({${classArgs}})"` : '');
+                const mobileClick = bookingId
+                    ? ` role="button" tabindex="0" onclick="openBookingDetail('${bookingId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBookingDetail('${bookingId}')}"`
+                    : (isClass ? ` role="button" tabindex="0" onclick="showClassSlotDetail({${classArgs}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"` : '');
 
                 mobileRows += `
                 <article class="combined-summary-mobile-card"${mobileClick}>
@@ -6799,17 +6861,14 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
 
         const bookingId = pick(s, 'bookingId', 'BookingID');
         const isBooking = !!bookingId;
+        const isClass = String(pick(s, 'type', 'Type') || '').toLowerCase() === 'class';
 
-        // "\u0E21\u0E35\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14" = bookingId + \u0E21\u0E35 openBookingDetail()
+        // "มีรายละเอียด" = booking (openBookingDetail) หรือ class (showClassSlotDetail)
         const canOpenDetail = isBooking && (typeof openBookingDetail === 'function');
+        const canOpenClass = !isBooking && isClass && (typeof showClassSlotDetail === 'function');
 
-        // \u2705 Bonus UX: \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 -> \u0E04\u0E25\u0E34\u0E01\u0E40\u0E1B\u0E34\u0E14 detail \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22
-        const clickAttr = canOpenDetail
-          ? `role="button" tabindex="0" style="cursor:pointer;"
-             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
-             onclick="try{
-                openBookingDetail('${escapeHtml(bookingId)}');
-                try{
+        // ✅ Bonus UX: คลิกเปิด detail ได้ทั้งการจองและคาบเรียน
+        const hideDayModalJs = `try{
                   const el=document.getElementById('combinedDayModal');
                   if(window.bootstrap && bootstrap.Modal){
                     const m=bootstrap.Modal.getInstance(el);
@@ -6817,9 +6876,22 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
                   }else if(window.jQuery){
                     jQuery(el).modal('hide');
                   }
-                }catch(e){}
+                }catch(e){}`;
+        const clickAttr = canOpenDetail
+          ? `role="button" tabindex="0" style="cursor:pointer;"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+             onclick="try{
+                openBookingDetail('${escapeHtml(bookingId)}');
+                ${hideDayModalJs}
              }catch(e){}"`
-          : '';
+          : (canOpenClass
+            ? `role="button" tabindex="0" style="cursor:pointer;"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+               onclick="try{
+                  showClassSlotDetail({subject:${window.__jsArg(title)}, teacher:${window.__jsArg(who)}, timeLabel:${window.__jsArg(start && end ? start + '-' + end : '')}, roomLabel:${window.__jsArg(room)}, dayLabel:${window.__jsArg(pick(s, 'date') ? String(pick(s, 'date')).split('T')[0] : '')}});
+                  ${hideDayModalJs}
+               }catch(e){}"`
+            : '');
 
         // \u2705 \u0E16\u0E49\u0E32\u0E27\u0E48\u0E32\u0E07 -> \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E42\u0E0A\u0E27\u0E4C\u0E2D\u0E30\u0E44\u0E23 (\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48 "-")
         const metaRoom = room ? `<span class="badge bg-white text-primary border booking-room-name">${escapeHtml(room)}</span>` : '';
@@ -10306,8 +10378,20 @@ async function exportClassScheduleExcel() {
   }
 
   const state = window.__classScheduleState;
-  const rows = state.rows || [];
-  const rooms = state.rooms || window.roomsData || [];
+
+  // กด Export ก่อนตารางโหลดเสร็จ (หรือโหลดล้ม) → โหลดให้อัตโนมัติแล้ว export ต่อ
+  // ไม่ปล่อยไฟล์เปล่าที่มีแต่ชื่อห้อง
+  if (!state.rows || state.rows.length === 0) {
+    showToast('กำลังโหลดข้อมูล', 'ยังไม่มีข้อมูลตารางสอนในระบบ — กำลังดึงข้อมูลให้อัตโนมัติ กรุณารอสักครู่...', 'info');
+    await loadClassScheduleAdmin();
+    if (!window.__classScheduleState.rows || window.__classScheduleState.rows.length === 0) {
+      showToast('ไม่สามารถส่งออกได้', 'ดึงข้อมูลตารางสอนไม่สำเร็จ — ลองกดปุ่ม "ลองใหม่อีกครั้ง" ในตารางก่อนแล้วจึงส่งออก', 'warning');
+      return;
+    }
+  }
+
+  const rows = window.__classScheduleState.rows;
+  const rooms = window.__classScheduleState.rooms || window.roomsData || [];
 
   if (rooms.length === 0) {
     showToast('แจ้งเตือน', 'ไม่พบข้อมูลห้องเรียนสำหรับส่งออก', 'warning');
