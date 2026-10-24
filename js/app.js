@@ -4764,10 +4764,29 @@ async function performLogin(event) {
 
 const BERRY_SESSION_KEY = 'berry_user_session';
 const BERRY_EXPIRY_KEY = 'berry_session_expiry';
-const BERRY_SESSION_TTL_MS = 60 * 60 * 1000; // 1 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07
-const BERRY_ACTIVITY_THROTTLE_MS = 15000; // \u0E15\u0E48\u0E2D\u0E2D\u0E32\u0E22\u0E38\u0E16\u0E35\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E38\u0E01 15 \u0E27\u0E34
+const BERRY_START_KEY = 'berry_session_start';
+const BERRY_SESSION_TTL_MS = 60 * 60 * 1000; // idle 1 ชั่วโมง (ไม่มีกิจกรรม = ออกจากระบบ)
+const BERRY_SESSION_MAX_MS = 8 * 60 * 60 * 1000; // เพดานสูงสุด: ครบ 8 ชม. นับจากเวลา login ต้องออกจากระบบ
+const BERRY_CAP_WARN_MS = 10 * 60 * 1000; // เตือนล่วงหน้าเมื่อเหลือ ≤ 10 นาที
+const BERRY_ACTIVITY_THROTTLE_MS = 15000; // ต่ออายุถี่สุดทุก 15 วิ
 
 let berryLastTouchAt = 0;
+let berryCapWarned = false;
+
+function readSessionStart() {
+  const n = Number(String(localStorage.getItem(BERRY_START_KEY) || '').trim());
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function ensureSessionStart() {
+  let start = readSessionStart();
+  if (!start) {
+    // session เก่าที่ไม่มีค่า start (เขียนก่อนมีระบบเพดาน 8 ชม.) → เริ่มนับจากตอนนี้
+    start = Date.now();
+    try { localStorage.setItem(BERRY_START_KEY, String(start)); } catch (e) {}
+  }
+  return start;
+}
 
 function isUserLoggedIn() {
   const s = window.currentSession || {};
@@ -4793,7 +4812,9 @@ function touchSessionExpiry(force = false) {
   if (!force && (now - berryLastTouchAt) < BERRY_ACTIVITY_THROTTLE_MS) return true;
 
   berryLastTouchAt = now;
-  const nextExpiry = now + BERRY_SESSION_TTL_MS;
+  // ต่ออายุ idle ได้ แต่ไม่เกินเพดาน 8 ชม. นับจากเวลา login
+  const capEnd = ensureSessionStart() + BERRY_SESSION_MAX_MS;
+  const nextExpiry = Math.min(now + BERRY_SESSION_TTL_MS, capEnd);
   writeExpiry(nextExpiry);
   return true;
 }
@@ -4834,42 +4855,88 @@ function startSessionTimer() {
 
   if (window.sessionTimer) clearInterval(window.sessionTimer);
 
-  // \u0E15\u0E48\u0E2D\u0E2D\u0E32\u0E22\u0E38\u0E17\u0E31\u0E19\u0E17\u0E35\u0E15\u0E2D\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21 (\u0E01\u0E31\u0E19\u0E40\u0E04\u0E2A\u0E42\u0E2B\u0E25\u0E14\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E19\u0E40\u0E14\u0E49\u0E07)
+  // ต่ออายุทันทีตอนเริ่ม (กันเคสโหลดมาแล้วเด้ง)
   if (isUserLoggedIn()) touchSessionExpiry(true);
+
+  // login ใหม่ (ไม่ผ่าน performLogout) → อนุญาตให้เตือนได้อีก
+  berryCapWarned = false;
+  updateSessionRemainingUI();
 
   window.sessionTimer = setInterval(() => {
     checkSessionTimeout();
   }, 60000);
 
-  console.log('\u23F0 Session Timer Started (expiry mode)...');
+  console.log('⏰ Session Timer Started (expiry mode + 8h cap)...');
 }
 
 function checkSessionTimeout() {
-  // \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 login \u0E2D\u0E22\u0E39\u0E48 \u0E01\u0E47\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23
+  // ถ้าไม่ได้ login อยู่ ก็ไม่ต้องทำอะไร
   if (!isUserLoggedIn()) return;
+
+  const now = Date.now();
+
+  // เพดาน 8 ชม. นับจากเวลา login — ไม่สนกิจกรรม ครบแล้วต้องออกจากระบบ
+  const capEnd = ensureSessionStart() + BERRY_SESSION_MAX_MS;
+  if (now >= capEnd) {
+    console.log('⏳ Session hard cap reached: ครบ 8 ชั่วโมง');
+    try { localStorage.removeItem(BERRY_EXPIRY_KEY); } catch (e) {}
+    performLogout(true, 'cap');
+    return;
+  }
+
+  // เตือนล่วงหน้าเมื่อเหลือ ≤ 10 นาที (ครั้งเดียวต่อการ login)
+  const capRemain = capEnd - now;
+  if (capRemain <= BERRY_CAP_WARN_MS && !berryCapWarned) {
+    berryCapWarned = true;
+    const mins = Math.max(1, Math.round(capRemain / 60000));
+    showToast('ใกล้หมดเวลาการใช้งาน', `ครบ 8 ชั่วโมงในอีก ${mins} นาที — ระบบจะออกจากระบบอัตโนมัติ กรุณาบันทึกงานให้เรียบร้อย`, 'warning');
+  }
+
+  updateSessionRemainingUI();
 
   const expiry = readExpiry();
 
-  // \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35 expiry (\u0E40\u0E0A\u0E48\u0E19 storage \u0E16\u0E39\u0E01\u0E25\u0E49\u0E32\u0E07) \u2192 \u0E2A\u0E23\u0E49\u0E32\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E41\u0E1A\u0E1A\u0E01\u0E31\u0E19\u0E2B\u0E25\u0E38\u0E14
+  // ถ้าไม่มี expiry (เช่น storage ถูกล้าง) → สร้างใหม่แบบกันหลุด
   if (!expiry || expiry <= 0) {
     touchSessionExpiry(true);
     return;
   }
 
-  const now = Date.now();
-
-  // \u0E2B\u0E21\u0E14\u0E2D\u0E32\u0E22\u0E38\u0E08\u0E23\u0E34\u0E07
+  // หมดอายุ idle จริง
   if (now > expiry) {
-    console.log('\u23F3 Session Expired: \u0E40\u0E01\u0E34\u0E19\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E01\u0E33\u0E2B\u0E19\u0E14');
+    console.log('⏳ Session Expired: เกินเวลาที่กำหนด (idle)');
     try { localStorage.removeItem(BERRY_EXPIRY_KEY); } catch (e) {}
-    performLogout(true);
+    performLogout(true, 'idle');
   }
 }
 
-function performLogout(isTimeout = false) {
-  console.log('\uD83D\uDC4B Performing Logout...');
+// แสดงเวลา session ที่เหลือใน navbar (เพดาน 8 ชม.)
+function updateSessionRemainingUI() {
+  let el = document.getElementById('sessionTimeLeft');
+  if (!el) {
+    // path ที่ไม่ได้ผ่าน setSession (เช่น restore จาก localStorage) — สร้างเอง
+    const infoEl = document.getElementById('sessionInfo');
+    if (!infoEl || infoEl.style.display === 'none') return;
+    el = document.createElement('span');
+    el.id = 'sessionTimeLeft';
+    infoEl.appendChild(el);
+  }
+  if (!isUserLoggedIn()) { el.textContent = ''; el.classList.remove('warn'); return; }
+  const start = readSessionStart();
+  if (!start) { el.textContent = ''; return; }
+  const remain = start + BERRY_SESSION_MAX_MS - Date.now();
+  if (remain <= 0) { el.textContent = ''; return; }
+  const h = Math.floor(remain / 3600000);
+  const m = Math.floor((remain % 3600000) / 60000);
+  el.textContent = `อีก ${h}:${String(m).padStart(2, '0')} ชม.`;
+  el.classList.toggle('warn', remain <= BERRY_CAP_WARN_MS);
+}
+
+function performLogout(isTimeout = false, reason = 'idle') {
+  console.log('👋 Performing Logout...');
 
   window.currentSession = null;
+  berryCapWarned = false;
 
   try { localStorage.removeItem(BERRY_SESSION_KEY); } catch (e) {}
   try { localStorage.removeItem(BERRY_EXPIRY_KEY); } catch (e) {}
@@ -4882,17 +4949,63 @@ function performLogout(isTimeout = false) {
     window.sessionTimer = null;
   }
 
+  updateSessionRemainingUI();
+
   if (typeof updateUIForLoggedOutUser === 'function') {
     updateUIForLoggedOutUser();
   }
 
   if (isTimeout) {
-    if (typeof showLoginModal === 'function') showLoginModal();
-    alert('\u0E2B\u0E21\u0E14\u0E40\u0E27\u0E25\u0E32\u0E01\u0E32\u0E23\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19... \u0E01\u0E23\u0E38\u0E13\u0E32\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E43\u0E2B\u0E21\u0E48');
+    const msgEl = document.getElementById('sessionExpiredMessage');
+    if (msgEl) {
+      msgEl.textContent = reason === 'cap'
+        ? 'ครบ 8 ชั่วโมงการใช้งานแล้ว — ระบบได้ออกจากระบบให้อัตโนมัติ'
+        : 'ไม่พบการใช้งานเป็นเวลานาน — ระบบได้ออกจากระบบให้อัตโนมัติ';
+    }
+    const expiredEl = document.getElementById('sessionExpiredModal');
+    if (expiredEl) {
+      bootstrap.Modal.getOrCreateInstance(expiredEl).show();
+    } else if (typeof showLoginModal === 'function') {
+      showLoginModal();
+    }
   } else {
-    if (typeof showToast === 'function') showToast('\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A', '\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E23\u0E35\u0E22\u0E1A\u0E23\u0E49\u0E2D\u0E22\u0E41\u0E25\u0E49\u0E27', 'info');
+    if (typeof showToast === 'function') showToast('ออกจากระบบ', 'ออกจากระบบเรียบร้อยแล้ว', 'info');
   }
 }
+
+// ปุ่ม "เข้าสู่ระบบอีกครั้ง" ใน modal หมดเวลา + ปุ่มแสดง/ซ่อนรหัสผ่าน
+// (modals อยู่ท้าย body หลัง <script> จึงต้องรอ DOM พร้อมก่อนผูก)
+window.addEventListener('DOMContentLoaded', () => {
+  const expiredBtn = document.getElementById('sessionExpiredLoginBtn');
+  if (expiredBtn) {
+    expiredBtn.addEventListener('click', () => {
+      const el = document.getElementById('sessionExpiredModal');
+      if (el) bootstrap.Modal.getInstance(el)?.hide();
+      if (typeof showLoginModal === 'function') showLoginModal();
+    });
+  }
+
+  const toggleBtn = document.getElementById('togglePasswordBtn');
+  const pwInput = document.getElementById('password');
+  if (toggleBtn && pwInput) {
+    const resetToHidden = () => {
+      pwInput.type = 'password';
+      toggleBtn.querySelector('i').className = 'fas fa-eye';
+      toggleBtn.setAttribute('aria-label', 'แสดงรหัสผ่าน');
+      toggleBtn.setAttribute('aria-pressed', 'false');
+    };
+    toggleBtn.addEventListener('click', () => {
+      const show = pwInput.type === 'password';
+      pwInput.type = show ? 'text' : 'password';
+      toggleBtn.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+      toggleBtn.setAttribute('aria-label', show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน');
+      toggleBtn.setAttribute('aria-pressed', show ? 'true' : 'false');
+    });
+    // ปิด modal เมื่อไร ให้กลับไปซ่อนเสมอ (กันค้างโหมดแสดง)
+    const loginModalEl = document.getElementById('loginModal');
+    if (loginModalEl) loginModalEl.addEventListener('hidden.bs.modal', resetToHidden);
+  }
+});
 
 
 // \u2705 \u0E41\u0E19\u0E30\u0E19\u0E33: \u0E15\u0E48\u0E2D\u0E2D\u0E32\u0E22\u0E38\u0E17\u0E38\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E40\u0E23\u0E35\u0E22\u0E01 apiCall \u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08\u0E14\u0E49\u0E27\u0E22 (\u0E01\u0E31\u0E19\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E40\u0E07\u0E35\u0E22\u0E1A \u0E46 \u0E41\u0E25\u0E49\u0E27\u0E2B\u0E25\u0E38\u0E14)
@@ -5146,7 +5259,8 @@ function setSession(sessionData) {
       const icon = isAdmin ? '<i class="fas fa-user-shield me-2"></i>' : '<i class="fas fa-user me-2"></i>';
       // Sanitize check
       const safeName = (typeof sanitizeText === 'function') ? sanitizeText(userName || username) : (userName || username);
-      infoEl.innerHTML = `${icon}${safeName}`;
+      infoEl.innerHTML = `${icon}${safeName}<span id="sessionTimeLeft" aria-live="off"></span>`;
+      if (typeof updateSessionRemainingUI === 'function') updateSessionRemainingUI();
     } else {
       infoEl.style.display = 'none';
       infoEl.innerHTML = '';
@@ -9143,28 +9257,27 @@ window.addEventListener('load', () => {
     return;
   }
 
-  // 1) \u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A Session \u0E40\u0E01\u0E48\u0E32\u0E08\u0E32\u0E01 LocalStorage (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E01\u0E23\u0E13\u0E35\u0E44\u0E21\u0E48\u0E21\u0E35 session \u0E08\u0E32\u0E01 server)
+  // 1) ตรวจสอบ Session เก่าจาก LocalStorage (เฉพาะกรณีไม่มี session จาก server)
   const savedUser = localStorage.getItem('berry_user_session');
   const savedTime = localStorage.getItem('berry_session_start');
 
   if (savedUser && savedTime) {
-    console.log("\u267B\uFE0F Restoring Session...");
+    console.log("♻️ Restoring Session...");
     try {
       const userObj = JSON.parse(savedUser);
 
-      const now = new Date().getTime();
-      const oneHour = 60 * 60 * 1000;
-
-      if (now - parseInt(savedTime, 10) > oneHour) {
-        console.log("\u23F3 Saved session expired.");
+      // เกณฑ์เดียวกับระบบ session: ครบ 8 ชม. นับจาก login = หมดอายุ
+      // (idle 1 ชม. เช็คโดย checkSessionTimeout ผ่าน berry_session_expiry)
+      if (Date.now() - parseInt(savedTime, 10) > BERRY_SESSION_MAX_MS) {
+        console.log("⏳ Saved session expired (over 8h cap).");
         try { localStorage.removeItem('berry_user_session'); } catch (e) {}
         try { localStorage.removeItem('berry_session_start'); } catch (e) {}
-        performLogout(false);
+        performLogout(true, 'cap');
       } else {
         if (typeof setSession === 'function') setSession(userObj);
       }
     } catch (e) {
-      console.error("\u274C Error restoring session:", e);
+      console.error("❌ Error restoring session:", e);
       try { localStorage.removeItem('berry_user_session'); } catch (e2) {}
       try { localStorage.removeItem('berry_session_start'); } catch (e2) {}
       performLogout(false);

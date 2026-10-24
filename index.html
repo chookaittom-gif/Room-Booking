@@ -1304,8 +1304,11 @@
                             <label>ชื่อผู้ใช้</label>
                         </div>
                         <div class="form-floating mb-4">
-                            <input type="password" class="form-control rounded-3" id="password" placeholder="Pass" required autocomplete="current-password">
+                            <input type="password" class="form-control rounded-3 pw-with-toggle" id="password" placeholder="Pass" required autocomplete="current-password">
                             <label>รหัสผ่าน</label>
+                            <button type="button" class="pw-toggle-btn" id="togglePasswordBtn" aria-label="แสดงรหัสผ่าน" aria-pressed="false">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 rounded-pill py-2">เข้าสู่ระบบ</button>
                     </form>
@@ -1457,6 +1460,29 @@
           <div class="modal-footer border-0 px-4 py-3 bg-white">
             <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
             <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="scheduleConfirmOk">ตกลง</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal แจ้ง session หมดอายุ (แทน alert เนทีพ) -->
+    <div class="modal fade" id="sessionExpiredModal" tabindex="-1" aria-labelledby="sessionExpiredTitle" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          <div class="modal-header border-0 bg-primary bg-gradient text-white px-4 py-3">
+            <h5 class="modal-title fw-bold mb-0" id="sessionExpiredTitle">
+              <i class="fas fa-hourglass-end me-2"></i>หมดเวลาการใช้งาน
+            </h5>
+          </div>
+          <div class="modal-body p-4 bg-white text-center">
+            <i class="fas fa-sign-out-alt fa-2x text-secondary mb-3"></i>
+            <p class="mb-1" id="sessionExpiredMessage">กรุณาเข้าสู่ระบบใหม่อีกครั้ง</p>
+            <p class="text-secondary small mb-0">การใช้งานต่อเนื่องจำกัดไว้ที่ 8 ชั่วโมงต่อการเข้าสู่ระบบ 1 ครั้ง</p>
+          </div>
+          <div class="modal-footer border-0 px-4 py-3 bg-white justify-content-center">
+            <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="sessionExpiredLoginBtn">
+              <i class="fas fa-sign-in-alt me-1"></i>เข้าสู่ระบบอีกครั้ง
+            </button>
           </div>
         </div>
       </div>
