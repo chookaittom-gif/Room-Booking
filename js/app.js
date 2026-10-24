@@ -4960,7 +4960,15 @@ function updateUIForLoggedInUser() {
   if (dashboardBtn) dashboardBtn.style.display = isAdmin ? '' : 'none';
 
   const scheduleEditorTab = document.getElementById('scheduleEditor-tab');
-  if (scheduleEditorTab) scheduleEditorTab.classList.toggle('d-none', !isAdmin);
+  if (scheduleEditorTab) {
+    if (isAdmin) {
+      scheduleEditorTab.classList.remove('d-none');
+      scheduleEditorTab.style.display = '';
+    } else {
+      scheduleEditorTab.classList.add('d-none');
+      scheduleEditorTab.style.display = 'none';
+    }
+  }
 
   const dashboardNavItem = dashboardBtn ? dashboardBtn.closest('li') : null;
   if (dashboardNavItem) dashboardNavItem.style.display = isAdmin ? '' : 'none';
@@ -5000,7 +5008,10 @@ function updateUIForLoggedInUser() {
 // ANCHOR:CLIENT.updateUIForLoggedOutUser:REPLACE
 function updateUIForLoggedOutUser() {
   const scheduleEditorTab = document.getElementById('scheduleEditor-tab');
-  if (scheduleEditorTab) scheduleEditorTab.classList.add('d-none');
+  if (scheduleEditorTab) {
+    scheduleEditorTab.classList.add('d-none');
+    scheduleEditorTab.style.display = 'none';
+  }
   console.log('\uD83C\uDFA8 UI: Switching to GUEST mode');
 
   // --- 1. \u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 Sidebar (Desktop) ---
