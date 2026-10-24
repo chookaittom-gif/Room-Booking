@@ -9664,6 +9664,7 @@ window.__classScheduleState = {
 };
 
 const DAYS_OF_WEEK = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'];
+const safe = (v) => (typeof sanitizeText === 'function') ? sanitizeText(v) : (v == null ? '' : String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;"));
 
 async function loadClassScheduleAdmin() {
   const container = document.getElementById('classScheduleGrid');
