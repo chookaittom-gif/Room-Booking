@@ -951,36 +951,37 @@
                     <!-- TAB 4: SCHEDULE EDITOR (ADMIN ONLY) -->
                     <div id="scheduleEditorContent" class="tab-content animate-fade d-none">
                         <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
-                                <div>
+                            <div class="schedule-editor-toolbar">
+                                <div class="se-toolbar-info">
                                     <h4 class="fw-bold text-dark mb-1">
                                         <i class="fas fa-calendar-alt text-primary me-2"></i>ระบบจัดตารางสอน (Admin)
                                     </h4>
                                     <p class="text-secondary small mb-0">จัดการตารางสอนประจำสัปดาห์ บันทึกลง Google Sheet และส่งออกเป็น Excel A4 แนวนอน (TH Sarabun New)</p>
                                 </div>
-                                <div class="d-flex flex-wrap align-items-center gap-2">
-                                    <div class="d-flex align-items-center gap-2 bg-light px-3 py-2 rounded-pill">
+                                <div class="se-toolbar-actions">
+                                    <div class="se-room-pill">
                                         <label for="editorRoomSelect" class="small fw-bold text-secondary mb-0 text-nowrap">
                                             <i class="fas fa-door-open me-1 text-primary"></i>ห้องเรียน:
                                         </label>
-                                        <select id="editorRoomSelect" class="form-select form-select-sm border-0 bg-transparent fw-bold text-primary" style="min-width: 140px;" onchange="onEditorRoomChange(this.value)">
+                                        <select id="editorRoomSelect" class="form-select form-select-sm border-0 bg-transparent fw-bold text-primary" onchange="onEditorRoomChange(this.value)" aria-label="เลือกห้องเรียน">
                                             <option value="">กำลังโหลด...</option>
                                         </select>
                                     </div>
                                     <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-medium shadow-sm" onclick="openClassSlotModal('จันทร์','08:30','10:30')">
                                         <i class="fas fa-plus me-1"></i>เพิ่มคาบสอน
                                     </button>
-                                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" onclick="saveAllClassSchedule()">
+                                    <button type="button" id="btnSaveAllSchedule" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" onclick="saveAllClassSchedule()">
                                         <i class="fas fa-save me-1"></i>บันทึกทั้งหมด
+                                        <span class="schedule-editor-dirty-badge d-none" aria-live="polite">ยังไม่ได้บันทึก</span>
                                     </button>
                                     <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm" onclick="exportClassScheduleExcel()">
-                                        <i class="fas fa-file-excel me-1"></i>Export Excel (A4 แนวนอน)
+                                        <i class="fas fa-file-excel me-1"></i>Export Excel
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Grid Container -->
-                            <div id="classScheduleGridContainer" class="table-responsive" role="region" aria-label="ตารางแสดงคาบเรียนประจำสัปดาห์" tabindex="0">
+                            <div id="classScheduleGridContainer" role="region" aria-label="ตารางแสดงคาบเรียนประจำสัปดาห์" tabindex="0" aria-busy="false">
                                 <div id="classScheduleGrid" class="text-center py-5">
                                     <div class="spinner-border text-primary" role="status"></div>
                                     <p class="mt-2 text-muted">กำลังโหลดข้อมูลตารางสอน...</p>
@@ -1404,11 +1405,11 @@
                 </div>
                 <div class="col-md-6">
                   <label for="slotStart" class="form-label fw-bold small text-secondary">เวลาเริ่ม <span class="text-danger">*</span></label>
-                  <input type="time" class="form-control rounded-3" id="slotStart" required aria-required="true">
+                  <input type="time" step="1800" class="form-control rounded-3" id="slotStart" required aria-required="true">
                 </div>
                 <div class="col-md-6">
                   <label for="slotEnd" class="form-label fw-bold small text-secondary">เวลาสิ้นสุด <span class="text-danger">*</span></label>
-                  <input type="time" class="form-control rounded-3" id="slotEnd" required aria-required="true">
+                  <input type="time" step="1800" class="form-control rounded-3" id="slotEnd" required aria-required="true">
                 </div>
                 <div class="col-12">
                   <label for="slotSubject" class="form-label fw-bold small text-secondary">ชื่อวิชา / กิจกรรม <span class="text-danger">*</span></label>
@@ -1437,6 +1438,25 @@
             <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="saveClassSlot()">
               <i class="fas fa-check me-1"></i>ตกลง
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal ยืนยันการกระทำของตัวจัดตารางสอน (แทน confirm() เนทีฟ) -->
+    <div class="modal fade" id="scheduleConfirmModal" tabindex="-1" aria-labelledby="scheduleConfirmTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          <div class="modal-header border-0 bg-primary bg-gradient text-white px-4 py-3">
+            <h5 class="modal-title fw-bold mb-0" id="scheduleConfirmTitle">
+              <i class="fas fa-question-circle me-2"></i>ยืนยัน
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+          </div>
+          <div class="modal-body p-4 bg-white text-dark" id="scheduleConfirmBody"></div>
+          <div class="modal-footer border-0 px-4 py-3 bg-white">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="scheduleConfirmOk">ตกลง</button>
           </div>
         </div>
       </div>

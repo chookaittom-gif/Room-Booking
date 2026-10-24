@@ -7557,3 +7557,306 @@ video {
     order: 2;
   }
 }
+
+/* ============================================================
+   SCHEDULE EDITOR (Admin) — Timetable editor UI
+   ใช้ระบบเดียวกับแอป: Prompt / pill / rounded-4 / เงานุ่ม
+   ============================================================ */
+
+/* --- Toolbar --- */
+.schedule-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light, #f1f3f4);
+}
+.se-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.se-room-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-secondary, #f8f9fa);
+  padding: 0.35rem 0.9rem;
+  border-radius: 50px;
+}
+.se-room-pill .form-select {
+  min-width: 140px;
+}
+
+/* --- Dirty badge บนปุ่มบันทึก --- */
+.schedule-editor-dirty-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 50px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.4;
+  animation: se-badge-pulse 2.4s ease-in-out infinite;
+}
+@keyframes se-badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* --- แถบเลือกวัน (มือถือ) --- */
+.schedule-editor-dayfilter {
+  display: none;
+  flex-wrap: nowrap;
+  gap: 0.375rem;
+  overflow-x: auto;
+  padding-bottom: 0.375rem;
+  margin-bottom: 0.625rem;
+  -webkit-overflow-scrolling: touch;
+}
+.sef-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-color, #dee2e6);
+  background: #fff;
+  color: var(--text-secondary, #6c757d);
+  border-radius: 50px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  min-height: 36px;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
+}
+.sef-btn:hover {
+  border-color: var(--primary, #0d6efd);
+  color: var(--primary, #0d6efd);
+}
+.sef-btn:focus-visible {
+  outline: 2px solid var(--primary, #0d6efd);
+  outline-offset: 2px;
+}
+.sef-btn.active {
+  background: var(--gradient-primary, linear-gradient(135deg, #667eea, #764ba2));
+  border-color: transparent;
+  color: #fff;
+}
+
+/* --- ตาราง grid --- */
+.schedule-editor-scroll {
+  border: 1px solid var(--border-light, #f1f3f4);
+  border-radius: 1rem;
+  overflow: auto;
+  max-height: 70vh;
+}
+.schedule-editor-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  text-align: center;
+  vertical-align: middle;
+}
+.schedule-editor-table.is-filtered {
+  min-width: 0;
+}
+.schedule-editor-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, #f8f9fa, #f1f3f5);
+  color: var(--text-secondary, #6c757d);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.7rem 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+.se-time-head,
+.se-time-cell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 132px;
+  min-width: 132px;
+  background: #f8f9fa;
+  text-align: left !important;
+}
+.schedule-editor-table thead .se-time-head {
+  z-index: 3; /* มุมซ้ายบนสูงกว่า header row และ time column */
+  border-right: 2px solid #e2e8f0;
+}
+.se-time-cell {
+  color: var(--text-secondary, #6c757d);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.85rem 0.65rem;
+  border-right: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+.se-time-cell .fas {
+  color: var(--primary, #0d6efd);
+  margin-right: 0.35rem;
+  font-size: 0.72rem;
+}
+.schedule-editor-table td {
+  border-bottom: 1px solid var(--border-light, #f1f3f4);
+  border-right: 1px solid var(--border-light, #f1f3f4);
+  padding: 0.5rem;
+}
+.schedule-editor-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.schedule-editor-table td:last-child {
+  border-right: none;
+}
+
+/* --- ช่องที่มีคาบ --- */
+.se-cell.se-filled {
+  background: #eff6ff;
+}
+.schedule-editor-slot {
+  display: block;
+  text-align: left;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-left: 4px solid #3b82f6;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  margin-bottom: 0.375rem;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.15s ease-out;
+}
+.schedule-editor-slot:last-child {
+  margin-bottom: 0;
+}
+.schedule-editor-slot:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  border-left-color: #1d4ed8;
+}
+.schedule-editor-slot:focus-visible {
+  outline: 2px solid var(--primary, #0d6efd);
+  outline-offset: 2px;
+}
+.schedule-editor-slot:active {
+  transform: translateY(0);
+}
+.se-subject {
+  display: block;
+  color: var(--text-primary, #212529);
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.se-instructor {
+  display: block;
+  color: var(--text-secondary, #6c757d);
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.se-instructor .fas {
+  color: var(--text-muted, #868e96);
+  margin-right: 0.3rem;
+  font-size: 0.68rem;
+}
+
+/* --- ช่องว่าง (คลิกเพื่อเพิ่ม) --- */
+.se-cell.se-empty {
+  cursor: pointer;
+}
+.se-empty-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.625rem;
+  padding: 0.3rem 0.7rem;
+  color: var(--text-muted, #868e96);
+  font-size: 0.75rem;
+  min-height: 44px;
+  justify-content: center;
+  min-width: 100%;
+  transition: border-color 0.15s ease-out, color 0.15s ease-out, background-color 0.15s ease-out;
+}
+.se-cell.se-empty:hover .se-empty-label,
+.se-cell.se-empty:focus-visible .se-empty-label {
+  border-color: #3b82f6;
+  border-style: solid;
+  color: var(--primary, #0d6efd);
+  background: rgba(59, 130, 246, 0.06);
+}
+.se-cell.se-empty:focus-visible {
+  outline: 2px solid var(--primary, #0d6efd);
+  outline-offset: -2px;
+  border-radius: 0.5rem;
+}
+
+/* --- Legend --- */
+.schedule-editor-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+  padding-top: 0.625rem;
+  color: var(--text-muted, #868e96);
+  font-size: 0.8rem;
+}
+.schedule-editor-legend .badge {
+  background: var(--gradient-primary, linear-gradient(135deg, #667eea, #764ba2));
+  color: #fff;
+  padding: 0.3rem 0.7rem;
+}
+
+/* --- Responsive ≤768px: โชว์แถบเลือกวัน --- */
+@media (max-width: 768px) {
+  .schedule-editor-dayfilter {
+    display: flex;
+  }
+  .schedule-editor-table {
+    min-width: 0;
+  }
+  .schedule-editor-table:not(.is-filtered) {
+    min-width: 640px;
+  }
+  .schedule-editor-scroll {
+    border-radius: 0.75rem;
+  }
+  .se-room-pill {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .se-room-pill .form-select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .schedule-editor-slot,
+  .sef-btn,
+  .se-empty-label,
+  .schedule-editor-dirty-badge {
+    transition: none;
+    animation: none;
+  }
+  .schedule-editor-slot:hover {
+    transform: none;
+  }
+}

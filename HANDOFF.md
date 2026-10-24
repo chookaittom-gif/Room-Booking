@@ -37,15 +37,15 @@ The recent development focused on cleaning legacy redundant files and delivering
 - Navigation pills `#mainTab` render tabs: Schedule View, Booking, User Bookings, and Admin-only tabs (`#dashboard-tab`, `#scheduleEditor-tab`).
 - Both admin tabs are initialized with `style="display: none;"`. When an Admin or SuperAdmin logs in, `updateAdminNavVisibility(isAdmin)` sets `style.display = ''`.
 
-### B. Timetable Editor (`scheduleEditor`)
-- UI Container: `#scheduleEditorContent` in `index.html` (tab button `#scheduleEditor-tab`).
-- State Store: `window.__classScheduleState` in `js/app.js` (module scope `js/app.js:L9656-L10227`) holds current classroom and slot rows (`roomId, day, startTime, endTime, subject, instructor, validFrom, validTo`). Data loads via action `getClassScheduleAdmin`, saves via `saveClassSchedule`.
-- Slot Editing Modal: `#classSlotModal` allows editing:
-  - Subject (`slotSubject`) & Instructor (`slotInstructor`)
-  - Day (`slotDay`)
-  - Start & End Time (`slotStart` / `slotEnd`, e.g. `8:00`–`16:00` — times, not period numbers)
-  - Valid From / Valid To (`slotValidFrom` / `slotValidTo`)
-- Security: All dynamic slot outputs run through the `safe()` HTML escape helper to prevent XSS.
+### B. Timetable Editor (`scheduleEditor`) — redesigned 2026-10-25
+- UI Container: `#scheduleEditorContent` in `index.html` (tab button `#scheduleEditor-tab`). Visual system lives in `css/style.css` under the `.schedule-editor-*` / `.se-*` block (appended at end of file).
+- State Store: `window.__classScheduleState` in `js/app.js` (`roomId, day, startTime, endTime, subject, instructor, validFrom, validTo` + `isDirty`, `uiDayFilter`). Loads via `getClassScheduleAdmin`, saves via `saveClassSchedule`.
+- Slot Editing Modal: `#classSlotModal` (fields `slotDay/slotStart/slotEnd/slotSubject/slotInstructor/slotValidFrom/slotValidTo`, time inputs `step=1800`).
+- Grid interactions use **event delegation** on `#classScheduleGrid` (`data-se-action/day/start/end` attributes) — no inline `onclick` with interpolated sheet data (XSS-safe via `safe()` + `safeAttr()`). Slot cards and empty cells are keyboard-operable (`role=button`, `tabindex=0`, Enter/Space).
+- Dirty-state protection: `isDirty` set on slot save/delete; guards on room switch, tab re-entry, and `beforeunload`; persistent badge on `#btnSaveAllSchedule` ("ยังไม่ได้บันทึก").
+- Overlap prevention: `saveClassSlot` rejects slots whose time range intersects an existing slot in the same room+day; also validates `validFrom <= validTo`.
+- Confirmations use `#scheduleConfirmModal` (Bootstrap, promise-based `showScheduleConfirm`) — not native `confirm()`.
+- Mobile ≤768px: day-filter pill bar (`.schedule-editor-dayfilter`) renders one day at a time; time column is sticky-left; no document overflow.
 
 ### C. Excel Export (A4 Landscape)
 - Uses `xlsx-js-style` (loaded in `index.html` instead of plain SheetJS, which silently drops cell styles) plus `JSZip`.

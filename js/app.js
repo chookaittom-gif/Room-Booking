@@ -5672,7 +5672,12 @@ window.showTab = async function (tabId, forceReload = false) {
     if (tabId === 'scheduleEditor') {
       try {
         if (typeof loadClassScheduleAdmin === 'function') {
-          loadClassScheduleAdmin();
+          // ถ้ายังมีการแก้ไขที่ไม่ได้บันทึก จะไม่ดึงข้อมูลใหม่เพราะจะทับการแก้ไขทั้งหมด
+          if (window.__classScheduleState && window.__classScheduleState.isDirty) {
+            showToast('ยังไม่ได้บันทึก', 'แสดงตารางฉบับที่แก้ไขแล้ว — ยังไม่ดึงข้อมูลใหม่จนกว่าจะบันทึกหรือสลับห้อง', 'warning');
+          } else {
+            loadClassScheduleAdmin();
+          }
         }
       } catch (e) {}
     }
@@ -9660,18 +9665,78 @@ window.__classScheduleState = {
   rooms: [],
   rows: [],
   selectedRoom: null,
-  isDirty: false
+  isDirty: false,
+  uiDayFilter: null
 };
 
 const DAYS_OF_WEEK = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'];
+const ALL_DAYS_EDITOR = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
 const safe = (v) => (typeof sanitizeText === 'function') ? sanitizeText(v) : (v == null ? '' : String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+// สำหรับค่าใน attribute เช่น data-* / title ต้อง escape การ quote ด้วย ไม่เช่นนั้นข้อมูลจาก Sheet ที่มี ' หรือ " จะแตก attribute ได้
+const safeAttr = (v) => safe(v).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+function setScheduleEditorDirty(v) {
+  window.__classScheduleState.isDirty = !!v;
+  document.querySelectorAll('.schedule-editor-dirty-badge').forEach(el => el.classList.toggle('d-none', !v));
+  const saveBtn = document.getElementById('btnSaveAllSchedule');
+  if (saveBtn) saveBtn.classList.toggle('has-dirty', !!v);
+}
+
+// กันการปิด/รีเฟรชหน้าตอนมีการแก้ไขที่ยังไม่ได้บันทึก
+window.addEventListener('beforeunload', (e) => {
+  if (window.__classScheduleState && window.__classScheduleState.isDirty) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// Confirmation dialog กลาง (Bootstrap modal) — ใช้แทน confirm() เนทีฟของเบราว์เซอร์
+function showScheduleConfirm(opts) {
+  return new Promise((resolve) => {
+    const el = document.getElementById('scheduleConfirmModal');
+    if (!el) {
+      resolve(window.confirm(opts.plainMessage || opts.message));
+      return;
+    }
+    const titleEl = document.getElementById('scheduleConfirmTitle');
+    const bodyEl = document.getElementById('scheduleConfirmBody');
+    const okBtn = document.getElementById('scheduleConfirmOk');
+    const headerEl = el.querySelector('.modal-header');
+    if (titleEl) titleEl.innerHTML = `<i class="fas ${opts.danger ? 'fa-exclamation-triangle' : 'fa-question-circle'} me-2"></i>${safe(opts.title || 'ยืนยัน')} `;
+    if (bodyEl) bodyEl.innerHTML = opts.message || '';
+    if (okBtn) {
+      okBtn.textContent = opts.confirmText || 'ตกลง';
+      okBtn.className = 'btn rounded-pill px-4 fw-bold ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+    }
+    if (headerEl) {
+      headerEl.classList.toggle('bg-danger', !!opts.danger);
+      headerEl.classList.toggle('bg-primary', !opts.danger);
+    }
+    let settled = false;
+    const finish = (val) => {
+      if (settled) return;
+      settled = true;
+      if (okBtn) okBtn.onclick = null;
+      el.removeEventListener('hidden.bs.modal', onHidden);
+      const modal = bootstrap.Modal.getInstance(el);
+      if (modal) modal.hide();
+      resolve(val);
+    };
+    const onHidden = () => finish(false); // ปิดด้วย X / backdrop / Esc = ยกเลิก
+    if (okBtn) okBtn.onclick = () => finish(true);
+    el.addEventListener('hidden.bs.modal', onHidden);
+    bootstrap.Modal.getOrCreateInstance(el).show();
+  });
+}
 
 async function loadClassScheduleAdmin() {
   const container = document.getElementById('classScheduleGrid');
+  const wrap = document.getElementById('classScheduleGridContainer');
+  if (wrap) wrap.setAttribute('aria-busy', 'true');
   if (container) {
     container.innerHTML = `
-      <div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
+      <div class="text-center py-5" role="status">
+        <div class="spinner-border text-primary"></div>
         <p class="mt-2 text-muted">กำลังโหลดข้อมูลตารางสอน...</p>
       </div>`;
   }
@@ -9687,18 +9752,20 @@ async function loadClassScheduleAdmin() {
 
     window.__classScheduleState.rows = rows;
     window.__classScheduleState.rooms = rooms;
+    setScheduleEditorDirty(false);
 
     // Populate room dropdown
     const roomSelect = document.getElementById('editorRoomSelect');
     if (roomSelect) {
       if (rooms.length === 0) {
         roomSelect.innerHTML = '<option value="">ไม่พบห้องเรียน</option>';
+        window.__classScheduleState.selectedRoom = null;
       } else {
         const curRoom = window.__classScheduleState.selectedRoom || rooms[0].id || rooms[0].RoomID;
         roomSelect.innerHTML = rooms.map(r => {
           const id = r.id || r.RoomID;
           const name = r.name || r.RoomName || id;
-          return `<option value="${safe(id)}" ${id === curRoom ? 'selected' : ''}>${safe(name)}</option>`;
+          return `<option value="${safeAttr(id)}" ${id === curRoom ? 'selected' : ''}>${safe(name)}</option>`;
         }).join('');
         window.__classScheduleState.selectedRoom = curRoom;
       }
@@ -9719,11 +9786,30 @@ async function loadClassScheduleAdmin() {
         </div>`;
     }
     showToast('ข้อผิดพลาด', err.message, 'error');
+  } finally {
+    if (wrap) wrap.setAttribute('aria-busy', 'false');
   }
 }
 
-function onEditorRoomChange(roomId) {
-  window.__classScheduleState.selectedRoom = roomId;
+async function onEditorRoomChange(roomId) {
+  const state = window.__classScheduleState;
+  if (state.isDirty) {
+    const ok = await showScheduleConfirm({
+      title: 'สลับห้องเรียน?',
+      message: `มีการแก้ไขตารางของห้อง <strong>${safe(state.selectedRoom)}</strong> ที่ยังไม่ได้บันทึก การสลับห้องจะทิ้งการแก้ไขเหล่านั้น`,
+      plainMessage: `มีการแก้ไขตารางของห้อง ${state.selectedRoom} ที่ยังไม่ได้บันทึก — สลับห้องแล้วการแก้ไขจะหาย?`,
+      confirmText: 'ทิ้งการแก้ไขและสลับห้อง',
+      danger: true
+    });
+    if (!ok) {
+      const sel = document.getElementById('editorRoomSelect');
+      if (sel) sel.value = state.selectedRoom || '';
+      return;
+    }
+    setScheduleEditorDirty(false);
+  }
+  state.selectedRoom = roomId;
+  state.uiDayFilter = null;
   renderScheduleGrid();
 }
 
@@ -9734,11 +9820,23 @@ function renderScheduleGrid() {
   const state = window.__classScheduleState;
   const roomId = state.selectedRoom;
   const allRows = state.rows || [];
+
+  if (!roomId) {
+    container.innerHTML = `
+      <div class="text-center py-5">
+        <i class="fas fa-school fa-2x text-secondary mb-3"></i>
+        <p class="text-secondary mb-0">ไม่พบข้อมูลห้องเรียน — ไม่สามารถแสดงตารางได้</p>
+      </div>`;
+    return;
+  }
+
   const roomRows = allRows.filter(r => String(r.roomId).trim() === String(roomId).trim());
 
   // Check if Saturday / Sunday exist in this room
   const hasWeekend = roomRows.some(r => r.day === 'เสาร์' || r.day === 'อาทิตย์');
-  const days = hasWeekend ? ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์', 'อาทิตย์'] : DAYS_OF_WEEK;
+  const allDays = hasWeekend ? ALL_DAYS_EDITOR : DAYS_OF_WEEK;
+  const dayFilter = state.uiDayFilter;
+  const days = (dayFilter && allDays.includes(dayFilter)) ? [dayFilter] : allDays;
 
   // Collect unique slots
   const slotMap = new Map();
@@ -9765,13 +9863,20 @@ function renderScheduleGrid() {
 
   const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
 
-  let html = `
-    <div class="table-responsive">
-      <table class="table table-bordered align-middle text-center mb-0 schedule-editor-table" style="min-width: 750px;">
-        <thead class="table-light border-bottom">
-          <tr class="text-secondary small fw-bold">
-            <th style="width: 130px; background-color: #f8f9fa;">คาบเวลา</th>
-            ${days.map(d => `<th style="background-color: #f8f9fa;">วัน${d}</th>`).join('')}
+  // แถบเลือกวัน (มือถือ) — แสดงเฉพาะจอ ≤768px ผ่าน CSS
+  const filterBar = `
+    <div class="schedule-editor-dayfilter" role="group" aria-label="เลือกวันที่จะแสดง">
+      <button type="button" class="sef-btn${!dayFilter ? ' active' : ''}" data-sef="">ทั้งสัปดาห์</button>
+      ${allDays.map(d => `<button type="button" class="sef-btn${dayFilter === d ? ' active' : ''}" data-sef="${safeAttr(d)}">${safe(d)}</button>`).join('')}
+    </div>`;
+
+  let html = filterBar + `
+    <div class="table-responsive schedule-editor-scroll">
+      <table class="schedule-editor-table${dayFilter ? ' is-filtered' : ''}">
+        <thead>
+          <tr>
+            <th class="se-time-head">คาบเวลา</th>
+            ${days.map(d => `<th>${safe('วัน' + d)}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
@@ -9780,9 +9885,9 @@ function renderScheduleGrid() {
   sortedSlots.forEach(slot => {
     html += `<tr>`;
     html += `
-      <td class="fw-bold text-secondary bg-light py-3 text-nowrap" style="font-size: 0.85rem;">
-        <i class="fas fa-clock me-1 text-primary"></i>${slot.start} - ${slot.end}
-      </td>
+      <th class="se-time-cell" scope="row">
+        <i class="fas fa-clock" aria-hidden="true"></i>${safe(slot.start)} – ${safe(slot.end)}
+      </th>
     `;
 
     days.forEach(day => {
@@ -9793,33 +9898,24 @@ function renderScheduleGrid() {
       );
 
       if (matched.length > 0) {
-        html += `<td class="p-2" style="background-color: #eff6ff;">`;
+        html += `<td class="se-cell se-filled">`;
         matched.forEach(item => {
           html += `
-            <div class="card border-0 shadow-sm rounded-3 p-2 text-start position-relative mb-1 bg-white"
-                 style="cursor: pointer; border-left: 4px solid #3b82f6 !important;"
-                 onclick="openClassSlotModal('${safe(day)}', '${slot.start}', '${slot.end}')"
-                 title="คลิกเพื่อแก้ไข">
-              <div class="fw-bold text-dark text-truncate" style="font-size: 0.85rem;" title="${safe(item.subject)}">
-                ${safe(item.subject)}
-              </div>
-              <div class="text-secondary text-truncate small mt-1" style="font-size: 0.75rem;">
-                <i class="fas fa-user-tie me-1 text-muted"></i>${safe(item.instructor || '-')}
-              </div>
+            <div class="schedule-editor-slot" role="button" tabindex="0"
+                 data-se-action="edit" data-se-day="${safeAttr(day)}" data-se-start="${safeAttr(slot.start)}" data-se-end="${safeAttr(slot.end)}"
+                 title="คลิกเพื่อแก้ไข: ${safeAttr(item.subject)}">
+              <span class="se-subject">${safe(item.subject)}</span>
+              <span class="se-instructor"><i class="fas fa-user-tie" aria-hidden="true"></i>${safe(item.instructor || '-')}</span>
             </div>
           `;
         });
         html += `</td>`;
       } else {
         html += `
-          <td class="p-2 text-muted" style="cursor: pointer; transition: background 0.2s;"
-              onmouseover="this.style.backgroundColor='#f1f5f9'"
-              onmouseout="this.style.backgroundColor='transparent'"
-              onclick="openClassSlotModal('${safe(day)}', '${slot.start}', '${slot.end}')"
+          <td class="se-cell se-empty" role="button" tabindex="0"
+              data-se-action="add" data-se-day="${safeAttr(day)}" data-se-start="${safeAttr(slot.start)}" data-se-end="${safeAttr(slot.end)}"
               title="คลิกเพื่อเพิ่มคาบเรียน">
-            <span class="badge bg-light text-secondary border rounded-pill px-2 py-1" style="font-size: 0.75rem;">
-              <i class="fas fa-plus me-1"></i>ว่าง
-            </span>
+            <span class="se-empty-label"><i class="fas fa-plus" aria-hidden="true"></i>ว่าง</span>
           </td>
         `;
       }
@@ -9832,18 +9928,43 @@ function renderScheduleGrid() {
         </tbody>
       </table>
     </div>
-    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 text-muted small flex-wrap gap-2">
-      <div>
-        <i class="fas fa-info-circle me-1"></i>คลิกที่ช่องในตารางเพื่อเพิ่มหรือแก้ไขรายวิชา เมื่อแก้ไขเรียบร้อยแล้วให้กดปุ่ม <strong>"บันทึกทั้งหมด"</strong>
-      </div>
-      <div>
-        จำนวนคาบในห้องนี้: <span class="badge bg-primary rounded-pill px-2 py-1">${roomRows.length} คาบ</span>
-      </div>
+    <div class="schedule-editor-legend">
+      <span class="se-hint"><i class="fas fa-info-circle me-1"></i>คลิกช่องในตารางเพื่อเพิ่ม/แก้ไข — แก้ไขเสร็จแล้วกด <strong>"บันทึกทั้งหมด"</strong></span>
+      <span class="se-count">จำนวนคาบในห้องนี้: <span class="badge rounded-pill">${roomRows.length} คาบ</span></span>
     </div>
   `;
 
   container.innerHTML = html;
 }
+
+// ผูก event แบบ delegation ครั้งเดียวบน container — แทน inline onclick ที่ฝังข้อมูลดิบใน attribute (กัน quote breakout)
+function bindScheduleGridEvents() {
+  const container = document.getElementById('classScheduleGrid');
+  if (!container || container.dataset.seBound === '1') return;
+  container.dataset.seBound = '1';
+
+  container.addEventListener('click', (e) => {
+    const filterBtn = e.target.closest('[data-sef]');
+    if (filterBtn) {
+      window.__classScheduleState.uiDayFilter = filterBtn.dataset.sef || null;
+      renderScheduleGrid();
+      return;
+    }
+    const el = e.target.closest('[data-se-action]');
+    if (el && container.contains(el)) {
+      openClassSlotModal(el.dataset.seDay, el.dataset.seStart, el.dataset.seEnd);
+    }
+  });
+
+  container.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('[data-se-action]');
+    if (!el) return;
+    e.preventDefault();
+    openClassSlotModal(el.dataset.seDay, el.dataset.seStart, el.dataset.seEnd);
+  });
+}
+bindScheduleGridEvents();
 
 function openClassSlotModal(day, startTime, endTime) {
   const state = window.__classScheduleState;
@@ -9918,11 +10039,35 @@ function saveClassSlot() {
     showToast('เวลาไม่ถูกต้อง', 'เวลาเริ่มต้องมาก่อนเวลาสิ้นสุด', 'warning');
     return;
   }
+  if (validFrom && validTo && validFrom > validTo) {
+    showToast('วันที่ไม่ถูกต้อง', 'วันที่เริ่มต้นต้องมาก่อนหรือเท่ากับวันที่สิ้นสุด', 'warning');
+    return;
+  }
 
   const rows = window.__classScheduleState.rows;
+  const isEdit = !!(origDay && origStart && origEnd);
+
+  // ตรวจคาบซ้อน: วันเดียวกันและช่วงเวลาทับกัน (ไม่นับแถวเดิมที่กำลังจะถูกแทนที่)
+  const toMin = (t) => {
+    const [h, m] = String(t).split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const newS = toMin(startTime);
+  const newE = toMin(endTime);
+  const conflict = rows.find(r =>
+    String(r.roomId).trim() === String(roomId).trim() &&
+    r.day === day &&
+    !(isEdit && r.day === origDay && String(r.startTime).trim() === origStart && String(r.endTime).trim() === origEnd) &&
+    toMin(r.startTime) < newE && newS < toMin(r.endTime)
+  );
+  if (conflict) {
+    showToast('คาบเวลาซ้อนกัน',
+      `ช่วง ${startTime}-${endTime} ซ้อนกับ "${conflict.subject}" (${conflict.startTime}-${conflict.endTime}) กรุณาแก้เวลาใหม่`, 'warning');
+    return;
+  }
 
   // Remove original if was edit
-  if (origDay && origStart && origEnd) {
+  if (isEdit) {
     const idx = rows.findIndex(r =>
       String(r.roomId).trim() === String(roomId).trim() &&
       r.day === origDay &&
@@ -9951,11 +10096,12 @@ function saveClassSlot() {
     if (modal) modal.hide();
   }
 
+  setScheduleEditorDirty(true);
   renderScheduleGrid();
   showToast('อัปเดตเรียบร้อย', 'ปรับปรุงคาบเรียนในตารางแล้ว (อย่าลืมกดบันทึกทั้งหมด)', 'info');
 }
 
-function deleteClassSlot() {
+async function deleteClassSlot() {
   const roomId = window.__classScheduleState.selectedRoom;
   const origDay = document.getElementById('slotOrigDay').value;
   const origStart = document.getElementById('slotOrigStart').value;
@@ -9963,9 +10109,21 @@ function deleteClassSlot() {
 
   if (!origDay || !origStart || !origEnd) return;
 
-  if (!confirm(`ต้องการลบคาบสอน วัน${origDay} เวลา ${origStart}-${origEnd} หรือไม่?`)) {
-    return;
+  // ปิด modal แก้ไขก่อน แล้วค่อยเปิดกล่องยืนยัน (Bootstrap ไม่ซัพพอร์ต modal ซ้อน modal)
+  const slotModalEl = document.getElementById('classSlotModal');
+  if (slotModalEl) {
+    const slotModal = bootstrap.Modal.getInstance(slotModalEl);
+    if (slotModal) slotModal.hide();
   }
+
+  const ok = await showScheduleConfirm({
+    title: 'ลบคาบสอน?',
+    message: `ต้องการลบคาบสอน <strong>วัน${safe(origDay)} ${safe(origStart)}-${safe(origEnd)}</strong> ออกจากตารางห้อง <strong>${safe(roomId)}</strong> หรือไม่?<br><span class="text-secondary small">(จะถูกลบจริงเมื่อกด "บันทึกทั้งหมด")</span>`,
+    plainMessage: `ต้องการลบคาบสอน วัน${origDay} เวลา ${origStart}-${origEnd} หรือไม่?`,
+    confirmText: 'ลบคาบนี้',
+    danger: true
+  });
+  if (!ok) return;
 
   const rows = window.__classScheduleState.rows;
   const idx = rows.findIndex(r =>
@@ -9979,12 +10137,7 @@ function deleteClassSlot() {
     rows.splice(idx, 1);
   }
 
-  const modalEl = document.getElementById('classSlotModal');
-  if (modalEl) {
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if (modal) modal.hide();
-  }
-
+  setScheduleEditorDirty(true);
   renderScheduleGrid();
   showToast('ลบคาบสอนแล้ว', 'ลบคาบเรียนออกจากตารางแล้ว (อย่าลืมกดบันทึกทั้งหมด)', 'info');
 }
@@ -10000,10 +10153,17 @@ async function saveAllClassSchedule() {
     String(r.roomId).trim() === String(roomId).trim()
   );
 
-  if (!confirm(`ยืนยันการบันทึกตารางสอนห้อง "${roomId}" ทั้งหมด (${roomRows.length} คาบ) ลง Google Sheet?`)) {
-    return;
-  }
+  const ok = await showScheduleConfirm({
+    title: 'บันทึกตารางสอน?',
+    message: `ยืนยันการบันทึกตารางสอนห้อง <strong>${safe(roomId)}</strong> ทั้งหมด (${roomRows.length} คาบ) ลง Google Sheet?<br><span class="text-secondary small">คาบเดิมของห้องนี้ใน Sheet จะถูกแทนที่ด้วยตารางฉบับนี้</span>`,
+    plainMessage: `ยืนยันการบันทึกตารางสอนห้อง "${roomId}" ทั้งหมด (${roomRows.length} คาบ) ลง Google Sheet?`,
+    confirmText: 'บันทึกลง Sheet',
+    danger: false
+  });
+  if (!ok) return;
 
+  const saveBtn = document.getElementById('btnSaveAllSchedule');
+  if (saveBtn) saveBtn.disabled = true;
   showLoading(true, `กำลังบันทึกตารางสอนห้อง ${roomId}...`);
   try {
     const res = await callServer('saveClassSchedule', {
@@ -10015,18 +10175,20 @@ async function saveAllClassSchedule() {
       throw new Error(res?.error || res?.message || 'บันทึกลงระบบไม่สำเร็จ');
     }
 
-    showNotification('บันทึกสำเร็จ', `บันทึกตารางสอนห้อง ${roomId} เรียบร้อยแล้ว (${res.data?.saved || roomRows.length} คาบ)`, 'success');
+    setScheduleEditorDirty(false);
+    showNotification(`บันทึกตารางสอนห้อง ${roomId} เรียบร้อยแล้ว (${res.data?.saved || roomRows.length} คาบ)`, 'success');
   } catch (err) {
     console.error('saveAllClassSchedule error:', err);
     showToast('ข้อผิดพลาด', err.message, 'error');
   } finally {
     showLoading(false);
+    if (saveBtn) saveBtn.disabled = false;
   }
 }
 
 async function exportClassScheduleExcel() {
-  if (typeof XLSX === 'undefined') {
-    showToast('ไม่สามารถส่งออกได้', 'ไลบรารี SheetJS ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าเว็บ', 'error');
+  if (typeof XLSX === 'undefined' || typeof window.JSZip === 'undefined') {
+    showToast('ไม่สามารถส่งออกได้', 'ไลบรารีส่งออก (SheetJS/JSZip) ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าเว็บ', 'error');
     return;
   }
 
@@ -10047,21 +10209,32 @@ async function exportClassScheduleExcel() {
     const merges = [];
     let curRow = 0;
 
-    const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'];
+    // วันของแต่ละห้อง: เสาร์/อาทิตย์เพิ่มเฉพาะห้องที่มีคาบสุดสัปดาห์ (เดิม hardcode จ-ศ ทำให้คาบเสาร์-อาทิตย์หายจากไฟล์)
+    const roomDaysFor = (rmRows) => rmRows.some(r => r.day === 'เสาร์' || r.day === 'อาทิตย์')
+      ? ALL_DAYS_EDITOR
+      : DAYS_OF_WEEK;
+    const globalCols = Math.max(6, ...rooms.map(rm => {
+      const rmRows = rows.filter(r => String(r.roomId).trim() === String(rm.id || rm.RoomID).trim());
+      return roomDaysFor(rmRows).length + 1;
+    }));
+    const blankRow = () => new Array(globalCols).fill('');
+    const mergeFull = () => {
+      merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: globalCols - 1 } });
+    };
 
     // 1. หัวข้อหลักของเอกสาร
-    wsData.push(['ตารางสอนประจำสัปดาห์ — ระบบจองห้องเรียน', '', '', '', '', '']);
-    merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: 5 } });
+    wsData.push(['ตารางสอนประจำสัปดาห์ — ระบบจองห้องเรียน', ...new Array(globalCols - 1).fill('')]);
+    mergeFull();
     curRow++;
 
     const printDate = new Date().toLocaleDateString('th-TH', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
-    wsData.push([`ข้อมูล ณ วันที่: ${printDate}`, '', '', '', '', '']);
-    merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: 5 } });
+    wsData.push([`ข้อมูล ณ วันที่: ${printDate}`, ...new Array(globalCols - 1).fill('')]);
+    mergeFull();
     curRow++;
 
-    wsData.push(['', '', '', '', '', '']);
+    wsData.push(blankRow());
     curRow++;
 
     // 2. วนลูปสร้าง Section แต่ละห้อง
@@ -10069,14 +10242,17 @@ async function exportClassScheduleExcel() {
       const rmId = rm.id || rm.RoomID;
       const rmName = rm.name || rm.RoomName || rmId;
       const rmRows = rows.filter(r => String(r.roomId).trim() === String(rmId).trim());
+      const days = roomDaysFor(rmRows);
 
       // Header ของห้อง
-      wsData.push([`ห้องเรียน: ${rmName} (ID: ${rmId})`, '', '', '', '', '']);
-      merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: 5 } });
+      wsData.push([`ห้องเรียน: ${rmName} (ID: ${rmId})`, ...new Array(globalCols - 1).fill('')]);
+      mergeFull();
       curRow++;
 
       // Header วัน
-      wsData.push(['คาบเวลา', ...days.map(d => `วัน${d}`)]);
+      const dayHead = ['คาบเวลา', ...days.map(d => `วัน${d}`)];
+      while (dayHead.length < globalCols) dayHead.push('');
+      wsData.push(dayHead);
       curRow++;
 
       // Time slots ของห้องนี้
@@ -10126,12 +10302,13 @@ async function exportClassScheduleExcel() {
           }
         });
 
+        while (rowCells.length < globalCols) rowCells.push('');
         wsData.push(rowCells);
         curRow++;
       });
 
       // แถวว่างคั่นระหว่างห้อง
-      wsData.push(['', '', '', '', '', '']);
+      wsData.push(blankRow());
       curRow++;
     });
 
@@ -10141,11 +10318,7 @@ async function exportClassScheduleExcel() {
     // ตั้งค่าความกว้างคอลัมน์ (Column widths)
     ws['!cols'] = [
       { wch: 18 }, // คาบเวลา
-      { wch: 24 }, // วันจันทร์
-      { wch: 24 }, // วันอังคาร
-      { wch: 24 }, // วันพุธ
-      { wch: 24 }, // วันพฤหัสบดี
-      { wch: 24 }  // วันศุกร์
+      ...new Array(globalCols - 1).fill(0).map(() => ({ wch: 24 }))
     ];
 
     // ตั้งค่าหน้ากระดาษ A4 แนวนอน (Landscape)
@@ -10235,7 +10408,7 @@ async function exportClassScheduleExcel() {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
 
-    showNotification('ดาวน์โหลดสำเร็จ', `สร้างไฟล์ ${fileName} เรียบร้อยแล้ว`, 'success');
+    showNotification(`สร้างไฟล์ ${fileName} เรียบร้อยแล้ว`, 'success');
   } catch (err) {
     console.error('exportClassScheduleExcel error:', err);
     showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการสร้างไฟล์ Excel: ' + err.message, 'error');
