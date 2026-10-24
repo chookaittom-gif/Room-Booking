@@ -10498,15 +10498,23 @@ async function exportClassScheduleExcel() {
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       ws['!merges'] = merges;
-      ws['!cols'] = [{ wch: 20 }, ...days.map(() => ({ wch: 28 }))];
+      const colW = [20, ...days.map(() => 32)];
+      ws['!cols'] = colW.map(w => ({ wch: w }));
 
-      // ความสูงแถว: ไฟล์ generate ไม่ auto-fit ใน Excel จริง — ตั้งเองตามจำนวนบรรทัดของเซลล์
+      // ความสูงแถว: ไฟล์ generate ไม่ auto-fit ใน Excel จริง — ต้องประเมิน "บรรทัดจอ" เอง
+      // ชื่อวิชายาว wrap แนวนอนในคอลัมน์ (กว้าง wch รับได้ ~wch*0.7 ตัวอักษรไทยที่ 16pt)
+      // ถ้านับเฉพาะ \n จะได้แถวเตี้ยเกินและข้อความถูกตัดที่ขอบล่าง
       ws['!rows'] = wsData.map((r, i) => {
         if (i === 0) return { hpt: 34 };
-        if (i === 1) return { hpt: 18 };
-        if (i === 2) return { hpt: 28 };
-        const lines = Math.max(1, ...r.map(v => String(v == null ? '' : v).split('\n').length));
-        return { hpt: 22 * lines + 6 };
+        if (i === 1) return { hpt: 20 };
+        if (i === 2) return { hpt: 32 };
+        const lines = Math.max(1, ...r.map((v, ci) => {
+          const txt = String(v == null ? '' : v);
+          if (!txt.trim()) return 1;
+          const cpl = Math.max(6, Math.floor(colW[ci] * 0.7));
+          return txt.split('\n').reduce((n, ln) => n + Math.max(1, Math.ceil(ln.length / cpl)), 0);
+        }));
+        return { hpt: 22 * lines + 8 };
       });
 
       // หน้ากระดาษ A4 แนวนอน (Landscape) + ขอบแคบ
