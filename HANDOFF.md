@@ -47,11 +47,12 @@ The recent development focused on cleaning legacy redundant files and delivering
 - Confirmations use `#scheduleConfirmModal` (Bootstrap, promise-based `showScheduleConfirm`) — not native `confirm()`.
 - Mobile ≤768px: day-filter pill bar (`.schedule-editor-dayfilter`) renders one day at a time; time column is sticky-left; no document overflow.
 
-### C. Excel Export (A4 Landscape)
+### C. Excel Export (A4 Landscape, one sheet per room)
 - Uses `xlsx-js-style` (loaded in `index.html` instead of plain SheetJS, which silently drops cell styles) plus `JSZip`.
-- `exportClassScheduleExcel` writes with `XLSX.write`, then injects `<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>` into the worksheet XML via JSZip before download — community SheetJS builds do not write `!pageSetup`.
-- **Injection order matters**: OOXML requires `pageSetup` right after `pageMargins` and *before* `ignoredErrors` (which xlsx-js-style writes at the tail). Appending before `</worksheet>` puts it after `ignoredErrors` → Excel flags the sheet as corrupt, "repairs" it by dropping the whole sheet (user gets an empty workbook). openpyxl does *not* catch this — validate element order, not just parse. The code also strips XML-illegal control chars from the sheet as defense.
-- Verified end-to-end on 2026-10-24 (browser export → file inspection): fonts TH Sarabun New (18 bold title, 12 subtitle, 14 body), thin borders, centered alignment with wrap, A4 landscape pageSetup present, element order `pageMargins → pageSetup → ignoredErrors`.
+- `exportClassScheduleExcel` writes one worksheet per room (tab name = room name, sanitized to Excel rules) plus a first "สารบัญ" sheet: room | จำนวนคาบ | วันที่มีคาบ | เปิดชีต (internal hyperlink `#'sheet'!A1`). Rows with a roomId not in the room registry land in "ห้องอื่น ๆ: <id>" sheets so no data silently disappears. Styling per sheet: TH Sarabun New, time header `#667EEA` white, day headers alternating `#EDEBFB`/`#E0DCF7`, zebra rows `#F8F9FC`, thin borders, A4 landscape fitToWidth.
+- Day names must be the full form `พฤหัสบดี` everywhere (constant `DAYS_OF_WEEK`, modal option value, and a short→full normalize in `loadClassScheduleAdmin`). The old short `พฤหัส` silently dropped every Thursday class from both the editor grid and the Excel export.
+- **Injection order matters**: OOXML requires `pageSetup` right after `pageMargins` and *before* `ignoredErrors` (which xlsx-js-style writes at the tail). Appending before `</worksheet>` puts it after `ignoredErrors` → Excel flags the sheet as corrupt, "repairs" it by dropping the whole sheet (user gets an empty workbook). openpyxl does *not* catch this — validate element order, not just parse. The patch loops **every** `xl/worksheets/sheet*.xml` and also strips XML-illegal control chars.
+- Verified end-to-end on 2026-10-25 (browser export → file inspection): 23 sheets (สารบัญ + 19 rooms + 3 ห้องอื่น ๆ), 102/102 subjects placed including the Thursday column, 22 valid hyperlinks, every sheet XML parse + order `pageMargins → pageSetup → ignoredErrors` OK.
 
 ### D. File Structure
 - `index.html`: Main SPA frontend layout, modals, and CDN script dependencies.

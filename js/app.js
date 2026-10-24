@@ -9854,8 +9854,8 @@ window.__classScheduleState = {
   uiDayFilter: null
 };
 
-const DAYS_OF_WEEK = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'];
-const ALL_DAYS_EDITOR = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
+const DAYS_OF_WEEK = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
+const ALL_DAYS_EDITOR = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
 const safe = (v) => (typeof sanitizeText === 'function') ? sanitizeText(v) : (v == null ? '' : String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;"));
 // สำหรับค่าใน attribute เช่น data-* / title ต้อง escape การ quote ด้วย ไม่เช่นนั้นข้อมูลจาก Sheet ที่มี ' หรือ " จะแตก attribute ได้
 const safeAttr = (v) => safe(v).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -9933,6 +9933,8 @@ async function loadClassScheduleAdmin() {
     }
 
     const rows = res.data && Array.isArray(res.data.rows) ? res.data.rows : [];
+    // ข้อมูลเก่าอาจเก็บวันพฤหัสแบบสั้น ("พฤหัส") จาก dropdown เดิม — ปรับเป็นชื่อเต็มให้ตรงกันทั้งระบบ
+    rows.forEach(r => { if (r.day === 'พฤหัส') r.day = 'พฤหัสบดี'; });
     const rooms = res.data && Array.isArray(res.data.rooms) ? res.data.rooms : (window.roomsData || []);
 
     window.__classScheduleState.rows = rows;
@@ -10402,55 +10404,46 @@ async function exportClassScheduleExcel() {
 
   try {
     const wb = XLSX.utils.book_new();
-    const wsData = [];
-    const merges = [];
-    let curRow = 0;
 
     // วันของแต่ละห้อง: เสาร์/อาทิตย์เพิ่มเฉพาะห้องที่มีคาบสุดสัปดาห์ (เดิม hardcode จ-ศ ทำให้คาบเสาร์-อาทิตย์หายจากไฟล์)
     const roomDaysFor = (rmRows) => rmRows.some(r => r.day === 'เสาร์' || r.day === 'อาทิตย์')
       ? ALL_DAYS_EDITOR
       : DAYS_OF_WEEK;
-    const globalCols = Math.max(6, ...rooms.map(rm => {
-      const rmRows = rows.filter(r => String(r.roomId).trim() === String(rm.id || rm.RoomID).trim());
-      return roomDaysFor(rmRows).length + 1;
-    }));
-    const blankRow = () => new Array(globalCols).fill('');
-    const mergeFull = () => {
-      merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: globalCols - 1 } });
-    };
-
-    // 1. หัวข้อหลักของเอกสาร
-    wsData.push(['ตารางสอนประจำสัปดาห์ — ระบบจองห้องเรียน', ...new Array(globalCols - 1).fill('')]);
-    mergeFull();
-    curRow++;
 
     const printDate = new Date().toLocaleDateString('th-TH', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
-    wsData.push([`ข้อมูล ณ วันที่: ${printDate}`, ...new Array(globalCols - 1).fill('')]);
-    mergeFull();
-    curRow++;
 
-    wsData.push(blankRow());
-    curRow++;
+    // ชื่อชีต Excel: ห้าม : \ / ? * [ ] และยาวเกิน 31 ตัวอักษร
+    const usedNames = new Set();
+    const safeSheetName = (raw) => {
+      let n = String(raw).replace(/[:\\/?*[\]]/g, '').trim().slice(0, 31) || 'ห้อง';
+      let base = n, i = 2;
+      while (usedNames.has(n)) n = base.slice(0, 28) + '_' + (i++);
+      usedNames.add(n);
+      return n;
+    };
 
-    // 2. วนลูปสร้าง Section แต่ละห้อง
-    rooms.forEach(rm => {
+    const HEADER_TIME_FILL = '667EEA';           // คอลัมน์เวลา
+    const HEADER_DAY_FILLS = ['EDEBFB', 'E0DCF7']; // หัววันสลับสองโทน
+    const ZEBRA_FILL = 'F8F9FC';                 // แถวคาบสลับขาว
+
+    // สร้าง+จัดสไตล์ชีตของห้องเดียว
+    const buildRoomSheet = (rm) => {
       const rmId = rm.id || rm.RoomID;
       const rmName = rm.name || rm.RoomName || rmId;
       const rmRows = rows.filter(r => String(r.roomId).trim() === String(rmId).trim());
       const days = roomDaysFor(rmRows);
+      const nCols = days.length + 1;
+      const wsData = [];
+      const merges = [];
 
-      // Header ของห้อง
-      wsData.push([`ห้องเรียน: ${rmName} (ID: ${rmId})`, ...new Array(globalCols - 1).fill('')]);
-      mergeFull();
-      curRow++;
+      wsData.push([`ห้องเรียน: ${rmName} (ID: ${rmId})`, ...new Array(nCols - 1).fill('')]);
+      merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: nCols - 1 } });
+      wsData.push([`ข้อมูล ณ วันที่: ${printDate}`, ...new Array(nCols - 1).fill('')]);
+      merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: nCols - 1 } });
 
-      // Header วัน
-      const dayHead = ['คาบเวลา', ...days.map(d => `วัน${d}`)];
-      while (dayHead.length < globalCols) dayHead.push('');
-      wsData.push(dayHead);
-      curRow++;
+      wsData.push(['คาบเวลา', ...days.map(d => `วัน${d}`)]);
 
       // Time slots ของห้องนี้
       const slotMap = new Map();
@@ -10475,6 +10468,7 @@ async function exportClassScheduleExcel() {
       }
 
       const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
+      const activeDays = new Set(rmRows.map(r => r.day));
 
       sortedSlots.forEach(slot => {
         const rowCells = [`${slot.start} - ${slot.end}`];
@@ -10499,78 +10493,124 @@ async function exportClassScheduleExcel() {
           }
         });
 
-        while (rowCells.length < globalCols) rowCells.push('');
         wsData.push(rowCells);
-        curRow++;
       });
 
-      // แถวว่างคั่นระหว่างห้อง
-      wsData.push(blankRow());
-      curRow++;
-    });
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!merges'] = merges;
+      ws['!cols'] = [{ wch: 18 }, ...days.map(() => ({ wch: 24 }))];
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!merges'] = merges;
+      // หน้ากระดาษ A4 แนวนอน (Landscape) + ขอบแคบ
+      ws['!pageSetup'] = { paperSize: 9, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0, scale: 100 };
+      ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
-    // ตั้งค่าความกว้างคอลัมน์ (Column widths)
-    ws['!cols'] = [
-      { wch: 18 }, // คาบเวลา
-      ...new Array(globalCols - 1).fill(0).map(() => ({ wch: 24 }))
+      // จัดสไตล์ทุก Cell: Font TH Sarabun New + หัววันสี + zebra แถวคาบ
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:F1');
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+          const cell = ws[cellRef];
+          if (!cell.s) cell.s = {};
+
+          cell.s.font = {
+            name: 'TH Sarabun New',
+            sz: (R === 0) ? 18 : 12,
+            bold: (R === 0 || R === 2)
+          };
+
+          if (R === 2) {
+            cell.s.font.color = (C === 0) ? { rgb: 'FFFFFF' } : undefined;
+            cell.s.fill = { patternType: 'solid', fgColor: { rgb: C === 0 ? HEADER_TIME_FILL : HEADER_DAY_FILLS[(C - 1) % 2] } };
+          } else if (R >= 3 && R % 2 === 0) {
+            cell.s.fill = { patternType: 'solid', fgColor: { rgb: ZEBRA_FILL } };
+          }
+
+          cell.s.alignment = {
+            vertical: 'center',
+            horizontal: (C === 0 || R <= 2) ? 'center' : 'left',
+            wrapText: true
+          };
+
+          cell.s.border = {
+            top: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            left: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            right: { style: 'thin', color: { rgb: 'D1D5DB' } }
+          };
+        }
+      }
+
+      return {
+        name: safeSheetName(rmName),
+        ws,
+        rmName,
+        slotCount: sortedSlots.length,
+        activeDays: days.filter(d => activeDays.has(d))
+      };
+    };
+
+    const roomSheets = rooms.map(buildRoomSheet);
+
+    // แถวที่ roomId ไม่อยู่ในทะเบียนห้อง (เช่น "Online") — รวมเป็นชีต "ห้องอื่น ๆ" กันข้อมูลหายเงียบ
+    const knownIds = new Set(rooms.map(rm => String(rm.id || rm.RoomID).trim()));
+    const otherRows = rows.filter(r => !knownIds.has(String(r.roomId).trim()));
+    if (otherRows.length > 0) {
+      const otherRooms = [...new Set(otherRows.map(r => String(r.roomId).trim()))]
+        .map(id => ({ id, name: `ห้องอื่น ๆ: ${id}` }));
+      otherRooms.forEach(rm => roomSheets.push(buildRoomSheet(rm)));
+    }
+
+    // ชีตสารบัญ (แท็บแรก): รายชื่อห้อง + จำนวนคาบ + วันที่มีคาบ + ลิงก์กระโดดไปชีตห้อง
+    const tocData = [
+      ['สารบัญตารางสอน — ระบบจองห้องเรียน', '', '', ''],
+      [`ข้อมูล ณ วันที่: ${printDate}`, '', '', ''],
+      ['', '', '', ''],
+      ['ห้องเรียน', 'จำนวนคาบ', 'วันที่มีคาบ', 'เปิดชีต'],
+      ...roomSheets.map(rs => [rs.rmName, rs.slotCount, rs.activeDays.map(d => d.slice(0, 2)).join(', ') || '-', 'เปิดชีต →'])
     ];
+    const toc = XLSX.utils.aoa_to_sheet(tocData);
+    toc['!cols'] = [{ wch: 28 }, { wch: 12 }, { wch: 22 }, { wch: 12 }];
+    toc['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }
+    ];
+    toc['!pageSetup'] = { paperSize: 9, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0, scale: 100 };
+    toc['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
-    // ตั้งค่าหน้ากระดาษ A4 แนวนอน (Landscape)
-    ws['!pageSetup'] = {
-      paperSize: 9, // A4
-      orientation: 'landscape',
-      fitToWidth: 1,
-      fitToHeight: 0,
-      scale: 100
-    };
-
-    // ขอบกระดาษแบบแคบ (Narrow Margins)
-    ws['!margins'] = {
-      left: 0.5,
-      right: 0.5,
-      top: 0.5,
-      bottom: 0.5,
-      header: 0.3,
-      footer: 0.3
-    };
-
-    // กำหนด Font TH Sarabun New ให้กับทุก Cell
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:F1');
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
+    // ลิงก์ภายในไฟล์ + สไตล์สารบัญ
+    const tocRange = XLSX.utils.decode_range(toc['!ref'] || 'A1:D5');
+    for (let R = tocRange.s.r; R <= tocRange.e.r; ++R) {
+      for (let C = tocRange.s.c; C <= tocRange.e.c; ++C) {
         const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-        const cell = ws[cellRef];
+        if (!toc[cellRef]) toc[cellRef] = { t: 's', v: '' };
+        const cell = toc[cellRef];
         if (!cell.s) cell.s = {};
-
-        // Font TH Sarabun New
+        const isHeader = R === 3;
+        const isLink = R > 3 && C === 3;
+        if (isLink && roomSheets[R - 4]) cell.l = { Target: `#'${roomSheets[R - 4].name}'!A1` };
         cell.s.font = {
           name: 'TH Sarabun New',
-          sz: (R === 0) ? 18 : ((R === 1) ? 12 : 14),
-          bold: (R === 0 || (wsData[R] && wsData[R][0] && String(wsData[R][0]).startsWith('ห้องเรียน:')) || (wsData[R] && wsData[R][0] === 'คาบเวลา'))
+          sz: (R === 0) ? 18 : 12,
+          bold: (R === 0 || isHeader || isLink),
+          color: isHeader ? { rgb: 'FFFFFF' } : (isLink ? { rgb: '4338CA' } : undefined),
+          underline: isLink ? true : undefined
         };
-
-        // Alignment
-        cell.s.alignment = {
-          vertical: 'center',
-          horizontal: (C === 0 || R === 0 || R === 1) ? 'center' : 'left',
-          wrapText: true
-        };
-
-        // Border
-        cell.s.border = {
-          top: { style: 'thin', color: { rgb: 'D1D5DB' } },
-          bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
-          left: { style: 'thin', color: { rgb: 'D1D5DB' } },
-          right: { style: 'thin', color: { rgb: 'D1D5DB' } }
-        };
+        if (isHeader) cell.s.fill = { patternType: 'solid', fgColor: { rgb: HEADER_TIME_FILL } };
+        if (R >= 3) {
+          cell.s.border = {
+            top: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            left: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            right: { style: 'thin', color: { rgb: 'D1D5DB' } }
+          };
+        }
+        cell.s.alignment = { vertical: 'center', horizontal: (R <= 3 || C !== 0) ? 'center' : 'left', wrapText: true };
       }
     }
 
-    XLSX.utils.book_append_sheet(wb, ws, 'ตารางสอน');
+    XLSX.utils.book_append_sheet(wb, toc, 'สารบัญ');
+    roomSheets.forEach(rs => XLSX.utils.book_append_sheet(wb, rs.ws, rs.name));
 
     const nowStr = new Date().toISOString().slice(0, 10);
     const fileName = `ตารางสอน_${nowStr}.xlsx`;
@@ -10579,34 +10619,36 @@ async function exportClassScheduleExcel() {
     // ฉีด <pageSetup> ลงใน sheet XML ผ่าน JSZip ก่อนดาวน์โหลด
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const zip = await window.JSZip.loadAsync(wbout);
-    const sheetPath = Object.keys(zip.files).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
-    let sheetXml = await zip.file(sheetPath).async('string');
-    if (!/<pageSetup/.test(sheetXml)) {
-      if (!/<sheetPr/.test(sheetXml)) {
-        sheetXml = sheetXml.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
-      } else if (/<sheetPr\/>/.test(sheetXml)) {
-        sheetXml = sheetXml.replace('<sheetPr/>', '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
-      } else {
-        sheetXml = sheetXml.replace(/<sheetPr(\s[^>]*)?>/, '$&<pageSetUpPr fitToPage="1"/>');
+    const sheetPaths = Object.keys(zip.files).filter(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+    for (const sheetPath of sheetPaths) {
+      let sheetXml = await zip.file(sheetPath).async('string');
+      if (!/<pageSetup/.test(sheetXml)) {
+        if (!/<sheetPr/.test(sheetXml)) {
+          sheetXml = sheetXml.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+        } else if (/<sheetPr\/>/.test(sheetXml)) {
+          sheetXml = sheetXml.replace('<sheetPr/>', '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+        } else {
+          sheetXml = sheetXml.replace(/<sheetPr(\s[^>]*)?>/, '$&<pageSetUpPr fitToPage="1"/>');
+        }
+        // OOXML กำหนดลำดับ: pageMargins → pageSetup → headerFooter → … → ignoredErrors
+        // ห้ามแทรกหลัง </worksheet> เพราะจะไปตกหลัง ignoredErrors ที่ xlsx-js-style
+        // เขียนไว้ท้ายสุด — Excel ถือว่า XML เสียและซ่อมด้วยการตัดทั้งชีตทิ้ง (ได้ไฟล์ว่าง)
+        const pageSetupXml = '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
+        if (/<pageMargins[^>]*\/>/.test(sheetXml)) {
+          sheetXml = sheetXml.replace(/(<pageMargins[^>]*\/>)/, '$1' + pageSetupXml);
+        } else if (/<pageMargins[^>]*>[\s\S]*?<\/pageMargins>/.test(sheetXml)) {
+          sheetXml = sheetXml.replace(/(<pageMargins[^>]*>[\s\S]*?<\/pageMargins>)/, '$1' + pageSetupXml);
+        } else if (/<ignoredErrors/.test(sheetXml)) {
+          sheetXml = sheetXml.replace('<ignoredErrors', pageSetupXml + '<ignoredErrors');
+        } else {
+          sheetXml = sheetXml.replace('</worksheet>', pageSetupXml + '</worksheet>');
+        }
       }
-      // OOXML กำหนดลำดับ: pageMargins → pageSetup → headerFooter → … → ignoredErrors
-      // ห้ามแทรกหลัง </worksheet> เพราะจะไปตกหลัง ignoredErrors ที่ xlsx-js-style
-      // เขียนไว้ท้ายสุด — Excel ถือว่า XML เสียและซ่อมด้วยการตัดทั้งชีตทิ้ง (ได้ไฟล์ว่าง)
-      const pageSetupXml = '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
-      if (/<pageMargins[^>]*\/>/.test(sheetXml)) {
-        sheetXml = sheetXml.replace(/(<pageMargins[^>]*\/>)/, '$1' + pageSetupXml);
-      } else if (/<pageMargins[^>]*>[\s\S]*?<\/pageMargins>/.test(sheetXml)) {
-        sheetXml = sheetXml.replace(/(<pageMargins[^>]*>[\s\S]*?<\/pageMargins>)/, '$1' + pageSetupXml);
-      } else if (/<ignoredErrors/.test(sheetXml)) {
-        sheetXml = sheetXml.replace('<ignoredErrors', pageSetupXml + '<ignoredErrors');
-      } else {
-        sheetXml = sheetXml.replace('</worksheet>', pageSetupXml + '</worksheet>');
-      }
+      // ตัด control character ที่ XML 1.0 ห้าม — ถ้าข้อมูลจาก Sheet มีปนมา
+      // Excel จะถือว่าไฟล์เสียและซ่อมด้วยการตัดชีตทิ้งเช่นกัน
+      sheetXml = sheetXml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+      zip.file(sheetPath, sheetXml);
     }
-    // ตัด control character ที่ XML 1.0 ห้าม — ถ้าข้อมูลจาก Sheet มีปนมา
-    // Excel จะถือว่าไฟล์เสียและซ่อมด้วยการตัดชีตทิ้งเช่นกัน
-    sheetXml = sheetXml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-    zip.file(sheetPath, sheetXml);
     const blob = await zip.generateAsync({
       type: 'blob',
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
