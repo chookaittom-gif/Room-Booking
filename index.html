@@ -974,7 +974,7 @@
                             </div>
 
                             <!-- Grid Container -->
-                            <div id="classScheduleGridContainer" class="table-responsive">
+                            <div id="classScheduleGridContainer" class="table-responsive" role="region" aria-label="ตารางแสดงคาบเรียนประจำสัปดาห์" tabindex="0">
                                 <div id="classScheduleGrid" class="text-center py-5">
                                     <div class="spinner-border text-primary" role="status"></div>
                                     <p class="mt-2 text-muted">กำลังโหลดข้อมูลตารางสอน...</p>
@@ -1385,8 +1385,8 @@
             <div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-3">
               <div class="row g-3">
                 <div class="col-12">
-                  <label class="form-label fw-bold small text-secondary">วัน <span class="text-danger">*</span></label>
-                  <select class="form-select rounded-3" id="slotDay">
+                  <label for="slotDay" class="form-label fw-bold small text-secondary">วัน <span class="text-danger">*</span></label>
+                  <select class="form-select rounded-3" id="slotDay" aria-required="true">
                     <option value="จันทร์">วันจันทร์</option>
                     <option value="อังคาร">วันอังคาร</option>
                     <option value="พุธ">วันพุธ</option>
@@ -1397,27 +1397,27 @@
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">เวลาเริ่ม <span class="text-danger">*</span></label>
-                  <input type="time" class="form-control rounded-3" id="slotStart" required>
+                  <label for="slotStart" class="form-label fw-bold small text-secondary">เวลาเริ่ม <span class="text-danger">*</span></label>
+                  <input type="time" class="form-control rounded-3" id="slotStart" required aria-required="true">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">เวลาสิ้นสุด <span class="text-danger">*</span></label>
-                  <input type="time" class="form-control rounded-3" id="slotEnd" required>
+                  <label for="slotEnd" class="form-label fw-bold small text-secondary">เวลาสิ้นสุด <span class="text-danger">*</span></label>
+                  <input type="time" class="form-control rounded-3" id="slotEnd" required aria-required="true">
                 </div>
                 <div class="col-12">
-                  <label class="form-label fw-bold small text-secondary">ชื่อวิชา / กิจกรรม <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control rounded-3" id="slotSubject" placeholder="เช่น การเขียนโปรแกรมเว็บเบื้องต้น" required>
+                  <label for="slotSubject" class="form-label fw-bold small text-secondary">ชื่อวิชา / กิจกรรม <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control rounded-3" id="slotSubject" placeholder="เช่น การเขียนโปรแกรมเว็บเบื้องต้น" required aria-required="true">
                 </div>
                 <div class="col-12">
-                  <label class="form-label fw-bold small text-secondary">อาจารย์ผู้สอน</label>
+                  <label for="slotInstructor" class="form-label fw-bold small text-secondary">อาจารย์ผู้สอน</label>
                   <input type="text" class="form-control rounded-3" id="slotInstructor" placeholder="เช่น ดร.สมชาย ใจดี">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">มีผลตั้งแต่วันที่ (ตัวเลือก)</label>
+                  <label for="slotValidFrom" class="form-label fw-bold small text-secondary">มีผลตั้งแต่วันที่ (ตัวเลือก)</label>
                   <input type="date" class="form-control rounded-3" id="slotValidFrom">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-bold small text-secondary">ถึงวันที่ (ตัวเลือก)</label>
+                  <label for="slotValidTo" class="form-label fw-bold small text-secondary">ถึงวันที่ (ตัวเลือก)</label>
                   <input type="date" class="form-control rounded-3" id="slotValidTo">
                 </div>
               </div>
