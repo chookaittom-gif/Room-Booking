@@ -4959,6 +4959,9 @@ function updateUIForLoggedInUser() {
   const dashboardBtn = document.getElementById('dashboard-tab');
   if (dashboardBtn) dashboardBtn.style.display = isAdmin ? '' : 'none';
 
+  const scheduleEditorTab = document.getElementById('scheduleEditor-tab');
+  if (scheduleEditorTab) scheduleEditorTab.classList.toggle('d-none', !isAdmin);
+
   const dashboardNavItem = dashboardBtn ? dashboardBtn.closest('li') : null;
   if (dashboardNavItem) dashboardNavItem.style.display = isAdmin ? '' : 'none';
 
@@ -4996,6 +4999,8 @@ function updateUIForLoggedInUser() {
 
 // ANCHOR:CLIENT.updateUIForLoggedOutUser:REPLACE
 function updateUIForLoggedOutUser() {
+  const scheduleEditorTab = document.getElementById('scheduleEditor-tab');
+  if (scheduleEditorTab) scheduleEditorTab.classList.add('d-none');
   console.log('\uD83C\uDFA8 UI: Switching to GUEST mode');
 
   // --- 1. \u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 Sidebar (Desktop) ---
@@ -5649,6 +5654,14 @@ window.showTab = async function (tabId, forceReload = false) {
       try {
         if (window.currentRoom && window.currentDate && typeof loadScheduleForRoom === 'function') {
           loadScheduleForRoom(window.currentRoom, window.currentDate);
+        }
+      } catch (e) {}
+    }
+
+    if (tabId === 'scheduleEditor') {
+      try {
+        if (typeof loadClassScheduleAdmin === 'function') {
+          loadClassScheduleAdmin();
         }
       } catch (e) {}
     }
@@ -9627,6 +9640,580 @@ function getActiveTabId_() {
   const start = () => { setTimeout(doBind, 0); console.log('\u2705 exportClientApi: binder started'); };
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', start, { once: true }); } else { start(); }
 })();
+
+// ============================================================
+// [ANCHOR:CLIENT.scheduleEditor] TIMETABLE EDITOR — Admin only
+// ============================================================
+
+window.__classScheduleState = {
+  rooms: [],
+  rows: [],
+  selectedRoom: null,
+  isDirty: false
+};
+
+const DAYS_OF_WEEK = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'];
+
+async function loadClassScheduleAdmin() {
+  const container = document.getElementById('classScheduleGrid');
+  if (container) {
+    container.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">กำลังโหลดข้อมูลตารางสอน...</p>
+      </div>`;
+  }
+
+  try {
+    const res = await callServer('getClassScheduleAdmin', {});
+    if (!res || !res.ok) {
+      throw new Error(res?.error || res?.message || 'ไม่สามารถโหลดข้อมูลตารางสอนได้');
+    }
+
+    const rows = res.data && Array.isArray(res.data.rows) ? res.data.rows : [];
+    const rooms = res.data && Array.isArray(res.data.rooms) ? res.data.rooms : (window.roomsData || []);
+
+    window.__classScheduleState.rows = rows;
+    window.__classScheduleState.rooms = rooms;
+
+    // Populate room dropdown
+    const roomSelect = document.getElementById('editorRoomSelect');
+    if (roomSelect) {
+      if (rooms.length === 0) {
+        roomSelect.innerHTML = '<option value="">ไม่พบห้องเรียน</option>';
+      } else {
+        const curRoom = window.__classScheduleState.selectedRoom || rooms[0].id || rooms[0].RoomID;
+        roomSelect.innerHTML = rooms.map(r => {
+          const id = r.id || r.RoomID;
+          const name = r.name || r.RoomName || id;
+          return `<option value="${safe(id)}" ${id === curRoom ? 'selected' : ''}>${safe(name)}</option>`;
+        }).join('');
+        window.__classScheduleState.selectedRoom = curRoom;
+      }
+    }
+
+    renderScheduleGrid();
+  } catch (err) {
+    console.error('loadClassScheduleAdmin error:', err);
+    if (container) {
+      container.innerHTML = `
+        <div class="alert alert-danger rounded-4 p-4 text-center">
+          <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+          <h6>เกิดข้อผิดพลาดในการโหลดข้อมูลตารางสอน</h6>
+          <p class="small text-muted mb-3">${safe(err.message)}</p>
+          <button class="btn btn-outline-danger btn-sm rounded-pill px-4" onclick="loadClassScheduleAdmin()">
+            <i class="fas fa-redo me-1"></i>ลองใหม่อีกครั้ง
+          </button>
+        </div>`;
+    }
+    showToast('ข้อผิดพลาด', err.message, 'error');
+  }
+}
+
+function onEditorRoomChange(roomId) {
+  window.__classScheduleState.selectedRoom = roomId;
+  renderScheduleGrid();
+}
+
+function renderScheduleGrid() {
+  const container = document.getElementById('classScheduleGrid');
+  if (!container) return;
+
+  const state = window.__classScheduleState;
+  const roomId = state.selectedRoom;
+  const allRows = state.rows || [];
+  const roomRows = allRows.filter(r => String(r.roomId).trim() === String(roomId).trim());
+
+  // Check if Saturday / Sunday exist in this room
+  const hasWeekend = roomRows.some(r => r.day === 'เสาร์' || r.day === 'อาทิตย์');
+  const days = hasWeekend ? ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์', 'อาทิตย์'] : DAYS_OF_WEEK;
+
+  // Collect unique slots
+  const slotMap = new Map();
+  roomRows.forEach(r => {
+    const s = String(r.startTime || '').trim();
+    const e = String(r.endTime || '').trim();
+    if (s && e) {
+      const key = `${s}-${e}`;
+      if (!slotMap.has(key)) slotMap.set(key, { start: s, end: e });
+    }
+  });
+
+  // Default slots if none exist
+  if (slotMap.size === 0) {
+    const defaults = [
+      { start: '08:30', end: '10:30' },
+      { start: '10:30', end: '12:30' },
+      { start: '12:30', end: '13:30' },
+      { start: '13:30', end: '15:30' },
+      { start: '15:30', end: '17:30' }
+    ];
+    defaults.forEach(d => slotMap.set(`${d.start}-${d.end}`, d));
+  }
+
+  const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
+
+  let html = `
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle text-center mb-0 schedule-editor-table" style="min-width: 750px;">
+        <thead class="table-light border-bottom">
+          <tr class="text-secondary small fw-bold">
+            <th style="width: 130px; background-color: #f8f9fa;">คาบเวลา</th>
+            ${days.map(d => `<th style="background-color: #f8f9fa;">วัน${d}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  sortedSlots.forEach(slot => {
+    html += `<tr>`;
+    html += `
+      <td class="fw-bold text-secondary bg-light py-3 text-nowrap" style="font-size: 0.85rem;">
+        <i class="fas fa-clock me-1 text-primary"></i>${slot.start} - ${slot.end}
+      </td>
+    `;
+
+    days.forEach(day => {
+      const matched = roomRows.filter(r =>
+        r.day === day &&
+        String(r.startTime).trim() === slot.start &&
+        String(r.endTime).trim() === slot.end
+      );
+
+      if (matched.length > 0) {
+        html += `<td class="p-2" style="background-color: #eff6ff;">`;
+        matched.forEach(item => {
+          html += `
+            <div class="card border-0 shadow-sm rounded-3 p-2 text-start position-relative mb-1 bg-white"
+                 style="cursor: pointer; border-left: 4px solid #3b82f6 !important;"
+                 onclick="openClassSlotModal('${safe(day)}', '${slot.start}', '${slot.end}')"
+                 title="คลิกเพื่อแก้ไข">
+              <div class="fw-bold text-dark text-truncate" style="font-size: 0.85rem;" title="${safe(item.subject)}">
+                ${safe(item.subject)}
+              </div>
+              <div class="text-secondary text-truncate small mt-1" style="font-size: 0.75rem;">
+                <i class="fas fa-user-tie me-1 text-muted"></i>${safe(item.instructor || '-')}
+              </div>
+            </div>
+          `;
+        });
+        html += `</td>`;
+      } else {
+        html += `
+          <td class="p-2 text-muted" style="cursor: pointer; transition: background 0.2s;"
+              onmouseover="this.style.backgroundColor='#f1f5f9'"
+              onmouseout="this.style.backgroundColor='transparent'"
+              onclick="openClassSlotModal('${safe(day)}', '${slot.start}', '${slot.end}')"
+              title="คลิกเพื่อเพิ่มคาบเรียน">
+            <span class="badge bg-light text-secondary border rounded-pill px-2 py-1" style="font-size: 0.75rem;">
+              <i class="fas fa-plus me-1"></i>ว่าง
+            </span>
+          </td>
+        `;
+      }
+    });
+
+    html += `</tr>`;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 text-muted small flex-wrap gap-2">
+      <div>
+        <i class="fas fa-info-circle me-1"></i>คลิกที่ช่องในตารางเพื่อเพิ่มหรือแก้ไขรายวิชา เมื่อแก้ไขเรียบร้อยแล้วให้กดปุ่ม <strong>"บันทึกทั้งหมด"</strong>
+      </div>
+      <div>
+        จำนวนคาบในห้องนี้: <span class="badge bg-primary rounded-pill px-2 py-1">${roomRows.length} คาบ</span>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function openClassSlotModal(day, startTime, endTime) {
+  const state = window.__classScheduleState;
+  const roomId = state.selectedRoom;
+  const roomRows = state.rows.filter(r => String(r.roomId).trim() === String(roomId).trim());
+
+  const existing = roomRows.find(r =>
+    r.day === day &&
+    String(r.startTime).trim() === startTime &&
+    String(r.endTime).trim() === endTime
+  );
+
+  document.getElementById('slotOrigDay').value = existing ? day : '';
+  document.getElementById('slotOrigStart').value = existing ? startTime : '';
+  document.getElementById('slotOrigEnd').value = existing ? endTime : '';
+
+  document.getElementById('slotDay').value = day || 'จันทร์';
+  document.getElementById('slotStart').value = startTime || '08:30';
+  document.getElementById('slotEnd').value = endTime || '10:30';
+  document.getElementById('slotSubject').value = existing ? (existing.subject || '') : '';
+  document.getElementById('slotInstructor').value = existing ? (existing.instructor || '') : '';
+  document.getElementById('slotValidFrom').value = existing ? (existing.validFrom || '') : '';
+  document.getElementById('slotValidTo').value = existing ? (existing.validTo || '') : '';
+
+  const titleEl = document.getElementById('classSlotModalTitle');
+  if (titleEl) {
+    titleEl.innerHTML = existing
+      ? `<i class="fas fa-edit me-2"></i>แก้ไขคาบสอน (ห้อง ${safe(roomId)})`
+      : `<i class="fas fa-plus-circle me-2"></i>เพิ่มคาบสอนใหม่ (ห้อง ${safe(roomId)})`;
+  }
+
+  const btnDelete = document.getElementById('btnDeleteSlot');
+  if (btnDelete) {
+    btnDelete.classList.toggle('d-none', !existing);
+  }
+
+  const modalEl = document.getElementById('classSlotModal');
+  if (modalEl) {
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+}
+
+function saveClassSlot() {
+  const roomId = window.__classScheduleState.selectedRoom;
+  if (!roomId) {
+    showToast('แจ้งเตือน', 'กรุณาเลือกห้องเรียนก่อน', 'warning');
+    return;
+  }
+
+  const origDay = document.getElementById('slotOrigDay').value;
+  const origStart = document.getElementById('slotOrigStart').value;
+  const origEnd = document.getElementById('slotOrigEnd').value;
+
+  const day = document.getElementById('slotDay').value;
+  const startTime = document.getElementById('slotStart').value;
+  const endTime = document.getElementById('slotEnd').value;
+  const subject = document.getElementById('slotSubject').value.trim();
+  const instructor = document.getElementById('slotInstructor').value.trim();
+  const validFrom = document.getElementById('slotValidFrom').value;
+  const validTo = document.getElementById('slotValidTo').value;
+
+  if (!subject) {
+    showToast('กรุณากรอกข้อมูล', 'กรุณากรอกชื่อวิชาหรือกิจกรรม', 'warning');
+    return;
+  }
+  if (!startTime || !endTime) {
+    showToast('กรุณากรอกข้อมูล', 'กรุณาระบุเวลาเริ่มและเวลาสิ้นสุด', 'warning');
+    return;
+  }
+  if (startTime >= endTime) {
+    showToast('เวลาไม่ถูกต้อง', 'เวลาเริ่มต้องมาก่อนเวลาสิ้นสุด', 'warning');
+    return;
+  }
+
+  const rows = window.__classScheduleState.rows;
+
+  // Remove original if was edit
+  if (origDay && origStart && origEnd) {
+    const idx = rows.findIndex(r =>
+      String(r.roomId).trim() === String(roomId).trim() &&
+      r.day === origDay &&
+      String(r.startTime).trim() === origStart &&
+      String(r.endTime).trim() === origEnd
+    );
+    if (idx !== -1) rows.splice(idx, 1);
+  }
+
+  // Add updated / new slot
+  rows.push({
+    roomId: roomId,
+    day: day,
+    startTime: startTime,
+    endTime: endTime,
+    subject: subject,
+    instructor: instructor,
+    validFrom: validFrom,
+    validTo: validTo
+  });
+
+  // Hide modal
+  const modalEl = document.getElementById('classSlotModal');
+  if (modalEl) {
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+  }
+
+  renderScheduleGrid();
+  showToast('อัปเดตเรียบร้อย', 'ปรับปรุงคาบเรียนในตารางแล้ว (อย่าลืมกดบันทึกทั้งหมด)', 'info');
+}
+
+function deleteClassSlot() {
+  const roomId = window.__classScheduleState.selectedRoom;
+  const origDay = document.getElementById('slotOrigDay').value;
+  const origStart = document.getElementById('slotOrigStart').value;
+  const origEnd = document.getElementById('slotOrigEnd').value;
+
+  if (!origDay || !origStart || !origEnd) return;
+
+  if (!confirm(`ต้องการลบคาบสอน วัน${origDay} เวลา ${origStart}-${origEnd} หรือไม่?`)) {
+    return;
+  }
+
+  const rows = window.__classScheduleState.rows;
+  const idx = rows.findIndex(r =>
+    String(r.roomId).trim() === String(roomId).trim() &&
+    r.day === origDay &&
+    String(r.startTime).trim() === origStart &&
+    String(r.endTime).trim() === origEnd
+  );
+
+  if (idx !== -1) {
+    rows.splice(idx, 1);
+  }
+
+  const modalEl = document.getElementById('classSlotModal');
+  if (modalEl) {
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+  }
+
+  renderScheduleGrid();
+  showToast('ลบคาบสอนแล้ว', 'ลบคาบเรียนออกจากตารางแล้ว (อย่าลืมกดบันทึกทั้งหมด)', 'info');
+}
+
+async function saveAllClassSchedule() {
+  const roomId = window.__classScheduleState.selectedRoom;
+  if (!roomId) {
+    showToast('แจ้งเตือน', 'กรุณาเลือกห้องเรียนก่อน', 'warning');
+    return;
+  }
+
+  const roomRows = window.__classScheduleState.rows.filter(r =>
+    String(r.roomId).trim() === String(roomId).trim()
+  );
+
+  if (!confirm(`ยืนยันการบันทึกตารางสอนห้อง "${roomId}" ทั้งหมด (${roomRows.length} คาบ) ลง Google Sheet?`)) {
+    return;
+  }
+
+  showLoading(true, `กำลังบันทึกตารางสอนห้อง ${roomId}...`);
+  try {
+    const res = await callServer('saveClassSchedule', {
+      roomId: roomId,
+      rows: roomRows
+    });
+
+    if (!res || !res.ok) {
+      throw new Error(res?.error || res?.message || 'บันทึกลงระบบไม่สำเร็จ');
+    }
+
+    showNotification('บันทึกสำเร็จ', `บันทึกตารางสอนห้อง ${roomId} เรียบร้อยแล้ว (${res.data?.saved || roomRows.length} คาบ)`, 'success');
+  } catch (err) {
+    console.error('saveAllClassSchedule error:', err);
+    showToast('ข้อผิดพลาด', err.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function exportClassScheduleExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('ไม่สามารถส่งออกได้', 'ไลบรารี SheetJS ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าเว็บ', 'error');
+    return;
+  }
+
+  const state = window.__classScheduleState;
+  const rows = state.rows || [];
+  const rooms = state.rooms || window.roomsData || [];
+
+  if (rooms.length === 0) {
+    showToast('แจ้งเตือน', 'ไม่พบข้อมูลห้องเรียนสำหรับส่งออก', 'warning');
+    return;
+  }
+
+  showLoading(true, 'กำลังสร้างไฟล์ Excel A4 แนวนอน...');
+
+  try {
+    const wb = XLSX.utils.book_new();
+    const wsData = [];
+    const merges = [];
+    let curRow = 0;
+
+    const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'];
+
+    // 1. หัวข้อหลักของเอกสาร
+    wsData.push(['ตารางสอนประจำสัปดาห์ — ระบบจองห้องเรียน', '', '', '', '', '']);
+    merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: 5 } });
+    curRow++;
+
+    const printDate = new Date().toLocaleDateString('th-TH', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    wsData.push([`ข้อมูล ณ วันที่: ${printDate}`, '', '', '', '', '']);
+    merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: 5 } });
+    curRow++;
+
+    wsData.push(['', '', '', '', '', '']);
+    curRow++;
+
+    // 2. วนลูปสร้าง Section แต่ละห้อง
+    rooms.forEach(rm => {
+      const rmId = rm.id || rm.RoomID;
+      const rmName = rm.name || rm.RoomName || rmId;
+      const rmRows = rows.filter(r => String(r.roomId).trim() === String(rmId).trim());
+
+      // Header ของห้อง
+      wsData.push([`ห้องเรียน: ${rmName} (ID: ${rmId})`, '', '', '', '', '']);
+      merges.push({ s: { r: curRow, c: 0 }, e: { r: curRow, c: 5 } });
+      curRow++;
+
+      // Header วัน
+      wsData.push(['คาบเวลา', ...days.map(d => `วัน${d}`)]);
+      curRow++;
+
+      // Time slots ของห้องนี้
+      const slotMap = new Map();
+      rmRows.forEach(r => {
+        const s = String(r.startTime || '').trim();
+        const e = String(r.endTime || '').trim();
+        if (s && e) {
+          const key = `${s}-${e}`;
+          if (!slotMap.has(key)) slotMap.set(key, { start: s, end: e });
+        }
+      });
+
+      if (slotMap.size === 0) {
+        const defaults = [
+          { start: '08:30', end: '10:30' },
+          { start: '10:30', end: '12:30' },
+          { start: '12:30', end: '13:30' },
+          { start: '13:30', end: '15:30' },
+          { start: '15:30', end: '17:30' }
+        ];
+        defaults.forEach(d => slotMap.set(`${d.start}-${d.end}`, d));
+      }
+
+      const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
+
+      sortedSlots.forEach(slot => {
+        const rowCells = [`${slot.start} - ${slot.end}`];
+        const isLunch = (slot.start === '12:30' && slot.end === '13:30');
+
+        days.forEach(day => {
+          const matched = rmRows.filter(r =>
+            r.day === day &&
+            String(r.startTime).trim() === slot.start &&
+            String(r.endTime).trim() === slot.end
+          );
+
+          if (matched.length > 0) {
+            const texts = matched.map(m => {
+              return m.instructor ? `${m.subject} (${m.instructor})` : m.subject;
+            });
+            rowCells.push(texts.join('\n'));
+          } else if (isLunch) {
+            rowCells.push('— พักกลางวัน —');
+          } else {
+            rowCells.push('');
+          }
+        });
+
+        wsData.push(rowCells);
+        curRow++;
+      });
+
+      // แถวว่างคั่นระหว่างห้อง
+      wsData.push(['', '', '', '', '', '']);
+      curRow++;
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges'] = merges;
+
+    // ตั้งค่าความกว้างคอลัมน์ (Column widths)
+    ws['!cols'] = [
+      { wch: 18 }, // คาบเวลา
+      { wch: 24 }, // วันจันทร์
+      { wch: 24 }, // วันอังคาร
+      { wch: 24 }, // วันพุธ
+      { wch: 24 }, // วันพฤหัสบดี
+      { wch: 24 }  // วันศุกร์
+    ];
+
+    // ตั้งค่าหน้ากระดาษ A4 แนวนอน (Landscape)
+    ws['!pageSetup'] = {
+      paperSize: 9, // A4
+      orientation: 'landscape',
+      fitToWidth: 1,
+      fitToHeight: 0,
+      scale: 100
+    };
+
+    // ขอบกระดาษแบบแคบ (Narrow Margins)
+    ws['!margins'] = {
+      left: 0.5,
+      right: 0.5,
+      top: 0.5,
+      bottom: 0.5,
+      header: 0.3,
+      footer: 0.3
+    };
+
+    // กำหนด Font TH Sarabun New ให้กับทุก Cell
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:F1');
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+        const cell = ws[cellRef];
+        if (!cell.s) cell.s = {};
+
+        // Font TH Sarabun New
+        cell.s.font = {
+          name: 'TH Sarabun New',
+          sz: (R === 0) ? 18 : ((R === 1) ? 12 : 14),
+          bold: (R === 0 || (wsData[R] && wsData[R][0] && String(wsData[R][0]).startsWith('ห้องเรียน:')) || (wsData[R] && wsData[R][0] === 'คาบเวลา'))
+        };
+
+        // Alignment
+        cell.s.alignment = {
+          vertical: 'center',
+          horizontal: (C === 0 || R === 0 || R === 1) ? 'center' : 'left',
+          wrapText: true
+        };
+
+        // Border
+        cell.s.border = {
+          top: { style: 'thin', color: { rgb: 'D1D5DB' } },
+          bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+          left: { style: 'thin', color: { rgb: 'D1D5DB' } },
+          right: { style: 'thin', color: { rgb: 'D1D5DB' } }
+        };
+      }
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, 'ตารางสอน');
+
+    const nowStr = new Date().toISOString().slice(0, 10);
+    const fileName = `ตารางสอน_${nowStr}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    showNotification('ดาวน์โหลดสำเร็จ', `สร้างไฟล์ ${fileName} เรียบร้อยแล้ว`, 'success');
+  } catch (err) {
+    console.error('exportClassScheduleExcel error:', err);
+    showToast('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการสร้างไฟล์ Excel: ' + err.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// Bind to window for global access
+window.loadClassScheduleAdmin = loadClassScheduleAdmin;
+window.onEditorRoomChange = onEditorRoomChange;
+window.renderScheduleGrid = renderScheduleGrid;
+window.openClassSlotModal = openClassSlotModal;
+window.saveClassSlot = saveClassSlot;
+window.deleteClassSlot = deleteClassSlot;
+window.saveAllClassSchedule = saveAllClassSchedule;
+window.exportClassScheduleExcel = exportClassScheduleExcel;
+// [ANCHOR:CLIENT.scheduleEditor:END]
+
 // [ANCHOR:CLIENT.exportClientApi:END]
 
 

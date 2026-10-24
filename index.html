@@ -17,7 +17,8 @@
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
     
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js" charset="utf-8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/th.js" charset="utf-8"></script>
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/th.js" charset="utf-8"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 
     <link rel="icon" href="https://raw.githubusercontent.com/chookaittom-gif/Room-Booking/main/logoroom.png">
 
@@ -940,8 +941,49 @@
                         </div>
                     </div>
 
+
+                    <!-- TAB 4: SCHEDULE EDITOR (ADMIN ONLY) -->
+                    <div id="scheduleEditorContent" class="tab-content animate-fade d-none">
+                        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+                                <div>
+                                    <h4 class="fw-bold text-dark mb-1">
+                                        <i class="fas fa-calendar-alt text-primary me-2"></i>ระบบจัดตารางสอน (Admin)
+                                    </h4>
+                                    <p class="text-secondary small mb-0">จัดการตารางสอนประจำสัปดาห์ บันทึกลง Google Sheet และส่งออกเป็น Excel A4 แนวนอน (TH Sarabun New)</p>
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <div class="d-flex align-items-center gap-2 bg-light px-3 py-2 rounded-pill">
+                                        <label for="editorRoomSelect" class="small fw-bold text-secondary mb-0 text-nowrap">
+                                            <i class="fas fa-door-open me-1 text-primary"></i>ห้องเรียน:
+                                        </label>
+                                        <select id="editorRoomSelect" class="form-select form-select-sm border-0 bg-transparent fw-bold text-primary" style="min-width: 140px;" onchange="onEditorRoomChange(this.value)">
+                                            <option value="">กำลังโหลด...</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-medium shadow-sm" onclick="openClassSlotModal('จันทร์','08:30','10:30')">
+                                        <i class="fas fa-plus me-1"></i>เพิ่มคาบสอน
+                                    </button>
+                                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" onclick="saveAllClassSchedule()">
+                                        <i class="fas fa-save me-1"></i>บันทึกทั้งหมด
+                                    </button>
+                                    <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm" onclick="exportClassScheduleExcel()">
+                                        <i class="fas fa-file-excel me-1"></i>Export Excel (A4 แนวนอน)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Grid Container -->
+                            <div id="classScheduleGridContainer" class="table-responsive">
+                                <div id="classScheduleGrid" class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p class="mt-2 text-muted">กำลังโหลดข้อมูลตารางสอน...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
+
                 <footer class="footer">
                     <div class="footer-content">
                         <div class="footer-text">ระบบจองห้องเรียน V1.4 | © 2026 มหาวิทยาลัยสวนดุสิต ศูนย์การศึกษา ลำปาง พัฒนาโดย: นายชูเกียรติ กุศลสถิตย์</div>
@@ -1324,6 +1366,75 @@
            
     <script src="./js/config.js"></script>
     <script src="./js/app.js"></script>
+
+
+    <!-- Modal เพิ่ม/แก้ไข คาบสอน -->
+    <div class="modal fade" id="classSlotModal" tabindex="-1" aria-labelledby="classSlotModalTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          <div class="modal-header border-0 bg-primary bg-gradient text-white px-4 py-3">
+            <h5 class="modal-title fw-bold mb-0" id="classSlotModalTitle">
+              <i class="fas fa-edit me-2"></i>จัดการคาบสอน
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+          </div>
+          <div class="modal-body p-4 bg-light">
+            <input type="hidden" id="slotOrigDay">
+            <input type="hidden" id="slotOrigStart">
+            <input type="hidden" id="slotOrigEnd">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-3">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label fw-bold small text-secondary">วัน <span class="text-danger">*</span></label>
+                  <select class="form-select rounded-3" id="slotDay">
+                    <option value="จันทร์">วันจันทร์</option>
+                    <option value="อังคาร">วันอังคาร</option>
+                    <option value="พุธ">วันพุธ</option>
+                    <option value="พฤหัส">วันพฤหัสบดี</option>
+                    <option value="ศุกร์">วันศุกร์</option>
+                    <option value="เสาร์">วันเสาร์</option>
+                    <option value="อาทิตย์">วันอาทิตย์</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">เวลาเริ่ม <span class="text-danger">*</span></label>
+                  <input type="time" class="form-control rounded-3" id="slotStart" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">เวลาสิ้นสุด <span class="text-danger">*</span></label>
+                  <input type="time" class="form-control rounded-3" id="slotEnd" required>
+                </div>
+                <div class="col-12">
+                  <label class="form-label fw-bold small text-secondary">ชื่อวิชา / กิจกรรม <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control rounded-3" id="slotSubject" placeholder="เช่น การเขียนโปรแกรมเว็บเบื้องต้น" required>
+                </div>
+                <div class="col-12">
+                  <label class="form-label fw-bold small text-secondary">อาจารย์ผู้สอน</label>
+                  <input type="text" class="form-control rounded-3" id="slotInstructor" placeholder="เช่น ดร.สมชาย ใจดี">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">มีผลตั้งแต่วันที่ (ตัวเลือก)</label>
+                  <input type="date" class="form-control rounded-3" id="slotValidFrom">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold small text-secondary">ถึงวันที่ (ตัวเลือก)</label>
+                  <input type="date" class="form-control rounded-3" id="slotValidTo">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 px-4 py-3 bg-white">
+            <button type="button" class="btn btn-outline-danger rounded-pill px-3 d-none me-auto" id="btnDeleteSlot" onclick="deleteClassSlot()">
+              <i class="fas fa-trash-alt me-1"></i>ลบคาบนี้
+            </button>
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="saveClassSlot()">
+              <i class="fas fa-check me-1"></i>ตกลง
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
 </body>
 </html>
