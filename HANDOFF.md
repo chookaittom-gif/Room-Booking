@@ -89,17 +89,12 @@ When picking up work in this repository, the next agent should invoke:
 
 ## 6. How to Run & Verify
 
-1. **Local Preview**:
+- **Production URL**: https://room-booking-omega-three.vercel.app/ (auto-deploys from `main` via Vercel; `/api/gas` is proxied to the GAS web app server-side)
+- **Local Preview**:
    - Open `index.html` in a web browser or serve locally using any static web server:
      ```powershell
      npx serve .
      # or python -m http.server 8000
      ```
-2. **Graft Refresh (if code changes are made)**:
-   ```powershell
-   graft build
-   ```
-3. **Clasp Backend Status (when working with Google Apps Script)**:
-   ```powershell
-   clasp status
-   ```
+- **Graft Refresh (if code changes are made)**: `graft build`
+- **Clasp Backend Status (when working with Google Apps Script)**: `clasp status`
