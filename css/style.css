@@ -7766,6 +7766,7 @@ video {
   display: block;
   color: var(--text-secondary, #6c757d);
   font-size: 0.75rem;
+  font-weight: 700;
   margin-top: 0.2rem;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -10741,8 +10741,10 @@ async function exportClassScheduleExcel() {
           );
 
           if (matched.length > 0) {
+            // ชื่อผู้สอนครอบด้วย marker \uE000 (private-use, ไม่ชนข้อมูลจริง) —
+            // JSZip patch ตอนปิดไฟล์จะแปลงส่วนนี้เป็น rich-text run ตัวหนาสีเทา
             const texts = matched.map(m => {
-              return m.instructor ? `${m.subject}\n${m.instructor}` : String(m.subject || '');
+              return m.instructor ? `${m.subject}\n${'\uE000'}${m.instructor}${'\uE000'}` : String(m.subject || '');
             });
             rowCells.push(texts.join('\n\n'));
           } else if (isLunch) {
@@ -10768,7 +10770,7 @@ async function exportClassScheduleExcel() {
         if (i === 1) return { hpt: 20 };
         if (i === 2) return { hpt: 32 };
         const lines = Math.max(1, ...r.map((v, ci) => {
-          const txt = String(v == null ? '' : v);
+          const txt = String(v == null ? '' : v).replace(/\uE000/g, '');
           if (!txt.trim()) return 1;
           const cpl = Math.max(6, Math.floor(colW[ci] * 0.7));
           return txt.split('\n').reduce((n, ln) => n + Math.max(1, Math.ceil(ln.length / cpl)), 0);
@@ -10930,6 +10932,28 @@ async function exportClassScheduleExcel() {
       // ตัด control character ที่ XML 1.0 ห้าม — ถ้าข้อมูลจาก Sheet มีปนมา
       // Excel จะถือว่าไฟล์เสียและซ่อมด้วยการตัดชีตทิ้งเช่นกัน
       sheetXml = sheetXml.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+
+      // ชื่อผู้สอน (ครอบด้วย marker \uE000) → rich-text run ตัวหนาสีเทา
+      // xlsx-js-style เขียน rich text ไม่ได้ จึงแปลงเป็น inline string ตอนปิดไฟล์
+      // run ที่ไม่ระบุ rFont/sz จะสืบทอด font ของ cell style (TH Sarabun New 16pt)
+      const decodeXmlText = (s) => s
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+        .replace(/&(?:apos|#39);/g, "'").replace(/&amp;/g, '&');
+      const encodeXmlText = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '>');
+      sheetXml = sheetXml.replace(/<c r="([A-Z]+\d+)"([^>]*)t="str"([^>]*)><v([^>]*)>([\s\S]*?)<\/v><\/c>/g, (m0, ref, pre, post, vAttrs, v) => {
+        if (v.indexOf('\uE000') === -1) return m0;
+        const text = decodeXmlText(v);
+        const runs = [];
+        text.split('\uE000').forEach((seg, i) => {
+          if (!seg) return;
+          const t = encodeXmlText(seg);
+          runs.push(i % 2 === 1
+            ? `<r><rPr><b/><color rgb="FF6B7280"/></rPr><t xml:space="preserve">${t}</t></r>`
+            : `<r><t xml:space="preserve">${t}</t></r>`);
+        });
+        if (!runs.length) return m0;
+        return `<c r="${ref}"${pre}t="inlineStr"${post}><is>${runs.join('')}</is></c>`;
+      });
       zip.file(sheetPath, sheetXml);
     }
     const blob = await zip.generateAsync({
