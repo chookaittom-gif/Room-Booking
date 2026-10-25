@@ -5886,6 +5886,28 @@ window.getCombinedView = function () {
 // ANCHOR:CLIENT.getCombinedView:END
 
 // ANCHOR:CLIENT.setCombinedView:REPLACE
+// ✅ Chrome ของมุมมอง (ป้ายปุ่มสลับ + ตราหัวการ์ด + คำอธิบาย + aria) — แหล่งความจริงเดียว
+// เรียกจาก setCombinedView และหลัง toggle โหลดเสร็จ (setBtnLoading คืน prevHtml
+// ทับป้ายที่สลับไปแล้วระหว่างโหลด จึงต้อง assert ซ้ำหลัง restore)
+window.updateCombinedViewChrome = function (view) {
+  const isCalendar = view === 'calendar';
+  const btnToggle = document.getElementById('btnCombinedToggleView');
+  if (btnToggle && btnToggle.dataset.loading !== '1') {
+    btnToggle.innerHTML = isCalendar
+      ? `<i class="fas fa-list me-1"></i>\u0E14\u0E39\u0E41\u0E1A\u0E1A\u0E2A\u0E23\u0E38\u0E1B`
+      : `<i class="fas fa-calendar-alt me-1"></i>\u0E14\u0E39\u0E41\u0E1A\u0E1A\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19`;
+    const dest = isCalendar ? '\u0E2A\u0E23\u0E38\u0E1B' : '\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19';
+    btnToggle.title = `\u0E2A\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E14\u0E39\u0E41\u0E1A\u0E1A${dest}`;
+    btnToggle.setAttribute('aria-label', `\u0E2A\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E14\u0E39\u0E41\u0E1A\u0E1A${dest}`);
+  }
+  const badge = document.getElementById('combinedViewBadge');
+  if (badge) badge.textContent = isCalendar ? '\u00B7 \u0E41\u0E1A\u0E1A\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19' : '\u00B7 \u0E41\u0E1A\u0E1A\u0E2A\u0E23\u0E38\u0E1B';
+  const subtitle = document.getElementById('combinedCardSubtitle');
+  if (subtitle) subtitle.textContent = isCalendar
+    ? '\u0E01\u0E23\u0E34\u0E14\u0E23\u0E32\u0E22\u0E2A\u0E31\u0E1B\u0E14\u0E32\u0E2B\u0E4C \u2014 \u0E04\u0E25\u0E34\u0E01\u0E01\u0E25\u0E38\u0E48\u0E21\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E0A\u0E48\u0E2D\u0E07 \u0E41\u0E25\u0E30\u0E2A\u0E25\u0E31\u0E1A\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1A\u0E1A\u0E2A\u0E23\u0E38\u0E1B\u0E44\u0E14\u0E49'
+    : '\u0E2A\u0E23\u0E38\u0E1B\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19 \u2014 \u0E04\u0E25\u0E34\u0E01\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E15\u0E47\u0E21 \u0E41\u0E25\u0E30\u0E2A\u0E25\u0E31\u0E1A\u0E14\u0E39\u0E41\u0E1A\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19\u0E44\u0E14\u0E49';
+};
+
 window.setCombinedView = function (view, slotsInput) {
   try {
     // โ… Render token guard (เธเธฑเธเธชเธฅเธฑเธเธฃเธฑเธงเนเธฅเนเธง render เธ—เธฑเธ)
@@ -5942,11 +5964,10 @@ window.setCombinedView = function (view, slotsInput) {
     window.combinedViewMode = safeView;
 
     // โ… Toggle button
+    // ✅ Toggle button + card heading chrome
+    updateCombinedViewChrome(safeView);
     const btnToggle = document.getElementById('btnCombinedToggleView');
     if (btnToggle) {
-      btnToggle.innerHTML = (safeView === 'calendar')
-        ? `<i class="fas fa-list me-1"></i>\u0E14\u0E39\u0E41\u0E1A\u0E1A\u0E2A\u0E23\u0E38\u0E1B`
-        : `<i class="fas fa-calendar-alt me-1"></i>\u0E14\u0E39\u0E41\u0E1A\u0E1A\u0E15\u0E32\u0E23\u0E32\u0E07`;
       btnToggle.disabled = false;
       btnToggle.classList.remove('disabled');
     }
@@ -7352,6 +7373,10 @@ function bindCombinedControls() {
         console.log('\u274C FAIL: toggle exception', err);
       } finally {
         setBtnLoading(toggleBtn, false);
+        // ✅ prevHtml restore ทับป้ายที่สลับระหว่างโหลด — assert chrome ใหม่
+        if (typeof window.updateCombinedViewChrome === 'function') {
+          window.updateCombinedViewChrome(window.combinedViewMode || 'summary');
+        }
       }
     };
 
