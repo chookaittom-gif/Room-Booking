@@ -7778,6 +7778,108 @@ video {
   font-size: 0.68rem;
 }
 
+/* --- กลุ่มเรียน (สาขา × รหัสปี): ชิป + พาเลตต์ pastel ตามสาขา --- */
+.se-group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid transparent;
+}
+.se-group-chip .fas { font-size: 0.65rem; }
+.cg-food {
+  background: #fff7e0;
+  color: #8a5a00;
+  border-color: #ffe08a;
+}
+.cg-aviation {
+  background: #e3f2fd;
+  color: #0b5394;
+  border-color: #a6d5fa;
+}
+.cg-prathom {
+  background: #e6f6ec;
+  color: #1b6b3a;
+  border-color: #a8e0bd;
+}
+.cg-anuban {
+  background: #f3e8fd;
+  color: #6b21a8;
+  border-color: #d8b4fe;
+}
+.cg-none {
+  background: #eef1f5;
+  color: #4b5563;
+  border-color: #d3d9e0;
+}
+
+/* --- แถวหัวข้อกลุ่มในตารางแบบสรุป (ตารางเรียนรวม) --- */
+.combined-group-subhead > td {
+  background: #f8f9fc;
+  border-top: 1px solid #e9ecef;
+}
+.combined-group-subhead .se-group-chip { flex-shrink: 0; }
+
+/* --- ชิปกรองกลุ่มเรียน (แถบเหนือการ์ดรายวัน) --- */
+.combined-group-filterbar {
+  padding: 0.35rem 0.5rem;
+  background: #fff;
+  border: 1px solid #eef0f4;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.cgf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.cgf-chip:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+.cgf-chip.active {
+  background: var(--gradient-primary, linear-gradient(135deg, #667eea, #764ba2));
+  background-clip: padding-box;
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.35);
+}
+.cgf-chip .cgf-count {
+  background: rgba(100, 116, 139, 0.12);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.cgf-chip.active .cgf-count { background: rgba(255, 255, 255, 0.25); }
+
+/* --- การ์ดมือถือ: บรรทัดกลุ่มเรียน --- */
+.combined-mobile-group { margin: 0.15rem 0; }
+.combined-mobile-group .se-group-chip { font-size: 0.66rem; }
+
+/* --- หน้าตรวจทานนำเข้าตารางสอน (classImportModal) --- */
+.class-import-preview { max-height: 55vh; overflow-y: auto; }
+.class-import-table { font-size: 0.85rem; border: 1px solid #eef0f4; }
+.class-import-table .import-subject { max-width: 320px; }
+
 /* --- ช่องว่าง (คลิกเพื่อเพิ่ม) --- */
 .se-cell.se-empty {
   cursor: pointer;

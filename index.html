@@ -971,6 +971,9 @@
                                     <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-medium shadow-sm" onclick="openClassSlotModal('จันทร์','08:30','10:30')">
                                         <i class="fas fa-plus me-1"></i>เพิ่มคาบสอน
                                     </button>
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-medium shadow-sm" onclick="openClassImportWizard()" title="นำเข้าคาบสอนจากไฟล์ตารางเรียน Excel">
+                                        <i class="fas fa-file-import me-1"></i>นำเข้า Excel
+                                    </button>
                                     <button type="button" id="btnSaveAllSchedule" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" onclick="saveAllClassSchedule()">
                                         <i class="fas fa-save me-1"></i>บันทึกทั้งหมด
                                         <span class="schedule-editor-dirty-badge d-none" aria-live="polite">ยังไม่ได้บันทึก</span>
@@ -1423,6 +1426,12 @@
                   <label for="slotInstructor" class="form-label fw-bold small text-secondary">อาจารย์ผู้สอน</label>
                   <input type="text" class="form-control rounded-3" id="slotInstructor" placeholder="เช่น ดร.สมชาย ใจดี">
                 </div>
+                <div class="col-12">
+                  <label for="slotClassGroup" class="form-label fw-bold small text-secondary">กลุ่มเรียน (สาขา × รหัสปี)</label>
+                  <select class="form-select rounded-3" id="slotClassGroup">
+                    <option value="">— ไม่ระบุกลุ่ม —</option>
+                  </select>
+                </div>
                 <div class="col-md-6">
                   <label for="slotValidFrom" class="form-label fw-bold small text-secondary">มีผลตั้งแต่วันที่ (ตัวเลือก)</label>
                   <input type="date" class="form-control rounded-3" id="slotValidFrom">
@@ -1446,6 +1455,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal นำเข้าตารางสอนจากไฟล์ Excel (admin) — ตรวจทานก่อนบันทึกจริง -->
+    <div class="modal fade" id="classImportModal" tabindex="-1" aria-labelledby="classImportModalTitle" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          <div class="modal-header border-0 bg-primary bg-gradient text-white px-4 py-3">
+            <h5 class="modal-title fw-bold mb-0" id="classImportModalTitle">
+              <i class="fas fa-file-import me-2"></i>นำเข้าตารางสอนจากไฟล์ Excel
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+          </div>
+          <div class="modal-body p-4 bg-light">
+            <p class="text-secondary small" id="classImportSummary"></p>
+            <div id="classImportPreview" class="class-import-preview table-responsive"></div>
+          </div>
+          <div class="modal-footer border-0 px-4 py-3 bg-white">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-none" id="btnClassImportApply" onclick="confirmClassImport()">
+              <i class="fas fa-save me-1"></i>บันทึกลงระบบ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="classImportFile" accept=".xlsx,.xls" class="d-none" aria-hidden="true" tabindex="-1">
 
     <!-- Modal ยืนยันการกระทำของตัวจัดตารางสอน (แทน confirm() เนทีฟ) -->
     <div class="modal fade" id="scheduleConfirmModal" tabindex="-1" aria-labelledby="scheduleConfirmTitle" aria-hidden="true">

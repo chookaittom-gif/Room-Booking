@@ -3128,6 +3128,7 @@ function showClassSlotDetail(opts) {
         <div class="class-detail-rows">
             ${row('fa-door-open', 'ห้องเรียน', o.roomLabel)}
             ${row('fa-user-tie', 'ผู้สอน', o.teacher)}
+            ${row('fa-layer-group', 'กลุ่มเรียน', o.classGroup)}
             ${row('fa-calendar-day', 'วัน', fmtDay(o.dayLabel))}
             ${row('fa-clock', 'เวลา', o.timeLabel ? o.timeLabel + ' น.' : '')}
         </div>
@@ -5949,6 +5950,17 @@ window.setCombinedView = function (view, slotsInput) {
       });
     }
 
+    // กรองตามกลุ่มเรียน (ชิปกรอง) — เฉพาะคาบเรียน; การจองห้องแสดงเสมอ (ทำงานร่วมช่องค้นหา)
+    // '__none__' = ชิป "ไม่ระบุกลุ่ม" (classGroup ว่าง)
+    if (Array.isArray(filteredSlots) && window.combinedGroupFilter) {
+      const gf = String(window.combinedGroupFilter);
+      const gfEmpty = gf === '__none__';
+      filteredSlots = filteredSlots.filter(item =>
+        item.type !== 'class' ||
+        (gfEmpty ? !String(item.classGroup || '').trim() : String(item.classGroup || '').trim() === gf)
+      );
+    }
+
     console.log(`๐‘๏ธ setCombinedView: ${safeView}, slotsType=${Array.isArray(filteredSlots) ? 'array' : typeof filteredSlots}, count=${Array.isArray(filteredSlots) ? filteredSlots.length : '-'}`);
 
     // โ… Root
@@ -6510,7 +6522,44 @@ window.renderCombinedSummary = function(slots) {
     });
 
     let html = '';
-    
+
+    // 4.5 ชิปกรองกลุ่มเรียน — สร้างจาก cache ทั้งสัปดาห์ (ไม่ใช่ slots ที่กรองแล้ว) เพื่อให้ยังสลับกลุ่มอื่นได้
+    const allSlotsForChips = (window.combinedState && window.combinedState.cache && Array.isArray(window.combinedState.cache.slots))
+      ? window.combinedState.cache.slots
+      : slots;
+    const cgfParse = (window.classGroupTools || {}).parseClassGroup || null;
+    const chipGroups = [];
+    const chipIndex = {};
+    if (Array.isArray(allSlotsForChips)) {
+      allSlotsForChips.forEach(s => {
+        if (s.type !== 'class') return;
+        const rawKey = String(s.classGroup || '').trim();
+        const key = rawKey || 'ไม่ระบุกลุ่ม';
+        if (!chipIndex[key]) {
+          chipIndex[key] = {
+            key, rawKey, count: 0,
+            sortKey: cgfParse ? cgfParse(rawKey).sortKey : key,
+            colorClass: cgfParse ? cgfParse(rawKey).colorClass : 'cg-none'
+          };
+          chipGroups.push(chipIndex[key]);
+        }
+        chipIndex[key].count++;
+      });
+    }
+    chipGroups.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0));
+    const activeFilter = String(window.combinedGroupFilter || '');
+    if (chipGroups.length > 0) {
+      html += `
+      <div class="combined-group-filterbar d-flex flex-wrap align-items-center gap-2 mb-3" role="group" aria-label="กรองตามกลุ่มเรียน">
+        <span class="text-secondary small fw-bold text-nowrap"><i class="fas fa-filter me-1"></i>กลุ่มเรียน:</span>
+        <button type="button" class="cgf-chip${!activeFilter ? ' active' : ''}" data-cgf="">ทุกกลุ่ม</button>
+        ${chipGroups.map(g => `
+        <button type="button" class="cgf-chip ${g.colorClass}${activeFilter && activeFilter === (g.rawKey || '__none__') ? ' active' : ''}" data-cgf="${escapeHtml(g.rawKey || '__none__')}">
+          ${escapeHtml(g.key)} <span class="cgf-count">${g.count}</span>
+        </button>`).join('')}
+      </div>`;
+    }
+
     // 5. Render Loop
     dayISOList.forEach(dayObj => {
         const { iso, colorClass } = dayObj;
@@ -6558,7 +6607,53 @@ window.renderCombinedSummary = function(slots) {
             // Sort by Time
             list.sort((a,b) => String(a.start).localeCompare(String(b.start)));
 
+            // จัดกลุ่มภายในวัน: คาบเรียนตามกลุ่มเรียน (สาขา×ปี) เรียงตาม sortKey; การจองห้องรวมเป็นช่วงท้าย
+            const cgpParse = (window.classGroupTools || {}).parseClassGroup || null;
+            const dayClassGroups = [];
+            const dayGroupIdx = {};
+            const dayBookings = [];
             list.forEach(item => {
+                if (item.type === 'class') {
+                    const gKey = String(item.classGroup || '').trim();
+                    if (!dayGroupIdx[gKey]) {
+                        dayGroupIdx[gKey] = {
+                            key: gKey,
+                            parsed: cgpParse ? cgpParse(gKey) : { sortKey: gKey, displayLabel: gKey || 'ไม่ระบุกลุ่ม', colorClass: 'cg-none' },
+                            items: []
+                        };
+                        dayClassGroups.push(dayGroupIdx[gKey]);
+                    }
+                    dayGroupIdx[gKey].items.push(item);
+                } else {
+                    dayBookings.push(item);
+                }
+            });
+            dayClassGroups.sort((a, b) => (a.parsed.sortKey < b.parsed.sortKey ? -1 : a.parsed.sortKey > b.parsed.sortKey ? 1 : 0));
+
+            const daySections = dayClassGroups.map(g => ({
+                chipLabel: g.key || 'ไม่ระบุกลุ่ม',
+                chipClass: g.parsed.colorClass || 'cg-none',
+                title: g.parsed.displayLabel || g.key || 'ไม่ระบุกลุ่ม',
+                items: g.items
+            }));
+            if (dayBookings.length > 0) {
+                daySections.push({ chipLabel: 'การจองห้อง', chipClass: 'cg-none', title: 'การจองห้อง', items: dayBookings, isBooking: true });
+            }
+
+            daySections.forEach(sec => {
+                // แถวหัวข้อกลุ่ม (คาบเรียน: ชื่อสาขาเต็ม + รหัสปี + ปีที่ N; การจองห้อง: หัวข้อเดียว)
+                html += `
+                <tr class="combined-group-subhead">
+                    <td colspan="5" class="ps-4 pe-3">
+                        <div class="d-flex align-items-center flex-wrap gap-2 py-1">
+                            <span class="se-group-chip ${sec.chipClass}"><i class="fas ${sec.isBooking ? 'fa-calendar-check' : 'fa-users'} me-1"></i>${escapeHtml(sec.chipLabel)}</span>
+                            ${sec.isBooking ? '' : `<span class="small text-secondary">${escapeHtml(sec.title)}</span>`}
+                            <span class="badge rounded-pill bg-white border text-secondary ms-auto">${sec.items.length} รายการ</span>
+                        </div>
+                    </td>
+                </tr>`;
+
+                sec.items.forEach(item => {
                 const time = `${item.start} - ${item.end}`;
                 const titleRaw = pick(item, 'subject', 'title', 'Purpose') || '';
                 const roomRaw = pick(item, 'roomId', 'RoomID') || '';
@@ -6580,7 +6675,7 @@ window.renderCombinedSummary = function(slots) {
                 const mobileStatusClass = isClass ? 'is-class' : (isCancelled ? 'is-cancelled' : (statusRaw === 'approved' || statusRaw === '\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34' ? 'is-approved' : 'is-pending'));
 
                 // Args สำหรับเปิด modal รายละเอียดคาบเรียน (ใช้ทั้งปุ่มและการคลิกแถว)
-                const classArgs = `subject:${window.__jsArg(titleRaw)}, teacher:${window.__jsArg(whoRaw)}, timeLabel:${window.__jsArg(time)}, roomLabel:${window.__jsArg(roomRaw)}, dayLabel:${window.__jsArg(iso)}`;
+                const classArgs = `subject:${window.__jsArg(titleRaw)}, teacher:${window.__jsArg(whoRaw)}, timeLabel:${window.__jsArg(time)}, roomLabel:${window.__jsArg(roomRaw)}, dayLabel:${window.__jsArg(iso)}, classGroup:${window.__jsArg(item.classGroup || '')}`;
 
                 // --- \u0E1B\u0E38\u0E48\u0E21\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 (Logic \u0E43\u0E2B\u0E21\u0E48) ---
                 let detailBtn = '';
@@ -6608,6 +6703,10 @@ window.renderCombinedSummary = function(slots) {
                     ? ` role="button" tabindex="0" onclick="openBookingDetail('${bookingId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBookingDetail('${bookingId}')}"`
                     : (isClass ? ` role="button" tabindex="0" onclick="showClassSlotDetail({${classArgs}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"` : '');
 
+                const mobileGroupLine = (isClass && item.classGroup)
+                    ? `<div class="combined-mobile-group">${classGroupChipHtml(item.classGroup)}</div>`
+                    : '';
+
                 mobileRows += `
                 <article class="combined-summary-mobile-card"${mobileClick}>
                     <div class="combined-mobile-card-top">
@@ -6615,6 +6714,7 @@ window.renderCombinedSummary = function(slots) {
                         <span class="combined-mobile-status ${mobileStatusClass}">${mobileStatusLabel}</span>
                     </div>
                     <div class="combined-mobile-room">${room}</div>
+                    ${mobileGroupLine}
                     <div class="combined-mobile-title">${title}</div>
                     <div class="combined-mobile-person"><i class="fas fa-user me-1 opacity-50" aria-hidden="true"></i>${who}</div>
                 </article>`;
@@ -6632,6 +6732,7 @@ window.renderCombinedSummary = function(slots) {
                         ${detailBtn}
                     </td>
                 </tr>`;
+                });
             });
             html += `</tbody></table></div><div class="combined-summary-mobile-list">${mobileRows}</div>`;
         }
@@ -6660,14 +6761,28 @@ window.renderCombinedSummary = function(slots) {
     }
 
     grid.innerHTML = html;
+    bindCombinedGroupFilterBar();
     return true;
 
   } catch (e) {
-    console.error('\u274C renderCombinedSummary Error:', e);
+    console.error('❌ renderCombinedSummary Error:', e);
     return false;
   }
 };
 // ANCHOR:CLIENT.renderCombinedSummary:END
+
+// ชิปกรองกลุ่ม — delegation บน #combinedSummaryGrid (element คงเดิม แม้ innerHTML ถูกแทนทุกครั้ง)
+function bindCombinedGroupFilterBar() {
+  const grid = document.getElementById('combinedSummaryGrid');
+  if (!grid || grid.dataset.cgfBound === '1') return;
+  grid.dataset.cgfBound = '1';
+  grid.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-cgf]');
+    if (!btn) return;
+    window.combinedGroupFilter = btn.dataset.cgf || '';
+    window.setCombinedView('summary');
+  });
+}
 
 function quickBookForDay(dateISO) {
   try {
@@ -6914,7 +7029,7 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
             ? `role="button" tabindex="0" style="cursor:pointer;"
                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
                onclick="try{
-                  showClassSlotDetail({subject:${window.__jsArg(title)}, teacher:${window.__jsArg(who)}, timeLabel:${window.__jsArg(start && end ? start + '-' + end : '')}, roomLabel:${window.__jsArg(room)}, dayLabel:${window.__jsArg(pick(s, 'date') ? String(pick(s, 'date')).split('T')[0] : '')}});
+                  showClassSlotDetail({subject:${window.__jsArg(title)}, teacher:${window.__jsArg(who)}, timeLabel:${window.__jsArg(start && end ? start + '-' + end : '')}, roomLabel:${window.__jsArg(room)}, dayLabel:${window.__jsArg(pick(s, 'date') ? String(pick(s, 'date')).split('T')[0] : '')}, classGroup:${window.__jsArg(s.classGroup || '')}});
                   ${hideDayModalJs}
                }catch(e){}"`
             : '');
@@ -6927,6 +7042,11 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
         const phone = pick(s, 'PhoneNumber');
         const remark = pick(s, 'Remark');
         const meeting = pick(s, 'MeetingLink');
+
+        // ชิปกลุ่มเรียน (คาบเรียนที่ระบุกลุ่ม)
+        const groupChipLine = (isClass && s.classGroup)
+          ? `<div class="mb-1">${classGroupChipHtml(s.classGroup)}</div>`
+          : '';
 
         const extraLines = [
           buildMetaLine('fas fa-phone', phone),
@@ -6946,6 +7066,7 @@ window.openCombinedDayDetail = function (dateISO, slotsInput, timeBucket) {
               </div>
 
               <h6 class="fw-bold mb-1 text-truncate booking-title">${escapeHtml(title)}</h6>
+              ${groupChipLine}
 
               <div class="d-flex justify-content-between align-items-end gap-2">
                 ${metaWho || '<span></span>'}
@@ -10162,12 +10283,15 @@ function renderScheduleGrid() {
       if (matched.length > 0) {
         html += `<td class="se-cell se-filled" data-se-day="${safeAttr(day)}" data-se-start="${safeAttr(slot.start)}" data-se-end="${safeAttr(slot.end)}">`;
         matched.forEach(item => {
+          // ชิปกลุ่มเรียน (แสดงเมื่อระบุกลุ่มไว้)
+          const groupChip = item.classGroup ? classGroupChipHtml(item.classGroup) : '';
           html += `
             <div class="schedule-editor-slot" role="button" tabindex="0"
                  data-se-action="edit" data-se-day="${safeAttr(day)}" data-se-start="${safeAttr(slot.start)}" data-se-end="${safeAttr(slot.end)}"
                  title="คลิกเพื่อแก้ไข: ${safeAttr(item.subject)}">
               <span class="se-subject">${safe(item.subject)}</span>
               <span class="se-instructor"><i class="fas fa-user-tie" aria-hidden="true"></i>${safe(item.instructor || '-')}</span>
+              ${groupChip}
             </div>
           `;
         });
@@ -10441,6 +10565,18 @@ function bindScheduleDragEvents() {
 }
 bindScheduleDragEvents();
 
+// โหลดตัวเลือกกลุ่มเรียนครั้งเดียว (ค่าที่มีในแถวแต่ไม่อยู่ในรายการมาตรฐาน ก็เติมท้ายให้แสดง)
+function ensureClassGroupSelect(selectedValue) {
+  const sel = document.getElementById('slotClassGroup');
+  if (!sel) return;
+  const tools = window.classGroupTools || {};
+  const groups = Array.isArray(tools.CLASS_GROUPS) ? tools.CLASS_GROUPS.slice() : [];
+  if (selectedValue && !groups.includes(selectedValue)) groups.push(selectedValue);
+  sel.innerHTML = '<option value="">— ไม่ระบุกลุ่ม —</option>' +
+    groups.map(g => `<option value="${safeAttr(g)}">${safe(g)}</option>`).join('');
+  sel.value = selectedValue || '';
+}
+
 function openClassSlotModal(day, startTime, endTime) {
   const state = window.__classScheduleState;
   const roomId = state.selectedRoom;
@@ -10463,6 +10599,7 @@ function openClassSlotModal(day, startTime, endTime) {
   document.getElementById('slotInstructor').value = existing ? (existing.instructor || '') : '';
   document.getElementById('slotValidFrom').value = existing ? (existing.validFrom || '') : '';
   document.getElementById('slotValidTo').value = existing ? (existing.validTo || '') : '';
+  ensureClassGroupSelect(existing ? (existing.classGroup || '') : '');
 
   const titleEl = document.getElementById('classSlotModalTitle');
   if (titleEl) {
@@ -10499,6 +10636,7 @@ function saveClassSlot() {
   const endTime = document.getElementById('slotEnd').value;
   const subject = document.getElementById('slotSubject').value.trim();
   const instructor = document.getElementById('slotInstructor').value.trim();
+  const classGroup = String(document.getElementById('slotClassGroup')?.value || '').trim();
   const validFrom = document.getElementById('slotValidFrom').value;
   const validTo = document.getElementById('slotValidTo').value;
 
@@ -10556,6 +10694,7 @@ function saveClassSlot() {
     endTime: endTime,
     subject: subject,
     instructor: instructor,
+    classGroup: classGroup,
     validFrom: validFrom,
     validTo: validTo
   });
@@ -10657,6 +10796,365 @@ async function saveAllClassSchedule() {
   }
 }
 
+// ===== นำเข้าตารางสอนจากไฟล์ Excel (เทมเพลตชีตต่อสาขา เช่น ไฟล์ 2-69) =====
+// อ่าน → จับคู่กับคาบเดิม → หน้าตรวจทาน → ยืนยันแล้วบันทึกลง Sheet ทีละห้องทันที
+let __classImportState = null;
+
+// ชิปกลุ่มเรียน — ใช้ร่วมกันทุกจุด (preview import / grid editor)
+function classGroupChipHtml(label) {
+  const tools = window.classGroupTools || {};
+  const cg = tools.parseClassGroup ? tools.parseClassGroup(label) : { colorClass: 'cg-none' };
+  return `<span class="se-group-chip ${cg.colorClass}" title="กลุ่มเรียน">${safe(label || 'ไม่ระบุกลุ่ม')}</span>`;
+}
+
+function openClassImportWizard() {
+  const input = document.getElementById('classImportFile');
+  if (!input) return;
+  if (typeof XLSX === 'undefined') {
+    showToast('ไม่สามารถนำเข้าได้', 'ไลบรารีอ่าน Excel ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าเว็บ', 'error');
+    return;
+  }
+  if (!window.__classScheduleState || !Array.isArray(window.__classScheduleState.rows)) {
+    showToast('ยังไม่พร้อม', 'ข้อมูลตารางสอนยังโหลดไม่เสร็จ — ลองอีกครั้งสักครู่', 'warning');
+    return;
+  }
+  input.value = '';
+  input.onchange = onClassImportFilePicked;
+  input.click();
+}
+
+async function onClassImportFilePicked(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  showLoading(true, 'กำลังอ่านไฟล์ Excel...');
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const courses = parseTimetableExcelWorkbook(wb);
+    if (courses.length === 0) {
+      showToast('ไม่พบข้อมูล', 'ไม่พบแถววิชาที่อ่านได้ — ตรวจว่าเป็นไฟล์ตารางเรียนแบบชีตต่อสาขา (หัวชีตมีคำว่า "สาขาวิชา... (รหัส 6X)")', 'warning');
+      return;
+    }
+    __classImportState = { plan: buildClassImportPlan(courses), fileName: file.name };
+    renderClassImportPreview();
+    const modalEl = document.getElementById('classImportModal');
+    if (modalEl) (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+  } catch (err) {
+    console.error('class import parse error:', err);
+    showToast('อ่านไฟล์ไม่สำเร็จ', err.message || 'ไฟล์อาจเสียหายหรือไม่ใช่ .xlsx', 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// อ่านทุกชีต → รายการคาบ {groupLabel, subject, day, startTime, endTime, room, instructor, source, skipReason}
+// เทมเพลตชีต: A1 = "ตารางเรียนภาคปกติ สาขาวิชา<เต็ม> (รหัส 6X)"; หัวคอลัมน์แถว ~6; ข้อมูล 1 วิชา/3 แถว merge (ค่าอยู่แถวที่ A มีรหัสวิชา)
+function parseTimetableExcelWorkbook(wb) {
+  const tools = window.classGroupTools || {};
+  const majors = tools.MAJORS || {};
+  const DAY_KEYS = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
+
+  const normDay = (v) => {
+    const s = String(v || '').trim();
+    return DAY_KEYS.find(d => s.includes(d)) || '';
+  };
+  const normTime = (v) => {
+    // "08.00-12.00 น." / "13.00 - 17.00" → {start:'08:00', end:'12:00'}
+    const s = String(v || '').replace(/\s+/g, '');
+    const m = s.match(/(\d{1,2})[.:](\d{2})-(\d{1,2})[.:](\d{2})/);
+    if (!m) return null;
+    return {
+      start: String(m[1]).padStart(2, '0') + ':' + m[2],
+      end: String(m[3]).padStart(2, '0') + ':' + m[4]
+    };
+  };
+  const cell = (ws, r, c) => {
+    const x = ws[XLSX.utils.encode_cell({ r, c })];
+    return x ? String(x.v == null ? '' : x.v).trim() : '';
+  };
+
+  const courses = [];
+  wb.SheetNames.forEach(sheetName => {
+    const ws = wb.Sheets[sheetName];
+    if (!ws || !ws['!ref']) return;
+    const range = XLSX.utils.decode_range(ws['!ref']);
+
+    const headM = cell(ws, 0, 0).match(/สาขาวิชา\s*(.+?)\s*\(รหัส\s*(\d{2})\)/);
+    if (!headM) return;
+    const majorFull = headM[1].trim();
+    const cohort = headM[2];
+
+    // ชื่อย่อสาขาจาก registry (ชื่อเต็มในไฟล์ตรงกับ label ของ registry)
+    let shortName = '';
+    for (const [key, m] of Object.entries(majors)) {
+      if (key === 'none' || !m.label) continue;
+      if (majorFull.includes(m.label) || m.label.includes(majorFull)) { shortName = m.short; break; }
+    }
+    if (!shortName) shortName = majorFull.replace(/^(สาขาวิชา|สาขา)/, '').trim();
+
+    const tagText = cell(ws, 0, 0) + ' ' + sheetName;
+    const planM = tagText.match(/แผน\s*([ก-ฮ])/);
+    const leftover = /ตกค้าง/.test(tagText);
+    const groupLabel = `${shortName}${cohort}` + (planM ? ` แผน ${planM[1]}` : '') + (leftover ? ' ตกค้าง' : '');
+
+    let headerRow = -1;
+    for (let r = 0; r <= Math.min(8, range.e.r); r++) {
+      if (/รหัสวิชา/.test(cell(ws, r, 0))) { headerRow = r; break; }
+    }
+    if (headerRow === -1) return;
+
+    for (let r = headerRow + 1; r <= range.e.r; r++) {
+      // แถวต่อเนื่องของวิชาเดียวกัน (ชื่อวิชา wrap / สัปดาห์ที่) = คอลัมน์ A ว่าง
+      const code = cell(ws, r, 0);
+      if (!code || !/^\d/.test(code)) continue;
+
+      const subject = cell(ws, r, 1).replace(/\s*\n\s*/g, ' ').trim();
+      const day = normDay(cell(ws, r, 4));
+      const time = normTime(cell(ws, r, 5));
+      const room = cell(ws, r, 6);
+      const instructor = cell(ws, r, 7)
+        .replace(/\(สัปดาห์ที่[^)]*\)/g, '')
+        .replace(/\s*\n\s*/g, ' ')
+        .trim();
+
+      if (!day || !time) {
+        courses.push({ groupLabel, subject, day, startTime: '', endTime: '', room, instructor, source: sheetName, skipReason: !day ? 'วันไม่อ่านได้' : 'เวลาไม่อ่านได้' });
+        continue;
+      }
+      courses.push({ groupLabel, subject, day, startTime: time.start, endTime: time.end, room, instructor, source: sheetName, skipReason: '' });
+    }
+  });
+  return courses;
+}
+
+// จับคู่คาบที่อ่านได้กับคาบเดิม: ห้อง+วัน+เวลาทับซ้อน → update / ไม่ทับ → add / ห้องไม่พบ → skip
+function buildClassImportPlan(courses) {
+  const state = window.__classScheduleState;
+  const knownRooms = new Set((state.rooms || window.roomsData || []).map(r => String(r.id || r.RoomID || '').trim()));
+  const rows = state.rows || [];
+  const toMin = (t) => {
+    const m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+
+  return courses.map(c => {
+    const item = {
+      groupLabel: c.groupLabel, subject: c.subject, day: c.day,
+      startTime: c.startTime, endTime: c.endTime, room: c.room,
+      instructor: c.instructor, source: c.source,
+      status: 'add', statusNote: 'จะเพิ่มใหม่', checked: true
+    };
+    if (c.skipReason) {
+      item.status = 'skip'; item.statusNote = c.skipReason; item.checked = false;
+      return item;
+    }
+    if (!c.room) {
+      // คาบไม่มีห้องในไฟล์ (เช่น ฝึกงาน) → ห้องสมมติ "นอกสถานที่" — ไม่อยู่ในทะเบียนห้อง
+      // จึงไม่โผล่ใน dropdown จองและไม่บล็อกการจองห้องจริง (แก้ไขภายหลังด้วยการ re-import)
+      item.room = 'นอกสถานที่';
+      item.statusNote = 'จะเพิ่มใหม่ — นอกสถานที่ (ไม่ระบุห้องในไฟล์)';
+      return item;
+    }
+    if (!knownRooms.has(String(c.room).trim())) {
+      item.status = 'skip'; item.statusNote = `ห้อง "${c.room}" ไม่พบในระบบ`; item.checked = false;
+      return item;
+    }
+    const s = toMin(c.startTime), en = toMin(c.endTime);
+    const existing = rows.find(r =>
+      String(r.roomId).trim() === String(c.room).trim() &&
+      r.day === c.day &&
+      toMin(String(r.startTime).trim()) < en && s < toMin(String(r.endTime).trim())
+    );
+    if (existing) {
+      item.status = 'update';
+      item.statusNote = `แทนที่ "${existing.subject}" (${existing.startTime}-${existing.endTime})`;
+    }
+    return item;
+  });
+}
+
+function refreshClassImportApplyBtn() {
+  const st = __classImportState;
+  const applyBtn = document.getElementById('btnClassImportApply');
+  if (!applyBtn) return;
+  const chosen = st ? st.plan.filter(p => p.checked && (p.status === 'add' || p.status === 'update')).length : 0;
+  applyBtn.classList.toggle('d-none', !st);
+  applyBtn.disabled = chosen === 0;
+}
+
+function renderClassImportPreview() {
+  const st = __classImportState;
+  const previewEl = document.getElementById('classImportPreview');
+  const summaryEl = document.getElementById('classImportSummary');
+  if (!st || !previewEl) return;
+
+  const count = { add: 0, update: 0, skip: 0 };
+  st.plan.forEach(p => count[p.status]++);
+  if (summaryEl) {
+    summaryEl.innerHTML = `ไฟล์: <strong>${safe(st.fileName)}</strong> — พบ <strong>${st.plan.length}</strong> คาบ: ` +
+      `<span class="badge text-bg-success">เพิ่มใหม่ ${count.add}</span> ` +
+      `<span class="badge text-bg-warning text-dark">แทนที่เดิม ${count.update}</span> ` +
+      `<span class="badge text-bg-secondary">ข้าม ${count.skip}</span> — ` +
+      `<span class="text-danger fw-bold">กด "บันทึกลงระบบ" แล้วจะบันทึกลง Sheet ทันที</span>`;
+  }
+
+  const statusBadge = (p) => {
+    if (p.status === 'add') return '<span class="badge text-bg-success">เพิ่มใหม่</span>';
+    if (p.status === 'update') return `<span class="badge text-bg-warning text-dark" title="${safeAttr(p.statusNote)}">แทนที่เดิม</span>`;
+    return `<span class="badge text-bg-secondary" title="${safeAttr(p.statusNote)}">ข้าม: ${safe(p.statusNote)}</span>`;
+  };
+
+  previewEl.innerHTML = `
+    <table class="table table-sm table-hover align-middle bg-white class-import-table">
+      <thead class="table-light">
+        <tr>
+          <th style="width:36px"></th>
+          <th>กลุ่มเรียน</th>
+          <th>วิชา</th>
+          <th>วัน</th>
+          <th>เวลา</th>
+          <th>ห้อง</th>
+          <th>อาจารย์ผู้สอน</th>
+          <th>สถานะ</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${st.plan.map((p, i) => `
+        <tr class="${p.status === 'skip' ? 'opacity-50' : ''}">
+          <td class="text-center">
+            ${p.status === 'skip' ? '' : `<input type="checkbox" class="form-check-input" data-import-idx="${i}" ${p.checked ? 'checked' : ''} aria-label="เลือกนำเข้าคาบนี้">`}
+          </td>
+          <td>${classGroupChipHtml(p.groupLabel)}</td>
+          <td class="import-subject">${safe(p.subject)}</td>
+          <td>วัน${safe(p.day)}</td>
+          <td class="font-monospace small">${safe(p.startTime)} – ${safe(p.endTime)}</td>
+          <td><span class="badge bg-light text-dark border">${safe(p.room)}</span></td>
+          <td class="small text-secondary">${safe(p.instructor || '-')}</td>
+          <td>${statusBadge(p)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  refreshClassImportApplyBtn();
+}
+
+// เลือก/ถอนคาบในหน้าตรวจทาน (delegation ครั้งเดียว — preview re-render ได้โดย binding ไม่หาย)
+(function bindClassImportEvents() {
+  const previewEl = document.getElementById('classImportPreview');
+  if (!previewEl || previewEl.dataset.importBound === '1') return;
+  previewEl.dataset.importBound = '1';
+  previewEl.addEventListener('change', (e) => {
+    const cb = e.target.closest('input[data-import-idx]');
+    if (!cb) return;
+    const item = __classImportState && __classImportState.plan[Number(cb.dataset.importIdx)];
+    if (item && item.status !== 'skip') item.checked = cb.checked;
+    refreshClassImportApplyBtn();
+  });
+})();
+
+async function confirmClassImport() {
+  const st = __classImportState;
+  if (!st) return;
+  const chosen = st.plan.filter(p => p.checked && (p.status === 'add' || p.status === 'update'));
+  if (chosen.length === 0) {
+    showToast('ยังไม่ได้เลือก', 'เลือกคาบที่จะนำเข้าอย่างน้อย 1 คาบ', 'warning');
+    return;
+  }
+
+  const ok = await showScheduleConfirm({
+    title: 'นำเข้าตารางสอน?',
+    message: `ยืนยันนำเข้า <strong>${chosen.length} คาบ</strong> จากไฟล์ ${safe(st.fileName)}<br><span class="text-secondary small">คาบเดิมที่เวลาทับกันในห้องเดียวกันจะถูกแทนที่ และบันทึกลง Google Sheet ทันที</span>`,
+    plainMessage: `ยืนยันนำเข้าตารางสอน ${chosen.length} คาบ และบันทึกลง Sheet ทันที?`,
+    confirmText: 'นำเข้าและบันทึก',
+    danger: false
+  });
+  if (!ok) return;
+
+  const applyBtn = document.getElementById('btnClassImportApply');
+  if (applyBtn) applyBtn.disabled = true;
+
+  try {
+    const rows = window.__classScheduleState.rows;
+    const toMin = (t) => {
+      const m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
+      return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    };
+    let applied = 0, conflicts = 0;
+
+    chosen.forEach(p => {
+      const s = toMin(p.startTime), en = toMin(p.endTime);
+      const overlaps = (r) =>
+        String(r.roomId).trim() === String(p.room).trim() &&
+        r.day === p.day &&
+        toMin(String(r.startTime).trim()) < en && s < toMin(String(r.endTime).trim());
+
+      if (p.status === 'update') {
+        // แทนที่: ลบคาบเดิมที่ทับช่วงเวลา (เช่นเดิมแบ่ง 2 คาบย่อย → รวมเป็นคาบเดียวตามไฟล์)
+        for (let i = rows.length - 1; i >= 0; i--) {
+          if (overlaps(rows[i])) rows.splice(i, 1);
+        }
+      } else if (rows.some(overlaps)) {
+        // เพิ่มใหม่: กันซ้อนกับคาบที่นำเข้าไปก่อนหน้าแล้ว
+        conflicts++;
+        return;
+      }
+      rows.push({
+        roomId: String(p.room).trim(),
+        day: p.day,
+        startTime: p.startTime,
+        endTime: p.endTime,
+        subject: p.subject,
+        instructor: p.instructor,
+        classGroup: p.groupLabel,
+        validFrom: '',
+        validTo: ''
+      });
+      applied++;
+    });
+
+    // บันทึกทีละห้องที่มีการเปลี่ยนแปลง
+    const touchedRooms = [...new Set(chosen.map(p => String(p.room).trim()))];
+    let savedRooms = 0;
+    const failedRooms = [];
+    for (let i = 0; i < touchedRooms.length; i++) {
+      const roomId = touchedRooms[i];
+      showLoading(true, `บันทึกตารางห้อง ${roomId} (${i + 1}/${touchedRooms.length})...`);
+      const roomRows = rows.filter(r => String(r.roomId).trim() === roomId);
+      try {
+        const res = await callServer('saveClassSchedule', { roomId: roomId, rows: roomRows });
+        if (!res || !res.ok) throw new Error(res?.error || res?.message || 'บันทึกไม่สำเร็จ');
+        savedRooms++;
+      } catch (err) {
+        console.error('class import save room error:', roomId, err);
+        failedRooms.push(roomId);
+      }
+    }
+
+    const modalEl = document.getElementById('classImportModal');
+    if (modalEl) (bootstrap.Modal.getInstance(modalEl))?.hide();
+    __classImportState = null;
+    renderScheduleGrid();
+
+    if (failedRooms.length === 0) {
+      setScheduleEditorDirty(false);
+      showToast('นำเข้าสำเร็จ',
+        `นำเข้า ${applied} คาบ บันทึก ${savedRooms} ห้องเรียบร้อย${conflicts ? ` (ข้ามคาบซ้อนเวลา ${conflicts} รายการ)` : ''}`, 'success');
+    } else {
+      // บางห้องบันทึกไม่ได้ — คง isDirty ให้ admin กด "บันทึกทั้งหมด" เอง
+      setScheduleEditorDirty(true);
+      showToast('บันทึกบางส่วน',
+        `บันทึกสำเร็จ ${savedRooms} ห้อง ล้มเหลว ${failedRooms.length} ห้อง (${failedRooms.join(', ')}) — กด "บันทึกทั้งหมด" เพื่อลองใหม่`, 'warning');
+    }
+
+    // ตารางเรียนรวมถ้าเคยโหลดแล้ว ให้ดึงใหม่ (ข้อมูลบน Sheet เปลี่ยน)
+    if (typeof window.loadCombinedSchedule === 'function' && window.combinedState && window.combinedState.cache) {
+      window.loadCombinedSchedule().catch(() => {});
+    }
+  } finally {
+    showLoading(false);
+    refreshClassImportApplyBtn();
+  }
+}
+
 async function exportClassScheduleExcel() {
   if (typeof XLSX === 'undefined' || typeof window.JSZip === 'undefined') {
     showToast('ไม่สามารถส่งออกได้', 'ไลบรารีส่งออก (SheetJS/JSZip) ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าเว็บ', 'error');
@@ -10711,6 +11209,144 @@ async function exportClassScheduleExcel() {
     const HEADER_TIME_FILL = '667EEA';           // คอลัมน์เวลา
     const HEADER_DAY_FILLS = ['EDEBFB', 'E0DCF7']; // หัววันสลับสองโทน
     const ZEBRA_FILL = 'F8F9FC';                 // แถวคาบสลับขาว
+
+    // จัดสไตล์ทุก Cell (ใช้ร่วมชีตรายห้อง/รายกลุ่ม): Font TH Sarabun New + หัววันสี + zebra แถวคาบ
+    const applySheetStyles = (ws) => {
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:F1');
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+          const cell = ws[cellRef];
+          if (!cell.s) cell.s = {};
+
+          cell.s.font = {
+            name: 'TH Sarabun New',
+            sz: (R === 0) ? 20 : ((R === 1) ? 12 : 16),
+            bold: (R === 0 || R === 2)
+          };
+
+          if (R === 2) {
+            cell.s.font.color = (C === 0) ? { rgb: 'FFFFFF' } : undefined;
+            cell.s.fill = { patternType: 'solid', fgColor: { rgb: C === 0 ? HEADER_TIME_FILL : HEADER_DAY_FILLS[(C - 1) % 2] } };
+          } else if (R >= 3 && R % 2 === 0) {
+            cell.s.fill = { patternType: 'solid', fgColor: { rgb: ZEBRA_FILL } };
+          }
+
+          cell.s.alignment = {
+            vertical: 'center',
+            horizontal: (C === 0 || R <= 2) ? 'center' : 'left',
+            wrapText: true
+          };
+
+          cell.s.border = {
+            top: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            left: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            right: { style: 'thin', color: { rgb: 'D1D5DB' } }
+          };
+        }
+      }
+    };
+
+    // ชีตต่อกลุ่มเรียน (สาขา×รหัสปี) — มุมมองเลียนไฟล์ต้นทาง 2-69; สร้างเมื่อมีข้อมูล classGroup อย่างน้อย 1 คาบ
+    const buildGroupSheet = (label) => {
+      const gRows = rows.filter(r => String(r.classGroup || '').trim() === label);
+      const cgt = window.classGroupTools || {};
+      const parsed = cgt.parseClassGroup ? cgt.parseClassGroup(label) : { majorLabel: '', cohort: 0, plan: '', leftover: false };
+      const days = roomDaysFor(gRows);
+      const nCols = days.length + 1;
+      const wsData = [];
+      const merges = [];
+
+      // หัวชีตแบบไฟล์ต้นทาง: ตารางเรียนภาคปกติ สาขาวิชา<เต็ม> (รหัส 6X) [แผน ก] [ตกค้าง]
+      const titleParts = ['ตารางเรียนภาคปกติ'];
+      if (parsed.majorLabel) titleParts.push(`สาขาวิชา${parsed.majorLabel}`);
+      if (parsed.cohort) titleParts.push(`(รหัส ${parsed.cohort})`);
+      if (parsed.plan) titleParts.push(parsed.plan);
+      if (parsed.leftover) titleParts.push('ตกค้าง');
+      wsData.push([titleParts.join('  '), ...new Array(nCols - 1).fill('')]);
+      merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: nCols - 1 } });
+      wsData.push([`กลุ่มเรียน: ${label} — ข้อมูล ณ วันที่: ${printDate}`, ...new Array(nCols - 1).fill('')]);
+      merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: nCols - 1 } });
+      wsData.push(['คาบเวลา', ...days.map(d => `วัน${d}`)]);
+
+      const slotMap = new Map();
+      gRows.forEach(r => {
+        const s = String(r.startTime || '').trim();
+        const e = String(r.endTime || '').trim();
+        if (s && e) {
+          const key = `${s}-${e}`;
+          if (!slotMap.has(key)) slotMap.set(key, { start: s, end: e });
+        }
+      });
+
+      const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
+      const activeDaysSet = new Set(gRows.map(r => r.day));
+
+      sortedSlots.forEach(slot => {
+        const rowCells = [`${slot.start} - ${slot.end}`];
+        const isLunch = (slot.start === '12:30' && slot.end === '13:30');
+
+        days.forEach(day => {
+          const matched = gRows.filter(r =>
+            r.day === day &&
+            String(r.startTime).trim() === slot.start &&
+            String(r.endTime).trim() === slot.end
+          );
+
+          if (matched.length > 0) {
+            // วิชา + อาจารย์ (marker \uE000 → rich-text หนาเทาตอนปิดไฟล์) + ห้องที่ใช้
+            const texts = matched.map(m => {
+              const lines = [String(m.subject || '')];
+              if (m.instructor) lines.push(`${'\uE000'}${m.instructor}${'\uE000'}`);
+              lines.push(`ห้อง ${m.roomId}`);
+              return lines.join('\n');
+            });
+            rowCells.push(texts.join('\n\n'));
+          } else if (isLunch) {
+            rowCells.push('— พักกลางวัน —');
+          } else {
+            rowCells.push('');
+          }
+        });
+
+        wsData.push(rowCells);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!merges'] = merges;
+      const colW = [20, ...days.map(() => 32)];
+      ws['!cols'] = colW.map(w => ({ wch: w }));
+
+      // ความสูงแถว: ประเมินบรรทัดที่ wrap ได้จริง (เหมือนชีตรายห้อง)
+      ws['!rows'] = wsData.map((r, i) => {
+        if (i === 0) return { hpt: 34 };
+        if (i === 1) return { hpt: 20 };
+        if (i === 2) return { hpt: 32 };
+        const lines = Math.max(1, ...r.map((v, ci) => {
+          const txt = String(v == null ? '' : v).replace(/\uE000/g, '');
+          if (!txt.trim()) return 1;
+          const cpl = Math.max(6, Math.floor(colW[ci] * 0.7));
+          return txt.split('\n').reduce((n, ln) => n + Math.max(1, Math.ceil(ln.length / cpl)), 0);
+        }));
+        return { hpt: 22 * lines + 8 };
+      });
+
+      ws['!pageSetup'] = { paperSize: 9, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0, scale: 100 };
+      ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+      applySheetStyles(ws);
+
+      return {
+        name: safeSheetName(label),
+        ws,
+        label,
+        majorLabel: parsed.majorLabel || '',
+        cohort: parsed.cohort || 0,
+        courseCount: gRows.length,
+        activeDays: days.filter(d => activeDaysSet.has(d))
+      };
+    };
 
     // สร้าง+จัดสไตล์ชีตของห้องเดียว
     const buildRoomSheet = (rm) => {
@@ -10807,42 +11443,8 @@ async function exportClassScheduleExcel() {
       ws['!pageSetup'] = { paperSize: 9, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0, scale: 100 };
       ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
-      // จัดสไตล์ทุก Cell: Font TH Sarabun New + หัววันสี + zebra แถวคาบ
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:F1');
-      for (let R = range.s.r; R <= range.e.r; ++R) {
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-          if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-          const cell = ws[cellRef];
-          if (!cell.s) cell.s = {};
-
-          cell.s.font = {
-            name: 'TH Sarabun New',
-            sz: (R === 0) ? 20 : ((R === 1) ? 12 : 16),
-            bold: (R === 0 || R === 2)
-          };
-
-          if (R === 2) {
-            cell.s.font.color = (C === 0) ? { rgb: 'FFFFFF' } : undefined;
-            cell.s.fill = { patternType: 'solid', fgColor: { rgb: C === 0 ? HEADER_TIME_FILL : HEADER_DAY_FILLS[(C - 1) % 2] } };
-          } else if (R >= 3 && R % 2 === 0) {
-            cell.s.fill = { patternType: 'solid', fgColor: { rgb: ZEBRA_FILL } };
-          }
-
-          cell.s.alignment = {
-            vertical: 'center',
-            horizontal: (C === 0 || R <= 2) ? 'center' : 'left',
-            wrapText: true
-          };
-
-          cell.s.border = {
-            top: { style: 'thin', color: { rgb: 'D1D5DB' } },
-            bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
-            left: { style: 'thin', color: { rgb: 'D1D5DB' } },
-            right: { style: 'thin', color: { rgb: 'D1D5DB' } }
-          };
-        }
-      }
+      // จัดสไตล์ทุก Cell (helper ร่วมกับชีตรายกลุ่ม)
+      applySheetStyles(ws);
 
       return {
         name: safeSheetName(rmName),
@@ -10864,13 +11466,33 @@ async function exportClassScheduleExcel() {
       otherRooms.forEach(rm => roomSheets.push(buildRoomSheet(rm)));
     }
 
-    // ชีตสารบัญ (แท็บแรก): รายชื่อห้อง + จำนวนคาบ + วันที่มีคาบ + ลิงก์กระโดดไปชีตห้อง
+    // กลุ่มเรียนที่มีในข้อมูล เรียงตาม registry (สาขา → ปีที่ 1→4 → แผน → ตกค้างท้าย)
+    const cgtExport = window.classGroupTools || {};
+    const groupLabels = [...new Set(rows.map(r => String(r.classGroup || '').trim()).filter(Boolean))];
+    groupLabels.sort((a, b) => {
+      const ka = cgtExport.parseClassGroup ? cgtExport.parseClassGroup(a).sortKey : a;
+      const kb = cgtExport.parseClassGroup ? cgtExport.parseClassGroup(b).sortKey : b;
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+    const groupSheets = groupLabels.map(buildGroupSheet);
+
+    // ชีตสารบัญ (แท็บแรก): แบ่ง 2 ส่วนเมื่อมีข้อมูลกลุ่ม — ตามกลุ่มเรียน แล้วตามห้องเรียน + ลิงก์กระโดดไปชีต
+    const tocEntries = [];
+    if (groupSheets.length > 0) {
+      tocEntries.push({ section: '— ตามกลุ่มเรียน (สาขา × รหัสปี) —' });
+      groupSheets.forEach(gs => tocEntries.push({ label: gs.label, sub: gs.majorLabel ? `สาขาวิชา${gs.majorLabel}${gs.cohort ? ` (รหัส ${gs.cohort})` : ''}` : '', count: gs.courseCount, days: gs.activeDays, target: gs.name }));
+      tocEntries.push({ section: '— ตามห้องเรียน —' });
+    }
+    roomSheets.forEach(rs => tocEntries.push({ label: rs.rmName, sub: '', count: rs.slotCount, days: rs.activeDays, target: rs.name }));
+
     const tocData = [
       ['สารบัญตารางสอน — ระบบจองห้องเรียน', '', '', ''],
       [`ข้อมูล ณ วันที่: ${printDate}`, '', '', ''],
       ['', '', '', ''],
-      ['ห้องเรียน', 'จำนวนคาบ', 'วันที่มีคาบ', 'เปิดชีต'],
-      ...roomSheets.map(rs => [rs.rmName, rs.slotCount, rs.activeDays.map(d => d.slice(0, 2)).join(', ') || '-', 'เปิดชีต →'])
+      ['รายการ', 'จำนวนคาบ', 'วันที่มีคาบ', 'เปิดชีต'],
+      ...tocEntries.map(e => e.section
+        ? [e.section, '', '', '']
+        : [e.sub ? `${e.label} — ${e.sub}` : e.label, e.count, e.days.map(d => d.slice(0, 2)).join(', ') || '-', 'เปิดชีต →'])
     ];
     const toc = XLSX.utils.aoa_to_sheet(tocData);
     toc['!cols'] = [{ wch: 30 }, { wch: 13 }, { wch: 24 }, { wch: 13 }];
@@ -10888,7 +11510,7 @@ async function exportClassScheduleExcel() {
     toc['!pageSetup'] = { paperSize: 9, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0, scale: 100 };
     toc['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
-    // ลิงก์ภายในไฟล์ + สไตล์สารบัญ
+    // ลิงก์ภายในไฟล์ + สไตล์สารบัญ (แถวหัวข้อ section = แถบสี ไม่มีลิงก์)
     const tocRange = XLSX.utils.decode_range(toc['!ref'] || 'A1:D5');
     for (let R = tocRange.s.r; R <= tocRange.e.r; ++R) {
       for (let C = tocRange.s.c; C <= tocRange.e.c; ++C) {
@@ -10896,17 +11518,20 @@ async function exportClassScheduleExcel() {
         if (!toc[cellRef]) toc[cellRef] = { t: 's', v: '' };
         const cell = toc[cellRef];
         if (!cell.s) cell.s = {};
+        const entry = tocEntries[R - 4];
+        const isSection = !!(entry && entry.section);
         const isHeader = R === 3;
-        const isLink = R > 3 && C === 3;
-        if (isLink && roomSheets[R - 4]) cell.l = { Target: `#'${roomSheets[R - 4].name}'!A1` };
+        const isLink = !!(entry && !entry.section && entry.target && C === 3);
+        if (isLink) cell.l = { Target: `#'${entry.target}'!A1` };
         cell.s.font = {
           name: 'TH Sarabun New',
           sz: (R === 0) ? 20 : ((R === 1) ? 12 : 16),
-          bold: (R === 0 || isHeader || isLink),
-          color: isHeader ? { rgb: 'FFFFFF' } : (isLink ? { rgb: '4338CA' } : undefined),
+          bold: (R === 0 || isHeader || isSection || isLink),
+          color: isHeader ? { rgb: 'FFFFFF' } : undefined,
           underline: isLink ? true : undefined
         };
         if (isHeader) cell.s.fill = { patternType: 'solid', fgColor: { rgb: HEADER_TIME_FILL } };
+        else if (isSection) cell.s.fill = { patternType: 'solid', fgColor: { rgb: 'EDEBFB' } };
         if (R >= 3) {
           cell.s.border = {
             top: { style: 'thin', color: { rgb: 'D1D5DB' } },
@@ -10920,6 +11545,7 @@ async function exportClassScheduleExcel() {
     }
 
     XLSX.utils.book_append_sheet(wb, toc, 'สารบัญ');
+    groupSheets.forEach(gs => XLSX.utils.book_append_sheet(wb, gs.ws, gs.name));
     roomSheets.forEach(rs => XLSX.utils.book_append_sheet(wb, rs.ws, rs.name));
 
     const nowStr = new Date().toISOString().slice(0, 10);
@@ -11012,6 +11638,9 @@ window.saveClassSlot = saveClassSlot;
 window.deleteClassSlot = deleteClassSlot;
 window.saveAllClassSchedule = saveAllClassSchedule;
 window.exportClassScheduleExcel = exportClassScheduleExcel;
+window.openClassImportWizard = openClassImportWizard;
+window.onClassImportFilePicked = onClassImportFilePicked;
+window.confirmClassImport = confirmClassImport;
 // [ANCHOR:CLIENT.scheduleEditor:END]
 
 // [ANCHOR:CLIENT.exportClientApi:END]
