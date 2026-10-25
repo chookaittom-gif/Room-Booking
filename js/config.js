@@ -16,7 +16,7 @@ window.appConfig = {
         }
         if (prop === 'withFailureHandler') {
           return function(callback) {
-            return createRunner(callback, failureCallback);
+            return createRunner(successCallback, callback);
           };
         }
         // ตรวจจับชื่อฟังก์ชันเซิร์ฟเวอร์

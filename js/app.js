@@ -1291,7 +1291,8 @@ function loadScheduleForRoom(roomOrId, dateParam) {
                 }
             })
             .withFailureHandler((err) => {
-                if(grid) grid.innerHTML = `<div class="alert alert-danger m-3 text-center">\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14: ${err.message}</div>`;
+                const errMsg = (err && (err.error || err.message)) || (typeof err === 'object' ? JSON.stringify(err) : String(err || 'ไม่สามารถโหลดข้อมูลได้'));
+                if(grid) grid.innerHTML = `<div class="alert alert-danger m-3 text-center">\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14: ${errMsg}</div>`;
             })
             .getRoomSchedule({ roomId: roomId, dateISO: dateISO }); 
         return;
@@ -1334,7 +1335,8 @@ function loadScheduleForRoom(roomOrId, dateParam) {
             .withFailureHandler((err) => {
                 if (window._lastReqId !== currentAbortId) return;
                 finishWeekLoad();
-                if(weekGrid) weekGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">เกิดข้อผิดพลาด: ${err.message || err}</div>`;
+                const errMsg = (err && (err.error || err.message)) || (typeof err === 'object' ? JSON.stringify(err) : String(err || 'ไม่สามารถโหลดข้อมูลได้'));
+                if(weekGrid) weekGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">เกิดข้อผิดพลาด: ${errMsg}</div>`;
             })
             .getRoomScheduleRange({ 
                 roomId: roomId, 
@@ -1375,8 +1377,9 @@ function loadScheduleForRoom(roomOrId, dateParam) {
             })
             .withFailureHandler((err) => {
                 if (window._lastReqId !== currentAbortId) return;
+                const errMsg = (err && (err.error || err.message)) || (typeof err === 'object' ? JSON.stringify(err) : String(err || 'ไม่สามารถโหลดข้อมูลได้'));
                 if (monthGrid) {
-                    monthGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">เกิดข้อผิดพลาด: ${(err && err.message) || err}</div>`;
+                    monthGrid.innerHTML = `<div class="alert alert-danger m-3 text-center">เกิดข้อผิดพลาด: ${errMsg}</div>`;
                 }
             })
             .getRoomScheduleRange({ 
@@ -11495,13 +11498,15 @@ async function exportClassScheduleExcel() {
         : [e.sub ? `${e.label} — ${e.sub}` : e.label, e.count, e.days.map(d => d.slice(0, 2)).join(', ') || '-', 'เปิดชีต →'])
     ];
     const toc = XLSX.utils.aoa_to_sheet(tocData);
-    toc['!cols'] = [{ wch: 30 }, { wch: 13 }, { wch: 24 }, { wch: 13 }];
+    toc['!cols'] = [{ wch: 65 }, { wch: 13 }, { wch: 24 }, { wch: 13 }];
     toc['!rows'] = tocData.map((r, i) => {
       if (i === 0) return { hpt: 34 };
       if (i === 1) return { hpt: 18 };
       if (i === 2) return { hpt: 10 };
       if (i === 3) return { hpt: 28 };
-      return { hpt: 26 };
+      const itemText = String(r[0] || '');
+      const lines = Math.max(1, Math.ceil(itemText.length / 50));
+      return { hpt: Math.max(26, 22 * lines + 4) };
     });
     toc['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
