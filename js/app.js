@@ -9865,6 +9865,44 @@ const safe = (v) => (typeof sanitizeText === 'function') ? sanitizeText(v) : (v 
 // สำหรับค่าใน attribute เช่น data-* / title ต้อง escape การ quote ด้วย ไม่เช่นนั้นข้อมูลจาก Sheet ที่มี ' หรือ " จะแตก attribute ได้
 const safeAttr = (v) => safe(v).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+// ---- Drag & drop (จัดตารางสอน) — state ระดับ block, ใช้ร่วมกันทั้งโมดูล ----
+const SE_DRAG_THRESHOLD = 6; // px — ขยับน้อยกว่านี้ถือเป็น click ไม่ใช่ drag
+let seDragJustEnded = false; // กัน click ยิงซ้ำตอนปล่อยหลังลาก
+let dragCtx = null;          // { row, srcCard, ghost, offX, offY, startX, startY, active, pointerId }
+let seDragLive = null;       // aria-live region (สร้างครั้งเดียว)
+
+// แปลง "HH:MM" เป็นนาที — ใช้ทั้ง saveClassSlot และ drag drop
+function toMin(t) {
+  const [h, m] = String(t || '').split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function seAnnounce(msg) {
+  if (!msg) return;
+  if (!seDragLive) {
+    const wrap = document.getElementById('classScheduleGridContainer');
+    if (!wrap) return;
+    seDragLive = document.createElement('span');
+    seDragLive.id = 'seDragLive';
+    seDragLive.className = 'visually-hidden';
+    seDragLive.setAttribute('aria-live', 'polite');
+    wrap.appendChild(seDragLive);
+  }
+  seDragLive.textContent = msg;
+}
+
+// หาแถวต้นทางของการ์ดที่จับ (ห้องที่เลือก + วัน + start/end เป๊ะ) — ถ้ามีหลายแถวซ้อน period ใช้แถวแรก
+function seRowAt(day, start, end) {
+  const state = window.__classScheduleState;
+  if (!state || !state.selectedRoom) return null;
+  return state.rows.find(r =>
+    String(r.roomId).trim() === String(state.selectedRoom).trim() &&
+    r.day === day &&
+    String(r.startTime).trim() === String(start).trim() &&
+    String(r.endTime).trim() === String(end).trim()
+  ) || null;
+}
+
 function setScheduleEditorDirty(v) {
   window.__classScheduleState.isDirty = !!v;
   document.querySelectorAll('.schedule-editor-dirty-badge').forEach(el => el.classList.toggle('d-none', !v));
@@ -10136,6 +10174,7 @@ function bindScheduleGridEvents() {
   container.dataset.seBound = '1';
 
   container.addEventListener('click', (e) => {
+    if (seDragJustEnded) { seDragJustEnded = false; return; } // ปล่อยหลังลาก = ไม่ใช่ click
     const filterBtn = e.target.closest('[data-sef]');
     if (filterBtn) {
       window.__classScheduleState.uiDayFilter = filterBtn.dataset.sef || null;
@@ -10157,6 +10196,93 @@ function bindScheduleGridEvents() {
   });
 }
 bindScheduleGridEvents();
+
+// ---- Drag & drop ของการ์ดคาบเรียน (Pointer Events: เมาส์ + นิ้ว) ----
+// Delegation บน container เหมือน click — grid re-render ทั้งก้อนได้โดย binding ไม่หาย
+let seHoverCell = null; // cell เป้าหมายที่กำลัง highlight อยู่
+
+function seStartDrag(ctx, e) {
+  const rect = ctx.srcCard.getBoundingClientRect();
+  ctx.offX = e.clientX - rect.left;
+  ctx.offY = e.clientY - rect.top;
+  const ghost = ctx.srcCard.cloneNode(true);
+  ghost.classList.remove('se-dragging');
+  ghost.classList.add('se-drag-ghost');
+  ghost.style.width = rect.width + 'px';
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  ghost.style.pointerEvents = 'none'; // กัน elementFromPoint ชน ghost เอง — ใช้งานได้แม้ CSS ยังไม่โหลด
+  document.body.appendChild(ghost);
+  ctx.ghost = ghost;
+  ctx.srcCard.classList.add('se-dragging');
+  ctx.active = true;
+}
+
+function seEndDragVisual(ctx) {
+  if (ctx.ghost) { ctx.ghost.remove(); ctx.ghost = null; }
+  if (ctx.srcCard) ctx.srcCard.classList.remove('se-dragging');
+  if (seHoverCell) { seHoverCell.classList.remove('se-drop-hover'); seHoverCell = null; }
+}
+
+function bindScheduleDragEvents() {
+  const container = document.getElementById('classScheduleGrid');
+  if (!container || container.dataset.seDndBound === '1') return;
+  container.dataset.seDndBound = '1';
+
+  document.addEventListener('keydown', (e) => {
+    if (!dragCtx || !dragCtx.active || e.key !== 'Escape') return;
+    seEndDragVisual(dragCtx);
+    seDragJustEnded = true;
+    dragCtx = null;
+    seAnnounce('ยกเลิกการย้ายคาบเรียน');
+  }, true);
+
+  container.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (dragCtx) return;
+    const card = e.target.closest('.schedule-editor-slot');
+    if (!card || !container.contains(card)) return;
+    const cell = card.closest('td.se-cell');
+    if (!cell) return;
+    const row = seRowAt(cell.dataset.seDay, cell.dataset.seStart, cell.dataset.seEnd);
+    if (!row) return;
+    dragCtx = { row, srcCard: card, ghost: null, offX: 0, offY: 0, startX: e.clientX, startY: e.clientY, active: false, pointerId: e.pointerId };
+    try { card.setPointerCapture(e.pointerId); } catch (_) { /* browser เก่าไม่รองรับ — drag ยังทำงานผ่าน bubbling */ }
+  });
+
+  container.addEventListener('pointermove', (e) => {
+    if (!dragCtx || e.pointerId !== dragCtx.pointerId) return;
+    if (!dragCtx.active) {
+      if (Math.hypot(e.clientX - dragCtx.startX, e.clientY - dragCtx.startY) < SE_DRAG_THRESHOLD) return;
+      seStartDrag(dragCtx, e);
+    }
+    dragCtx.ghost.style.left = (e.clientX - dragCtx.offX) + 'px';
+    dragCtx.ghost.style.top = (e.clientY - dragCtx.offY) + 'px';
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el && el.closest ? el.closest('td.se-cell') : null;
+    if (cell !== seHoverCell) {
+      if (seHoverCell) seHoverCell.classList.remove('se-drop-hover');
+      seHoverCell = cell;
+      if (cell) cell.classList.add('se-drop-hover');
+    }
+  });
+
+  const finish = (e, cancelled) => {
+    if (!dragCtx || e.pointerId !== dragCtx.pointerId) return;
+    const ctx = dragCtx;
+    if (!ctx.active) { dragCtx = null; return; } // แตะ/กกสั้น = click ปกติ — ให้ click handler ทำงาน
+    const el = cancelled ? null : document.elementFromPoint(e.clientX, e.clientY);
+    const cell = (el && el.closest) ? el.closest('td.se-cell') : null;
+    seEndDragVisual(ctx);
+    seDragJustEnded = true;
+    dragCtx = null;
+    // ยังไม่ mutate state ใน skeleton — move/swap มาใน Task ถัดไป
+    seAnnounce('ยกเลิกการย้ายคาบเรียน');
+  };
+  container.addEventListener('pointerup', (e) => finish(e, false));
+  container.addEventListener('pointercancel', (e) => finish(e, true));
+}
+bindScheduleDragEvents();
 
 function openClassSlotModal(day, startTime, endTime) {
   const state = window.__classScheduleState;
@@ -10239,11 +10365,7 @@ function saveClassSlot() {
   const rows = window.__classScheduleState.rows;
   const isEdit = !!(origDay && origStart && origEnd);
 
-  // ตรวจคาบซ้อน: วันเดียวกันและช่วงเวลาทับกัน (ไม่นับแถวเดิมที่กำลังจะถูกแทนที่)
-  const toMin = (t) => {
-    const [h, m] = String(t).split(':').map(Number);
-    return (h || 0) * 60 + (m || 0);
-  };
+  // ตรวจคาบซ้อน: วันเดียวกันและช่วงเวลาทับกัน (ไม่นับแถวเดิมที่กำลังจะถูกแทนที่) — toMin อยู่ระดับ block (ใช้ร่วมกับ drag)
   const newS = toMin(startTime);
   const newE = toMin(endTime);
   const conflict = rows.find(r =>
