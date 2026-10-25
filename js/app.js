@@ -10202,6 +10202,8 @@ bindScheduleGridEvents();
 let seHoverCell = null; // cell เป้าหมายที่กำลัง highlight อยู่
 
 function seStartDrag(ctx, e) {
+  // ค้าง selection เก่า (ลากครั้งก่อน) จะทำให้ mousedown ถัดไปกลายเป็น native text drag → pointercancel
+  if (window.getSelection) window.getSelection().removeAllRanges();
   const rect = ctx.srcCard.getBoundingClientRect();
   ctx.offX = e.clientX - rect.left;
   ctx.offY = e.clientY - rect.top;
@@ -10224,6 +10226,49 @@ function seEndDragVisual(ctx) {
   if (seHoverCell) { seHoverCell.classList.remove('se-drop-hover'); seHoverCell = null; }
 }
 
+// ตรวจคาบซ้อนก่อนย้าย (กันข้อมูลเก่าใน Sheet ที่ซ้อนเวลาอยู่แล้ว) — คืนแถวที่ชน หรือ null
+function seFindConflict(row, day, startTime, endTime) {
+  const state = window.__classScheduleState;
+  const newS = toMin(startTime), newE = toMin(endTime);
+  return state.rows.find(r =>
+    r !== row &&
+    String(r.roomId).trim() === String(state.selectedRoom).trim() &&
+    r.day === day &&
+    toMin(r.startTime) < newE && newS < toMin(r.endTime)
+  ) || null;
+}
+
+// ย้ายการ์ดไป cell ว่าง — สำเร็จ = เงียบ (การ์ดอยู่ในช่องใหม่ให้เห็นแล้ว) ผิดพลาด = toast + ไม่แตะ state
+function moveClassSlot(row, day, startTime, endTime) {
+  const state = window.__classScheduleState;
+  const conflict = seFindConflict(row, day, startTime, endTime);
+  if (conflict) {
+    showToast('คาบเวลาซ้อนกัน',
+      `ช่วง ${startTime}-${endTime} วัน${day} ซ้อนกับ "${conflict.subject}" (${conflict.startTime}-${conflict.endTime})`, 'warning');
+    seAnnounce('ย้ายไม่ได้ เพราะคาบเวลาซ้อนกัน');
+    return false;
+  }
+  row.day = day;
+  row.startTime = startTime;
+  row.endTime = endTime;
+  setScheduleEditorDirty(true);
+  renderScheduleGrid();
+  seSettleCard(day, startTime, endTime);
+  seAnnounce(`ย้าย ${row.subject} ไป วัน${day} ${startTime}-${endTime}`);
+  return true;
+}
+
+// animation ตอนการ์ดมาตกลงในช่องใหม่ (one-shot ผ่าน CSS animation, reduced-motion กดที่ CSS)
+function seSettleCard(day, startTime, endTime) {
+  const container = document.getElementById('classScheduleGrid');
+  if (!container) return;
+  const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : s;
+  const card = container.querySelector(
+    `td.se-cell[data-se-day="${esc(day)}"][data-se-start="${esc(startTime)}"][data-se-end="${esc(endTime)}"] .schedule-editor-slot`
+  );
+  if (card) card.classList.add('se-settle');
+}
+
 function bindScheduleDragEvents() {
   const container = document.getElementById('classScheduleGrid');
   if (!container || container.dataset.seDndBound === '1') return;
@@ -10240,6 +10285,8 @@ function bindScheduleDragEvents() {
   container.addEventListener('pointerdown', (e) => {
     if (e.button !== undefined && e.button !== 0) return;
     if (dragCtx) return;
+    // selection ค้างจาก gesture ก่อนหน้า → mousedown+move กลายเป็น native text drag (pointercancel) — เคลียร์ก่อน
+    if (window.getSelection) window.getSelection().removeAllRanges();
     const card = e.target.closest('.schedule-editor-slot');
     if (!card || !container.contains(card)) return;
     const cell = card.closest('td.se-cell');
@@ -10276,8 +10323,18 @@ function bindScheduleDragEvents() {
     seEndDragVisual(ctx);
     seDragJustEnded = true;
     dragCtx = null;
-    // ยังไม่ mutate state ใน skeleton — move/swap มาใน Task ถัดไป
-    seAnnounce('ยกเลิกการย้ายคาบเรียน');
+    if (cancelled || !cell) {
+      seAnnounce('ยกเลิกการย้ายคาบเรียน');
+      return;
+    }
+    const srcCell = ctx.srcCard.closest('td.se-cell');
+    if (cell === srcCell) return; // วางคืนช่องเดิม — ไม่เปลี่ยนอะไร ไม่ต้องประกาศ
+    if (cell.querySelector('.schedule-editor-slot')) {
+      // ช่องเป้าหมายมีคาบอยู่ = swap (Task ถัดไป) — ขั้นนี้ยังไม่ทำอะไร
+      seAnnounce('ยกเลิกการย้ายคาบเรียน');
+      return;
+    }
+    moveClassSlot(ctx.row, cell.dataset.seDay, cell.dataset.seStart, cell.dataset.seEnd);
   };
   container.addEventListener('pointerup', (e) => finish(e, false));
   container.addEventListener('pointercancel', (e) => finish(e, true));
