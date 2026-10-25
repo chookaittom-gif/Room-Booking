@@ -10090,7 +10090,7 @@ function renderScheduleGrid() {
       );
 
       if (matched.length > 0) {
-        html += `<td class="se-cell se-filled">`;
+        html += `<td class="se-cell se-filled" data-se-day="${safeAttr(day)}" data-se-start="${safeAttr(slot.start)}" data-se-end="${safeAttr(slot.end)}">`;
         matched.forEach(item => {
           html += `
             <div class="schedule-editor-slot" role="button" tabindex="0"
