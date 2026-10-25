@@ -61,6 +61,10 @@ The recent development focused on cleaning legacy redundant files and delivering
 - `Code/`: Google Apps Script backend source (`.gs` files managed via `clasp`). Note that `Code/` is excluded from git via `.gitignore` and handled via clasp pushes.
 - `graft/`: Repo context graph for instant semantic navigation.
 
+### E. DOM Load-Order Constraint
+- `js/app.js` loads **before** modal markup appended at the very end of `<body>` in `index.html`. An element placed after the script tag is not in the DOM when the script parses: its event bindings must live inside a `DOMContentLoaded` listener (existing precedent: session-expiry + password-toggle bindings, `js/app.js` L9371/L9403), never in a parse-time IIFE.
+- A null-guarded silent `return` turns this into an invisible dead control — guards on newly added bindings should at least log the element they failed to find.
+
 ---
 
 ## 4. Pending / Next Steps
