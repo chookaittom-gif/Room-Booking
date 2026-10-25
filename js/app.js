@@ -9867,7 +9867,7 @@ const safeAttr = (v) => safe(v).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 // ---- Drag & drop (จัดตารางสอน) — state ระดับ block, ใช้ร่วมกันทั้งโมดูล ----
 const SE_DRAG_THRESHOLD = 6; // px — ขยับน้อยกว่านี้ถือเป็น click ไม่ใช่ drag
-let seDragJustEnded = false; // กัน click ยิงซ้ำตอนปล่อยหลังลาก
+let seDragEndedAt = 0;       // เวลา (performance.now) ที่ drag จบ — กัน click ยิงซ้ำตอนปล่อย (ใช้ timestamp เพราะ click หลังย้ายสำเร็จอาจไม่ยิงเลย ทำให้ flag boolean ติดค้าง)
 let dragCtx = null;          // { row, srcCard, ghost, offX, offY, startX, startY, active, pointerId }
 let seDragLive = null;       // aria-live region (สร้างครั้งเดียว)
 
@@ -10174,7 +10174,7 @@ function bindScheduleGridEvents() {
   container.dataset.seBound = '1';
 
   container.addEventListener('click', (e) => {
-    if (seDragJustEnded) { seDragJustEnded = false; return; } // ปล่อยหลังลาก = ไม่ใช่ click
+    if (performance.now() - seDragEndedAt < 250) { seDragEndedAt = 0; return; } // ปล่อยหลังลาก = ไม่ใช่ click
     const filterBtn = e.target.closest('[data-sef]');
     if (filterBtn) {
       window.__classScheduleState.uiDayFilter = filterBtn.dataset.sef || null;
@@ -10306,7 +10306,7 @@ function bindScheduleDragEvents() {
   document.addEventListener('keydown', (e) => {
     if (!dragCtx || !dragCtx.active || e.key !== 'Escape') return;
     seEndDragVisual(dragCtx);
-    seDragJustEnded = true;
+    seDragEndedAt = performance.now();
     dragCtx = null;
     seAnnounce('ยกเลิกการย้ายคาบเรียน');
   }, true);
@@ -10320,7 +10320,16 @@ function bindScheduleDragEvents() {
     if (!card || !container.contains(card)) return;
     const cell = card.closest('td.se-cell');
     if (!cell) return;
-    const row = seRowAt(cell.dataset.seDay, cell.dataset.seStart, cell.dataset.seEnd);
+    // จับ row ให้ตรงการ์ดที่จับ — cell เดียวอาจมีหลายการ์ด (ข้อมูลเก่า period ซ้ำ) ลำดับการ์ดใน cell = ลำดับใน rows
+    const state = window.__classScheduleState;
+    const matches = state.rows.filter(r =>
+      String(r.roomId).trim() === String(state.selectedRoom).trim() &&
+      r.day === cell.dataset.seDay &&
+      String(r.startTime).trim() === String(cell.dataset.seStart).trim() &&
+      String(r.endTime).trim() === String(cell.dataset.seEnd).trim()
+    );
+    const idx = [...cell.querySelectorAll('.schedule-editor-slot')].indexOf(card);
+    const row = matches[idx] || matches[0] || null;
     if (!row) return;
     dragCtx = { row, srcCard: card, ghost: null, offX: 0, offY: 0, startX: e.clientX, startY: e.clientY, active: false, pointerId: e.pointerId };
     try { card.setPointerCapture(e.pointerId); } catch (_) { /* browser เก่าไม่รองรับ — drag ยังทำงานผ่าน bubbling */ }
@@ -10350,7 +10359,7 @@ function bindScheduleDragEvents() {
     const el = cancelled ? null : document.elementFromPoint(e.clientX, e.clientY);
     const cell = (el && el.closest) ? el.closest('td.se-cell') : null;
     seEndDragVisual(ctx);
-    seDragJustEnded = true;
+    seDragEndedAt = performance.now();
     dragCtx = null;
     if (cancelled || !cell) {
       seAnnounce('ยกเลิกการย้ายคาบเรียน');
