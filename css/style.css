@@ -7862,6 +7862,76 @@ video {
   .schedule-editor-slot:hover {
     transform: none;
   }
+  /* drag: ตัด motion เหลือ crossfade สั้น */
+  .se-drag-ghost {
+    transition: opacity 0.12s ease-out !important;
+    transform: none !important;
+  }
+  .se-settle {
+    animation: se-settle-fade 0.12s ease-out !important;
+  }
+}
+
+/* ============================================================
+   SCHEDULE EDITOR — Drag & Drop (ลากวางการ์ดคาบเรียน)
+   ============================================================ */
+.schedule-editor-slot {
+  cursor: grab;
+  /* กัน browser แย่ง pointer ไป scroll ตอนลากด้วยนิ้ว — scroll ตารางยังทำได้จากช่องว่าง/ขอบตาราง */
+  touch-action: none;
+  /* กัน text selection ที่ทำให้ gesture ถัดไปกลายเป็น native text drag */
+  user-select: none;
+  -webkit-user-select: none;
+}
+@media (hover: hover) {
+  .schedule-editor-slot:hover {
+    cursor: grab;
+  }
+}
+.schedule-editor-slot:active {
+  cursor: grabbing;
+}
+/* การ์ดต้นทางขณะถูกลาก — จางลง ตัวจริงยังอยู่ที่เดิม */
+.schedule-editor-slot.se-dragging {
+  opacity: 0.35;
+}
+/* ghost ลอยตาม pointer (JS กำหนด left/top + pointer-events:none ด้วย) */
+.se-drag-ghost {
+  position: fixed;
+  z-index: 3000;
+  pointer-events: none;
+  opacity: 0.5;
+  box-shadow: 0 12px 28px rgba(102, 126, 234, 0.35);
+  transform: scale(1.02);
+  border-radius: 0.75rem;
+}
+/* ช่องเป้าหมายขณะลากผ่าน — ขอบเส้นประสีธีมเดียวกับหัวตาราง */
+td.se-cell.se-drop-hover {
+  outline: 2px dashed #667EEA;
+  outline-offset: -2px;
+  background: #EDEBFB;
+  border-radius: 0.5rem;
+}
+/* การ์ดมาตกลงในช่องใหม่ — spring settle สั้น (one-shot animation) */
+@keyframes se-settle {
+  from {
+    transform: scale(0.97);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.se-settle {
+  animation: se-settle 0.18s ease-out;
+}
+/* reduced-motion ใช้ keyframes ชุดนี้แทน (opacity เท่านั้น) */
+@keyframes se-settle-fade {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ============================================================
