@@ -9869,7 +9869,7 @@ const safeAttr = (v) => safe(v).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const SE_DRAG_THRESHOLD = 6; // px — ขยับน้อยกว่านี้ถือเป็น click ไม่ใช่ drag
 let seDragEndedAt = 0;       // เวลา (performance.now) ที่ drag จบ — กัน click ยิงซ้ำตอนปล่อย (ใช้ timestamp เพราะ click หลังย้ายสำเร็จอาจไม่ยิงเลย ทำให้ flag boolean ติดค้าง)
 let dragCtx = null;          // { row, srcCard, ghost, offX, offY, startX, startY, active, pointerId }
-let seDragLive = null;       // aria-live region (สร้างครั้งเดียว)
+let seDragLive = null;       // aria-live region (สร้างตอน bind — สร้าง lazy ทำให้ SR บางตัวพลาดข้อความแรก)
 
 // แปลง "HH:MM" เป็นนาที — ใช้ทั้ง saveClassSlot และ drag drop
 function toMin(t) {
@@ -9877,18 +9877,25 @@ function toMin(t) {
   return (h || 0) * 60 + (m || 0);
 }
 
+function seEnsureLive() {
+  if (seDragLive) return seDragLive;
+  const wrap = document.getElementById('classScheduleGridContainer');
+  if (!wrap) return null;
+  seDragLive = document.createElement('span');
+  seDragLive.id = 'seDragLive';
+  seDragLive.className = 'visually-hidden';
+  seDragLive.setAttribute('aria-live', 'polite');
+  wrap.appendChild(seDragLive);
+  return seDragLive;
+}
+
 function seAnnounce(msg) {
   if (!msg) return;
-  if (!seDragLive) {
-    const wrap = document.getElementById('classScheduleGridContainer');
-    if (!wrap) return;
-    seDragLive = document.createElement('span');
-    seDragLive.id = 'seDragLive';
-    seDragLive.className = 'visually-hidden';
-    seDragLive.setAttribute('aria-live', 'polite');
-    wrap.appendChild(seDragLive);
-  }
-  seDragLive.textContent = msg;
+  const live = seEnsureLive();
+  if (!live) return;
+  // เคลียร์ก่อนตั้ง — ข้อความซ้ำเดิม (เช่น ยกเลิกสองครั้ง) ต้องถูกประกาศใหม่ ไม่ถูกมองข้าม
+  live.textContent = '';
+  requestAnimationFrame(() => { live.textContent = msg; });
 }
 
 // หาแถวต้นทางของการ์ดที่จับ (ห้องที่เลือก + วัน + start/end เป๊ะ) — ถ้ามีหลายแถวซ้อน period ใช้แถวแรก
@@ -10207,9 +10214,15 @@ function seStartDrag(ctx, e) {
   const rect = ctx.srcCard.getBoundingClientRect();
   ctx.offX = e.clientX - rect.left;
   ctx.offY = e.clientY - rect.top;
+  ctx.lastX = e.clientX;
+  ctx.lastY = e.clientY;
   const ghost = ctx.srcCard.cloneNode(true);
   ghost.classList.remove('se-dragging');
   ghost.classList.add('se-drag-ghost');
+  // ghost เป็นภาพลอย ไม่ใช่ control จริง — กัน SR/tab มองเห็น
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.tabIndex = -1;
+  ghost.removeAttribute('title');
   ghost.style.width = rect.width + 'px';
   ghost.style.left = rect.left + 'px';
   ghost.style.top = rect.top + 'px';
@@ -10224,6 +10237,26 @@ function seEndDragVisual(ctx) {
   if (ctx.ghost) { ctx.ghost.remove(); ctx.ghost = null; }
   if (ctx.srcCard) ctx.srcCard.classList.remove('se-dragging');
   if (seHoverCell) { seHoverCell.classList.remove('se-drop-hover'); seHoverCell = null; }
+  if (seScrollRAF) { cancelAnimationFrame(seScrollRAF); seScrollRAF = 0; }
+}
+
+// Edge auto-scroll — ลากใกล้ขอบของ .schedule-editor-scroll (บน/ล่าง/ซ้าย/ขวา) ให้ container เลื่อนตาม
+const SE_SCROLL_MARGIN = 48;  // px จากขอบที่เริ่มเลื่อน
+const SE_SCROLL_SPEED = 14;   // px ต่อเฟรม
+let seScrollRAF = 0;
+
+function seAutoScrollTick() {
+  if (!dragCtx || !dragCtx.active) { seScrollRAF = 0; return; }
+  const scroller = document.querySelector('.schedule-editor-scroll');
+  if (scroller) {
+    const r = scroller.getBoundingClientRect();
+    const y = dragCtx.lastY, x = dragCtx.lastX;
+    if (y != null && y < r.top + SE_SCROLL_MARGIN) scroller.scrollTop -= SE_SCROLL_SPEED;
+    else if (y != null && y > r.bottom - SE_SCROLL_MARGIN) scroller.scrollTop += SE_SCROLL_SPEED;
+    if (x != null && x < r.left + SE_SCROLL_MARGIN) scroller.scrollLeft -= SE_SCROLL_SPEED;
+    else if (x != null && x > r.right - SE_SCROLL_MARGIN) scroller.scrollLeft += SE_SCROLL_SPEED;
+  }
+  seScrollRAF = requestAnimationFrame(seAutoScrollTick);
 }
 
 // สลับตำแหน่งสองคาบ — แลกเฉพาะ day/startTime/endTime (validFrom/validTo เป็นคุณสมบัติของวิชา ค้างเดิม)
@@ -10340,7 +10373,10 @@ function bindScheduleDragEvents() {
     if (!dragCtx.active) {
       if (Math.hypot(e.clientX - dragCtx.startX, e.clientY - dragCtx.startY) < SE_DRAG_THRESHOLD) return;
       seStartDrag(dragCtx, e);
+      if (!seScrollRAF) seScrollRAF = requestAnimationFrame(seAutoScrollTick);
     }
+    dragCtx.lastX = e.clientX;
+    dragCtx.lastY = e.clientY;
     dragCtx.ghost.style.left = (e.clientX - dragCtx.offX) + 'px';
     dragCtx.ghost.style.top = (e.clientY - dragCtx.offY) + 'px';
     const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -10376,6 +10412,7 @@ function bindScheduleDragEvents() {
   };
   container.addEventListener('pointerup', (e) => finish(e, false));
   container.addEventListener('pointercancel', (e) => finish(e, true));
+  seEnsureLive(); // สร้าง aria-live region ตั้งแต่ bind — สร้าง lazy ทำให้ SR บางตัวพลาดข้อความแรก
 }
 bindScheduleDragEvents();
 
