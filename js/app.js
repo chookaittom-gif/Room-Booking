@@ -10226,6 +10226,35 @@ function seEndDragVisual(ctx) {
   if (seHoverCell) { seHoverCell.classList.remove('se-drop-hover'); seHoverCell = null; }
 }
 
+// สลับตำแหน่งสองคาบ — แลกเฉพาะ day/startTime/endTime (validFrom/validTo เป็นคุณสมบัติของวิชา ค้างเดิม)
+function swapClassSlots(a, b) {
+  [a.day, b.day] = [b.day, a.day];
+  [a.startTime, b.startTime] = [b.startTime, a.startTime];
+  [a.endTime, b.endTime] = [b.endTime, a.endTime];
+  setScheduleEditorDirty(true);
+  renderScheduleGrid();
+  seSettleCard(a.day, a.startTime, a.endTime);
+  seSettleCard(b.day, b.startTime, b.endTime);
+  seAnnounce(`สลับ ${a.subject} กับ ${b.subject} แล้ว`);
+}
+
+// ลากวางบนช่องที่มีคาบอยู่ = สลับ ผ่าน confirm modal ก่อน
+async function seSwapFlow(row, cell) {
+  const other = seRowAt(cell.dataset.seDay, cell.dataset.seStart, cell.dataset.seEnd);
+  if (!other || other === row) return;
+  const ok = await showScheduleConfirm({
+    title: 'สลับคาบเรียน',
+    message: `ย้าย "<strong>${safe(row.subject)}</strong>" ไป วัน${safe(cell.dataset.seDay)} ${safe(cell.dataset.seStart)}-${safe(cell.dataset.seEnd)}<br>และ "<strong>${safe(other.subject)}</strong>" มาแทนที่เดิม`,
+    confirmText: 'สลับ',
+    plainMessage: `สลับคาบเรียน ${row.subject} กับ ${other.subject}?`
+  });
+  if (!ok) {
+    seAnnounce('ยกเลิกการสลับคาบเรียน');
+    return;
+  }
+  swapClassSlots(row, other);
+}
+
 // ตรวจคาบซ้อนก่อนย้าย (กันข้อมูลเก่าใน Sheet ที่ซ้อนเวลาอยู่แล้ว) — คืนแถวที่ชน หรือ null
 function seFindConflict(row, day, startTime, endTime) {
   const state = window.__classScheduleState;
@@ -10330,8 +10359,8 @@ function bindScheduleDragEvents() {
     const srcCell = ctx.srcCard.closest('td.se-cell');
     if (cell === srcCell) return; // วางคืนช่องเดิม — ไม่เปลี่ยนอะไร ไม่ต้องประกาศ
     if (cell.querySelector('.schedule-editor-slot')) {
-      // ช่องเป้าหมายมีคาบอยู่ = swap (Task ถัดไป) — ขั้นนี้ยังไม่ทำอะไร
-      seAnnounce('ยกเลิกการย้ายคาบเรียน');
+      // ช่องเป้าหมายมีคาบอยู่ = สลับผ่าน confirm
+      seSwapFlow(ctx.row, cell);
       return;
     }
     moveClassSlot(ctx.row, cell.dataset.seDay, cell.dataset.seStart, cell.dataset.seEnd);
