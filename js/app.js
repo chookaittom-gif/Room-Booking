@@ -911,7 +911,7 @@ async function apiCall(fnName, payload = {}, options = {}) {
 
     const requestKey = JSON.stringify({ fnName, payload });
     if (window.activeRequests.has(requestKey)) {
-        console.warn(`🔄 Duplicate request detected for ${fnName}, returning existing promise.`);
+        console.debug(`🔄 Duplicate request detected for ${fnName}, returning existing promise.`);
         return window.activeRequests.get(requestKey);
     }
 
@@ -1212,7 +1212,7 @@ function loadScheduleForRoom(roomOrId, dateParam) {
         targetDate = new Date(targetDateInput);
         if (isNaN(targetDate.getTime())) throw new Error('Invalid Date');
     } catch(e) {
-        console.warn('\u26A0\uFE0F Invalid date, fallback to today.');
+        console.warn('\u26A0\uFE0F Invalid date, fallback to today.', { received: targetDateInput });
         targetDate = new Date();
     }
 
@@ -4543,8 +4543,9 @@ window.openCancelModal = function (bookingId) {
     if (idInput) idInput.disabled = true;
   } else {
     modalEl.setAttribute('data-booking-id', '');
-    if (idWrap) idWrap.classList.add('d-none'); // Hide the manual Booking ID input container completely when opened generally
-    if (idInput) idInput.disabled = false;
+    // เปิดโดยไม่มี ID (ปุ่ม navbar "ยกเลิกจอง"): ต้องโชว์ช่องกรอก Booking ID — ซ่อนไว้ confirmCancel จะไม่มีทางผ่าน
+    if (idWrap) idWrap.classList.remove('d-none');
+    if (idInput) { idInput.disabled = false; idInput.focus(); }
   }
 
   const role = String((window.currentSession && window.currentSession.role) || '').trim().toLowerCase();
@@ -8217,7 +8218,7 @@ async function loadBookingChart(period) {
     const canvasReady = await waitForBookingChartCanvas(canvas, 12);
     if (!canvasReady) {
       chartState.lastError = 'bookingChart canvas not visible';
-      console.warn('\u26A0\uFE0F loadBookingChart: canvas not visible yet, skip render', { period: p, baseDate });
+      console.debug('\u26A0\uFE0F loadBookingChart: canvas not visible yet, skip render (จะเรนเดอร์ตอนเปิดแท็บ Dashboard)', { period: p, baseDate });
       return null;
     }
 
