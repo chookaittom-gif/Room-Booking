@@ -4800,7 +4800,7 @@ async function performLogin(event) {
       
       // \u0E41\u0E2A\u0E14\u0E07\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E15\u0E49\u0E2D\u0E19\u0E23\u0E31\u0E1A (\u0E43\u0E0A\u0E49 displayName \u0E15\u0E32\u0E21 Server)
       const showName = result.user.displayName || result.user.name || username;
-      showToast('\u0E22\u0E34\u0E19\u0E14\u0E35\u0E15\u0E49\u0E2D\u0E19\u0E23\u0E31\u0E1A', `\u0E2A\u0E27\u0E31\u0E2A\u0E14\u0E35\u0E04\u0E38\u0E13 ${showName} \u0E40\u0E1A\u0E2D\u0E23\u0E35\u0E48\u0E04\u0E34\u0E14\u0E16\u0E36\u0E07\u0E08\u0E31\u0E07\u0E40\u0E25\u0E22!`, 'success');
+      showToast('ยินดีต้อนรับ', `สวัสดีคุณ ${showName} ยินดีต้อนรับเข้าสู่ระบบค่ะ`, 'success');
       
       // \uD83D\uDE80 \u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E19\u0E31\u0E1A\u0E16\u0E2D\u0E22\u0E2B\u0E25\u0E31\u0E07\u0E17\u0E31\u0E19\u0E17\u0E35
       startSessionTimer();
