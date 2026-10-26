@@ -3,7 +3,7 @@
 **Date**: 2026-10-26  
 **Workspace**: `d:\Webapp\ระบบจองห้องเรียน`  
 **Current Git Branch**: `main`  
-**Latest Commit**: `1f6a36e` (`fix(schedule): Normalize slot validFrom and validTo dates to ISO format`)  
+**Latest Commit**: `c9c0af6` (`fix(cancel): show Booking ID input when opening cancel modal without an ID`)  
 **GAS Deployment**: `@185` on deployment ID `AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA`
 
 ---
@@ -20,6 +20,7 @@ This project is a web-based **Classroom Booking and Timetable Management System*
 
 | Commit Hash | Type / Scope | Description |
 | :--- | :--- | :--- |
+| `c9c0af6` | `fix(cancel)` | Navbar "ยกเลิกจอง" cancel modal: `openCancelModal('')` now shows + focuses the Booking ID input instead of hiding it (was impossible to confirm — alert "ไม่พบรหัสการจอง" every time). Downgraded two by-design guards to `console.debug` (apiCall duplicate-request dedup, loadBookingChart canvas-not-visible skip). Invalid-date fallback log now includes the received value for diagnosis. Cache-buster bumped `20261026_03` → `_04`. Verified locally (DOM repro) and on production. |
 | `1f6a36e` | `fix(schedule)` | Normalize timetable slot validFrom/validTo dates to ISO format (`normDateIsoStr`) for HTML5 date inputs and show date range tooltip on slot cards. |
 | `80cd8b2` | `feat(schedule)` | Replaced multi-row wrapping class group filter chips in summary grid with accessible dropdown `<select>` grouped by department (`optgroup`) with count badges and clear filter button. |
 | `cabc47a` | `fix(schedule)` | Formatted timetable time slots with `HH:mm` padding (`normTimeStr`) and sorted slots chronologically by minutes (`toMin`) for Excel export and Web Editor. |
@@ -71,6 +72,11 @@ This project is a web-based **Classroom Booking and Timetable Management System*
 - `js/app.js` loads **before** modal markup appended at the very end of `<body>` in `index.html`. An element placed after the script tag is not in the DOM when the script parses: its event bindings must live inside a `DOMContentLoaded` listener (existing precedent: session-expiry + password-toggle bindings, `js/app.js` L9371/L9403), never in a parse-time IIFE.
 - A null-guarded silent `return` turns this into an invisible dead control — guards on newly added bindings should at least log the element they failed to find.
 
+### F. Cancel Booking Flow (fixed 2026-10-26, `c9c0af6`)
+- Two entry paths into `#cancelBookingModal`: (1) booking card → detail modal → "ยกเลิกการจอง" calls `openCancelModal(bookingId)` with the ID prefilled and locked — this is the admin path; (2) navbar "ยกเลิกจอง" button (`index.html` L525) calls `openCancelModal('')` with no ID — user types it (or uses the phone-number suggestion lookup via `bindCancelPhoneSuggestion` → `selectCancelBookingId`), non-admins must also enter the booking phone.
+- `confirmCancel` validates: Booking ID present → reason present → phone present for non-admins → calls `cancelBookingUnified`. Server response `{"ok":true,"data":{"message":"ยกเลิกการจองเรียบร้อยแล้ว"}}` then refreshes dashboard/bookings/combined schedule/room view.
+- Known leftover (harmless, not fixed): `showManualBookingId()` (js/app.js L4430) is dead code (0 in-edges), and the `DOMContentLoaded` rebinding at L9561 has a selector mismatch (`button[onclick="openCancelModal()"]` never matches the real button `openCancelModal('')`) — the inline `onclick` works, so both are inert.
+
 ---
 
 ## 4. Pending / Next Steps
@@ -85,6 +91,8 @@ This project is a web-based **Classroom Booking and Timetable Management System*
    - Provide ability to duplicate a timetable from one semester/classroom to another.
 3. **Automated End-to-End Testing**:
    - Playwright / DevTools testing on timetable interactions and Excel export verification.
+   - ✅ Smoke test done 2026-10-26 via `playwright-cli` on production (login SUPERADMIN, all 4 tabs, room day/week views, booking create `BK-20261026230807071` → cancel, dashboard stats, combined summary↔calendar toggle, 0 console errors). Cancelled test record "TEST E2E playwright" (room 302, 08:00–09:00) remains in the sheet with status ยกเลิก — harmless history residue.
+   - Repro pattern for cancel-modal bugs without a backend: serve repo statically (`python -m http.server`), call `openCancelModal('')` in page, assert `#manualBookingIdContainer` classList — `/api/gas` 501s locally which is expected and enough to prove validation ordering.
 
 ---
 
