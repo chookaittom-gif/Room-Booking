@@ -10073,6 +10073,19 @@ function normTimeStr(t) {
   return m ? `${m[1].padStart(2, '0')}:${m[2]}` : String(t || '').trim();
 }
 
+// ponytail: แปลงวันที่ทุกรูปแบบเป็น YYYY-MM-DD เพื่อให้ input[type="date"] แสดงผลถูกต้อง
+function normDateIsoStr(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = (typeof parseFlexibleDateFrontend === 'function') ? parseFlexibleDateFrontend(s) : new Date(s);
+  if (!d || isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function seEnsureLive() {
   if (seDragLive) return seDragLive;
   const wrap = document.getElementById('classScheduleGridContainer');
@@ -10184,6 +10197,8 @@ async function loadClassScheduleAdmin() {
     rows.forEach(r => {
       if (r.day === 'พฤหัส') r.day = 'พฤหัสบดี';
       if (normCgFn && r.classGroup) r.classGroup = normCgFn(r.classGroup);
+      if (r.validFrom) r.validFrom = normDateIsoStr(r.validFrom);
+      if (r.validTo) r.validTo = normDateIsoStr(r.validTo);
     });
     const rooms = res.data && Array.isArray(res.data.rooms) ? res.data.rooms : (window.roomsData || []);
 
@@ -10339,10 +10354,14 @@ function renderScheduleGrid() {
         matched.forEach(item => {
           // ชิปกลุ่มเรียน (แสดงเมื่อระบุกลุ่มไว้)
           const groupChip = item.classGroup ? classGroupChipHtml(item.classGroup) : '';
+          const dateRangeTip = (item.validFrom || item.validTo)
+            ? ` (${item.validFrom || 'ไม่ระบุ'} ถึง ${item.validTo || 'ไม่ระบุ'})`
+            : '';
+          const cardTitle = `คลิกเพื่อแก้ไข: ${item.subject} | ${item.instructor || '-'}${dateRangeTip}`;
           html += `
             <div class="schedule-editor-slot" role="button" tabindex="0"
                  data-se-action="edit" data-se-day="${safeAttr(day)}" data-se-start="${safeAttr(slot.start)}" data-se-end="${safeAttr(slot.end)}"
-                 title="คลิกเพื่อแก้ไข: ${safeAttr(item.subject)}">
+                 title="${safeAttr(cardTitle)}">
               <span class="se-subject">${safe(item.subject)}</span>
               <span class="se-instructor"><i class="fas fa-user-tie" aria-hidden="true"></i>${safe(item.instructor || '-')}</span>
               ${groupChip}
@@ -10653,8 +10672,8 @@ function openClassSlotModal(day, startTime, endTime) {
   document.getElementById('slotEnd').value = endTime || '10:30';
   document.getElementById('slotSubject').value = existing ? (existing.subject || '') : '';
   document.getElementById('slotInstructor').value = existing ? (existing.instructor || '') : '';
-  document.getElementById('slotValidFrom').value = existing ? (existing.validFrom || '') : '';
-  document.getElementById('slotValidTo').value = existing ? (existing.validTo || '') : '';
+  document.getElementById('slotValidFrom').value = existing ? (normDateIsoStr(existing.validFrom) || '') : '';
+  document.getElementById('slotValidTo').value = existing ? (normDateIsoStr(existing.validTo) || '') : '';
   ensureClassGroupSelect(existing ? (existing.classGroup || '') : '');
 
   const titleEl = document.getElementById('classSlotModalTitle');
