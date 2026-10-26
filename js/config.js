@@ -57,26 +57,40 @@ window.classGroupTools = (function() {
 
   // รายการกลุ่มมาตรฐานจากไฟล์ต้นทาง 2-69 (ใช้ใน dropdown ของ editor)
   const CLASS_GROUPS = [
-    'อาหาร66', 'อาหาร66 ตกค้าง', 'อาหาร67',
-    'อาหาร68 แผน ก', 'อาหาร68 แผน ข', 'อาหาร69 แผน ก', 'อาหาร69 แผน ข',
-    'การบิน67', 'การบิน68', 'การบิน69',
-    'ประถม66', 'ประถม67', 'ประถม68', 'ประถม69',
-    'ปฐมวัย66', 'ปฐมวัย67', 'ปฐมวัย68', 'ปฐมวัย69'
+    'อาหาร 66', 'อาหาร 66 ตกค้าง', 'อาหาร 67',
+    'อาหาร 68 แผน ก', 'อาหาร 68 แผน ข', 'อาหาร 69 แผน ก', 'อาหาร 69 แผน ข',
+    'การบิน 67', 'การบิน 68', 'การบิน 69',
+    'ประถม 66', 'ประถม 67', 'ประถม 68', 'ประถม 69',
+    'ปฐมวัย 66', 'ปฐมวัย 67', 'ปฐมวัย 68', 'ปฐมวัย 69'
   ];
+
+  // ปรับข้อความกลุ่มเรียนให้เว้นวรรคสวยงาม เช่น "อาหาร69 แผน ก" -> "อาหาร 69 แผน ก"
+  function normalizeClassGroupLabel(label) {
+    let s = String(label || '').trim();
+    if (!s) return '';
+    // เว้นวรรคระหว่างตัวอักษรไทยกับเลข 2 หลัก (เช่น อาหาร69 -> อาหาร 69)
+    s = s.replace(/([ก-๙]+)(\d{2})(?!\d)/g, '$1 $2');
+    // เว้นวรรคหน้า/หลัง แผน
+    s = s.replace(/แผน\s*([ก-ฮ])/g, 'แผน $1');
+    // เว้นวรรคหน้า ตกค้าง
+    s = s.replace(/\s*ตกค้าง/g, ' ตกค้าง');
+    return s.replace(/\s+/g, ' ').trim();
+  }
 
   // แยก label เช่น "อาหาร69 แผน ก" / "อาหาร66 ตกค้าง" → โครงสร้างสำหรับเรียง/ระบายสี/แสดงผล
   function parseClassGroup(rawLabel) {
     const raw = String(rawLabel || '').trim();
     if (!raw) {
       return {
-        raw: '', majorKey: 'none', majorShort: '', majorLabel: '',
+        raw: '', normalized: '', majorKey: 'none', majorShort: '', majorLabel: '',
         cohort: 0, yearNo: 0, yearLabel: '', plan: '', leftover: false,
         colorClass: 'cg-none', displayLabel: 'ไม่ระบุกลุ่ม',
         sortKey: '9:9:9:~'
       };
     }
 
-    let namePart = raw;
+    const normalized = normalizeClassGroupLabel(raw);
+    let namePart = normalized;
     let plan = '';
     let leftover = false;
 
@@ -122,6 +136,7 @@ window.classGroupTools = (function() {
 
     return {
       raw,
+      normalized,
       majorKey,
       majorShort: major.short || shortName,
       majorLabel: major.label,
@@ -131,17 +146,17 @@ window.classGroupTools = (function() {
       plan,
       leftover,
       colorClass: major.color,
-      displayLabel: parts.join(' ') || raw,
+      displayLabel: parts.join(' ') || normalized,
       // เรียง: ลำดับสาขา → ปีที่ (1 ก่อน 4) → แผน (ก ก่อน ข) → ตกค้างท้าย — ทำเป็น ASCII ทั้งหมดเพื่อเทียบแบบ byte-order เสถียร
       sortKey: [
         String(major.order),
         yearNo ? String(yearNo) : '9',
         plan ? String.fromCharCode(97 + (plan.charCodeAt(4) - 3585)) : 'z',
         leftover ? '1' : '0',
-        raw
+        normalized
       ].join(':')
     };
   }
 
-  return { CURRENT_ACADEMIC_YEAR, MAJORS, CLASS_GROUPS, parseClassGroup };
+  return { CURRENT_ACADEMIC_YEAR, MAJORS, CLASS_GROUPS, normalizeClassGroupLabel, parseClassGroup };
 })();

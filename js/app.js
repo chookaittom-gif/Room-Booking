@@ -3115,11 +3115,13 @@ function showClassSlotDetail(opts) {
     const modalEl = document.getElementById('classDetailModal');
     if (!bodyEl || !modalEl) return;
 
-    const row = (icon, key, val) => val ? `
+    const row = (icon, key, val, isHtml) => val ? `
         <div class="class-detail-row">
             <dt><i class="fas ${icon} me-2 text-primary"></i>${key}</dt>
-            <dd>${esc(val)}</dd>
+            <dd>${isHtml ? val : esc(val)}</dd>
         </div>` : '';
+
+    const groupChip = o.classGroup ? classGroupChipHtml(o.classGroup) : '';
 
     bodyEl.innerHTML = `
         <div class="text-center mb-3">
@@ -3131,7 +3133,7 @@ function showClassSlotDetail(opts) {
         <div class="class-detail-rows">
             ${row('fa-door-open', 'ห้องเรียน', o.roomLabel)}
             ${row('fa-user-tie', 'ผู้สอน', o.teacher)}
-            ${row('fa-layer-group', 'กลุ่มเรียน', o.classGroup)}
+            ${row('fa-layer-group', 'กลุ่มเรียน', groupChip || o.classGroup, Boolean(groupChip))}
             ${row('fa-calendar-day', 'วัน', fmtDay(o.dayLabel))}
             ${row('fa-clock', 'เวลา', o.timeLabel ? o.timeLabel + ' น.' : '')}
         </div>
@@ -3145,15 +3147,18 @@ function showClassSlotDetail(opts) {
         if (o.bookOver && o.bookOver.start && o.bookOver.end) {
             footerEl.innerHTML = `
                 <div class="d-flex gap-2 w-100">
-                    <button type="button" class="btn btn-light text-secondary rounded-pill flex-grow-1" data-bs-dismiss="modal">ปิด</button>
-                    <button type="button" class="btn btn-primary rounded-pill flex-grow-1 shadow-sm fw-bold"
+                    <button type="button" class="btn btn-light text-secondary rounded-pill flex-grow-1 py-2" data-bs-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-primary rounded-pill flex-grow-1 shadow-sm fw-bold py-2"
                             onclick="bookOverClass('${esc(o.bookOver.start)}', '${esc(o.bookOver.end)}')">
                         <i class="fas fa-calendar-plus me-2"></i>จองทับเวลานี้
                     </button>
                 </div>
             `;
         } else {
-            footerEl.innerHTML = `<button type="button" class="btn btn-light text-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิด</button>`;
+            footerEl.innerHTML = `
+                <div class="d-flex justify-content-center w-100">
+                    <button type="button" class="btn btn-light text-secondary rounded-pill w-100 py-2 border shadow-sm fw-medium" data-bs-dismiss="modal">ปิด</button>
+                </div>`;
         }
     }
 
@@ -6534,13 +6539,15 @@ window.renderCombinedSummary = function(slots) {
     const chipGroups = [];
     const chipIndex = {};
     if (Array.isArray(allSlotsForChips)) {
+      const normFn = (window.classGroupTools || {}).normalizeClassGroupLabel;
       allSlotsForChips.forEach(s => {
         if (s.type !== 'class') return;
         const rawKey = String(s.classGroup || '').trim();
-        const key = rawKey || 'ไม่ระบุกลุ่ม';
+        const normKey = normFn ? normFn(rawKey) : rawKey;
+        const key = normKey || 'ไม่ระบุกลุ่ม';
         if (!chipIndex[key]) {
           chipIndex[key] = {
-            key, rawKey, count: 0,
+            key, rawKey, normKey, count: 0,
             sortKey: cgfParse ? cgfParse(rawKey).sortKey : key,
             colorClass: cgfParse ? cgfParse(rawKey).colorClass : 'cg-none'
           };
@@ -6556,10 +6563,13 @@ window.renderCombinedSummary = function(slots) {
       <div class="combined-group-filterbar d-flex flex-wrap align-items-center gap-2 mb-3" role="group" aria-label="กรองตามกลุ่มเรียน">
         <span class="text-secondary small fw-bold text-nowrap"><i class="fas fa-filter me-1"></i>กลุ่มเรียน:</span>
         <button type="button" class="cgf-chip${!activeFilter ? ' active' : ''}" data-cgf="">ทุกกลุ่ม</button>
-        ${chipGroups.map(g => `
-        <button type="button" class="cgf-chip ${g.colorClass}${activeFilter && activeFilter === (g.rawKey || '__none__') ? ' active' : ''}" data-cgf="${escapeHtml(g.rawKey || '__none__')}">
+        ${chipGroups.map(g => {
+          const isActive = activeFilter && (activeFilter === (g.rawKey || '__none__') || activeFilter === (g.normKey || '__none__'));
+          return `
+        <button type="button" class="cgf-chip ${g.colorClass}${isActive ? ' active' : ''}" data-cgf="${escapeHtml(g.rawKey || '__none__')}">
           ${escapeHtml(g.key)} <span class="cgf-count">${g.count}</span>
-        </button>`).join('')}
+        </button>`;
+        }).join('')}
       </div>`;
     }
 
@@ -6615,13 +6625,17 @@ window.renderCombinedSummary = function(slots) {
             const dayClassGroups = [];
             const dayGroupIdx = {};
             const dayBookings = [];
+            const normDayFn = (window.classGroupTools || {}).normalizeClassGroupLabel;
             list.forEach(item => {
                 if (item.type === 'class') {
-                    const gKey = String(item.classGroup || '').trim();
+                    const rawKey = String(item.classGroup || '').trim();
+                    const normKey = normDayFn ? normDayFn(rawKey) : rawKey;
+                    const gKey = normKey;
                     if (!dayGroupIdx[gKey]) {
                         dayGroupIdx[gKey] = {
                             key: gKey,
-                            parsed: cgpParse ? cgpParse(gKey) : { sortKey: gKey, displayLabel: gKey || 'ไม่ระบุกลุ่ม', colorClass: 'cg-none' },
+                            rawKey: rawKey,
+                            parsed: cgpParse ? cgpParse(rawKey) : { sortKey: gKey, displayLabel: gKey || 'ไม่ระบุกลุ่ม', colorClass: 'cg-none' },
                             items: []
                         };
                         dayClassGroups.push(dayGroupIdx[gKey]);
@@ -6650,8 +6664,8 @@ window.renderCombinedSummary = function(slots) {
                     <td colspan="5" class="ps-4 pe-3">
                         <div class="d-flex align-items-center flex-wrap gap-2 py-1">
                             <span class="se-group-chip ${sec.chipClass}"><i class="fas ${sec.isBooking ? 'fa-calendar-check' : 'fa-users'} me-1"></i>${escapeHtml(sec.chipLabel)}</span>
-                            ${sec.isBooking ? '' : `<span class="small text-secondary">${escapeHtml(sec.title)}</span>`}
-                            <span class="badge rounded-pill bg-white border text-secondary ms-auto">${sec.items.length} รายการ</span>
+                            ${sec.isBooking ? '' : `<span class="small text-secondary flex-grow-1 text-truncate" title="${escapeHtml(sec.title)}">${escapeHtml(sec.title)}</span>`}
+                            <span class="badge rounded-pill bg-white border text-secondary ms-auto text-nowrap">${sec.items.length} รายการ</span>
                         </div>
                     </td>
                 </tr>`;
@@ -10806,8 +10820,9 @@ let __classImportState = null;
 // ชิปกลุ่มเรียน — ใช้ร่วมกันทุกจุด (preview import / grid editor)
 function classGroupChipHtml(label) {
   const tools = window.classGroupTools || {};
-  const cg = tools.parseClassGroup ? tools.parseClassGroup(label) : { colorClass: 'cg-none' };
-  return `<span class="se-group-chip ${cg.colorClass}" title="กลุ่มเรียน">${safe(label || 'ไม่ระบุกลุ่ม')}</span>`;
+  const norm = tools.normalizeClassGroupLabel ? tools.normalizeClassGroupLabel(label) : String(label || '').trim();
+  const cg = tools.parseClassGroup ? tools.parseClassGroup(norm) : { colorClass: 'cg-none' };
+  return `<span class="se-group-chip ${cg.colorClass}" title="กลุ่มเรียน">${safe(norm || 'ไม่ระบุกลุ่ม')}</span>`;
 }
 
 function openClassImportWizard() {
@@ -10898,7 +10913,7 @@ function parseTimetableExcelWorkbook(wb) {
     const tagText = cell(ws, 0, 0) + ' ' + sheetName;
     const planM = tagText.match(/แผน\s*([ก-ฮ])/);
     const leftover = /ตกค้าง/.test(tagText);
-    const groupLabel = `${shortName}${cohort}` + (planM ? ` แผน ${planM[1]}` : '') + (leftover ? ' ตกค้าง' : '');
+    const groupLabel = `${shortName} ${cohort}` + (planM ? ` แผน ${planM[1]}` : '') + (leftover ? ' ตกค้าง' : '');
 
     let headerRow = -1;
     for (let r = 0; r <= Math.min(8, range.e.r); r++) {
