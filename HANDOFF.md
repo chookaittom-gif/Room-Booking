@@ -3,7 +3,7 @@
 **Date**: 2026-10-26  
 **Workspace**: `d:\Webapp\ระบบจองห้องเรียน`  
 **Current Git Branch**: `main`  
-**Latest Commit**: `fe94551` (`feat(schedule): Replace class group filter chips with grouped dropdown`)  
+**Latest Commit**: `80cd8b2` (`feat(schedule): Replace class group filter chips with grouped dropdown`)  
 **GAS Deployment**: `@184` on deployment ID `AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA`
 
 ---
@@ -20,7 +20,7 @@ This project is a web-based **Classroom Booking and Timetable Management System*
 
 | Commit Hash | Type / Scope | Description |
 | :--- | :--- | :--- |
-| `fe94551` | `feat(schedule)` | Replaced multi-row wrapping class group filter chips in summary grid with accessible dropdown `<select>` grouped by department (`optgroup`) with count badges and clear filter button. |
+| `80cd8b2` | `feat(schedule)` | Replaced multi-row wrapping class group filter chips in summary grid with accessible dropdown `<select>` grouped by department (`optgroup`) with count badges and clear filter button. |
 | `cabc47a` | `fix(schedule)` | Formatted timetable time slots with `HH:mm` padding (`normTimeStr`) and sorted slots chronologically by minutes (`toMin`) for Excel export and Web Editor. |
 | `ec46608` | `feat(schedule)` | Added classGroup (สาขา×ชั้นปี) in ClassSchedule col 9, import wizard, and group-based timetable Excel export. |
 | `b79cbad` | `chore(ignore)` | Added `.playwright-cli` to `.gitignore`. |
