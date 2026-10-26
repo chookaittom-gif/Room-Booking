@@ -11268,10 +11268,15 @@ async function exportClassScheduleExcel() {
     };
 
     // ชีตต่อกลุ่มเรียน (สาขา×รหัสปี) — มุมมองเลียนไฟล์ต้นทาง 2-69; สร้างเมื่อมีข้อมูล classGroup อย่างน้อย 1 คาบ
-    const buildGroupSheet = (label) => {
-      const gRows = rows.filter(r => String(r.classGroup || '').trim() === label);
+    const buildGroupSheet = (label, explicitRows) => {
       const cgt = window.classGroupTools || {};
-      const parsed = cgt.parseClassGroup ? cgt.parseClassGroup(label) : { majorLabel: '', cohort: 0, plan: '', leftover: false };
+      const normLabel = cgt.normalizeClassGroupLabel ? cgt.normalizeClassGroupLabel(label) : String(label || '').trim();
+      const gRows = Array.isArray(explicitRows) ? explicitRows : rows.filter(r => {
+        const raw = String(r.classGroup || '').trim();
+        const norm = cgt.normalizeClassGroupLabel ? cgt.normalizeClassGroupLabel(raw) : raw;
+        return norm === normLabel;
+      });
+      const parsed = cgt.parseClassGroup ? cgt.parseClassGroup(normLabel) : { majorLabel: '', cohort: 0, plan: '', leftover: false };
       const days = roomDaysFor(gRows);
       const nCols = days.length + 1;
       const wsData = [];
@@ -11285,7 +11290,7 @@ async function exportClassScheduleExcel() {
       if (parsed.leftover) titleParts.push('ตกค้าง');
       wsData.push([titleParts.join('  '), ...new Array(nCols - 1).fill('')]);
       merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: nCols - 1 } });
-      wsData.push([`กลุ่มเรียน: ${label} — ข้อมูล ณ วันที่: ${printDate}`, ...new Array(nCols - 1).fill('')]);
+      wsData.push([`กลุ่มเรียน: ${normLabel} — ข้อมูล ณ วันที่: ${printDate}`, ...new Array(nCols - 1).fill('')]);
       merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: nCols - 1 } });
       wsData.push(['คาบเวลา', ...days.map(d => `วัน${d}`)]);
 
@@ -11356,9 +11361,9 @@ async function exportClassScheduleExcel() {
       applySheetStyles(ws);
 
       return {
-        name: safeSheetName(label),
+        name: safeSheetName(normLabel),
         ws,
-        label,
+        label: normLabel,
         majorLabel: parsed.majorLabel || '',
         cohort: parsed.cohort || 0,
         courseCount: gRows.length,
@@ -11486,13 +11491,22 @@ async function exportClassScheduleExcel() {
 
     // กลุ่มเรียนที่มีในข้อมูล เรียงตาม registry (สาขา → ปีที่ 1→4 → แผน → ตกค้างท้าย)
     const cgtExport = window.classGroupTools || {};
-    const groupLabels = [...new Set(rows.map(r => String(r.classGroup || '').trim()).filter(Boolean))];
+    const normFn = cgtExport.normalizeClassGroupLabel || (l => String(l || '').trim());
+    const groupMap = new Map();
+    rows.forEach(r => {
+      const raw = String(r.classGroup || '').trim();
+      if (!raw) return;
+      const norm = normFn(raw);
+      if (!groupMap.has(norm)) groupMap.set(norm, []);
+      groupMap.get(norm).push(r);
+    });
+    const groupLabels = [...groupMap.keys()];
     groupLabels.sort((a, b) => {
       const ka = cgtExport.parseClassGroup ? cgtExport.parseClassGroup(a).sortKey : a;
       const kb = cgtExport.parseClassGroup ? cgtExport.parseClassGroup(b).sortKey : b;
       return ka < kb ? -1 : ka > kb ? 1 : 0;
     });
-    const groupSheets = groupLabels.map(buildGroupSheet);
+    const groupSheets = groupLabels.map(label => buildGroupSheet(label, groupMap.get(label)));
 
     // ชีตสารบัญ (แท็บแรก): แบ่ง 2 ส่วนเมื่อมีข้อมูลกลุ่ม — ตามกลุ่มเรียน แล้วตามห้องเรียน + ลิงก์กระโดดไปชีต
     const tocEntries = [];
