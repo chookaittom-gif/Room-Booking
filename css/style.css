@@ -7828,13 +7828,35 @@ video {
 }
 .combined-group-subhead .se-group-chip { flex-shrink: 0; }
 
-/* --- ชิปกรองกลุ่มเรียน (แถบเหนือการ์ดรายวัน) --- */
+/* --- แถบกรองกลุ่มเรียน (แถบเหนือการ์ดรายวัน) --- */
 .combined-group-filterbar {
-  padding: 0.35rem 0.5rem;
+  padding: 0.35rem 0.65rem;
   background: #fff;
   border: 1px solid #eef0f4;
   border-radius: 999px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+#combinedGroupFilterSelect {
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-color: #cbd5e1;
+  color: #334155;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+#combinedGroupFilterSelect:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.18);
+}
+#combinedGroupFilterSelect optgroup {
+  font-weight: 700;
+  color: #475569;
+  background: #f8fafc;
+}
+#combinedGroupFilterSelect option {
+  font-weight: 400;
+  color: #1e293b;
+  background: #fff;
 }
 .cgf-chip {
   display: inline-flex;

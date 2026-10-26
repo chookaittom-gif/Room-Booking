@@ -6552,17 +6552,42 @@ window.renderCombinedSummary = function(slots) {
     chipGroups.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0));
     const activeFilter = String(window.combinedGroupFilter || '');
     if (chipGroups.length > 0) {
+      const totalClassesCount = chipGroups.reduce((acc, g) => acc + g.count, 0);
+
+      // จัดกลุ่มตามสาขาสำหรับ optgroup
+      const optgroups = {};
+      chipGroups.forEach(g => {
+        const parsed = cgfParse ? cgfParse(g.rawKey) : null;
+        const majorName = (parsed && parsed.majorLabel) ? ('สาขา' + parsed.majorLabel) : 'อื่นๆ / ไม่ระบุกลุ่ม';
+        if (!optgroups[majorName]) optgroups[majorName] = [];
+        optgroups[majorName].push(g);
+      });
+
       html += `
-      <div class="combined-group-filterbar d-flex flex-wrap align-items-center gap-2 mb-3" role="group" aria-label="กรองตามกลุ่มเรียน">
-        <span class="text-secondary small fw-bold text-nowrap"><i class="fas fa-filter me-1"></i>กลุ่มเรียน:</span>
-        <button type="button" class="cgf-chip${!activeFilter ? ' active' : ''}" data-cgf="">ทุกกลุ่ม</button>
-        ${chipGroups.map(g => {
-          const isActive = activeFilter && (activeFilter === (g.rawKey || '__none__') || activeFilter === (g.normKey || '__none__'));
-          return `
-        <button type="button" class="cgf-chip ${g.colorClass}${isActive ? ' active' : ''}" data-cgf="${escapeHtml(g.rawKey || '__none__')}">
-          ${escapeHtml(g.key)} <span class="cgf-count">${g.count}</span>
-        </button>`;
-        }).join('')}
+      <div class="combined-group-filterbar d-flex flex-wrap align-items-center gap-2 mb-3" role="search" aria-label="กรองตามกลุ่มเรียน">
+        <label for="combinedGroupFilterSelect" class="text-secondary small fw-bold text-nowrap d-flex align-items-center m-0">
+          <i class="fas fa-layer-group text-primary me-1"></i>กลุ่มเรียน:
+        </label>
+        <div class="d-flex align-items-center gap-2 flex-grow-1 flex-sm-grow-0" style="min-width: 260px; max-width: 380px;">
+          <select id="combinedGroupFilterSelect" class="form-select form-select-sm rounded-pill shadow-sm" aria-label="เลือกกลุ่มเรียนเพื่อกรอง">
+            <option value="" ${!activeFilter ? 'selected' : ''}>ทุกกลุ่มเรียน (แสดงทั้งหมด ${totalClassesCount} คาบ)</option>
+            ${Object.entries(optgroups).map(([label, items]) => `
+            <optgroup label="${escapeHtml(label)}">
+              ${items.map(g => {
+                const val = g.rawKey || '__none__';
+                const isSelected = activeFilter && (activeFilter === (g.rawKey || '__none__') || activeFilter === (g.normKey || '__none__'));
+                return `<option value="${escapeHtml(val)}" ${isSelected ? 'selected' : ''}>${escapeHtml(g.key)} (${g.count} คาบ)</option>`;
+              }).join('')}
+            </optgroup>`).join('')}
+          </select>
+        </div>
+        ${activeFilter ? `
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0 small shadow-sm" data-cgf="" title="แสดงทุกกลุ่มเรียน">
+          <i class="fas fa-times me-1"></i>ล้างตัวกรอง
+        </button>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small">
+          กำลังกรอง
+        </span>` : ''}
       </div>`;
     }
 
@@ -6781,11 +6806,19 @@ window.renderCombinedSummary = function(slots) {
 };
 // ANCHOR:CLIENT.renderCombinedSummary:END
 
-// ชิปกรองกลุ่ม — delegation บน #combinedSummaryGrid (element คงเดิม แม้ innerHTML ถูกแทนทุกครั้ง)
+// ตัวกรองกลุ่มเรียน — delegation บน #combinedSummaryGrid (element คงเดิม แม้ innerHTML ถูกแทนทุกครั้ง)
 function bindCombinedGroupFilterBar() {
   const grid = document.getElementById('combinedSummaryGrid');
   if (!grid || grid.dataset.cgfBound === '1') return;
   grid.dataset.cgfBound = '1';
+  // เปลี่ยนแปลงค่าใน Dropdown
+  grid.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'combinedGroupFilterSelect') {
+      window.combinedGroupFilter = e.target.value || '';
+      window.setCombinedView('summary');
+    }
+  });
+  // ปุ่มล้างตัวกรอง หรือคลิกชิปที่มี data-cgf
   grid.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-cgf]');
     if (!btn) return;
