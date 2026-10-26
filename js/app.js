@@ -10034,6 +10034,12 @@ function toMin(t) {
   return (h || 0) * 60 + (m || 0);
 }
 
+// ponytail: pad เวลาเป็น HH:mm มาตรฐานเพื่อการเรียงและแสดงผลที่ถูกต้อง
+function normTimeStr(t) {
+  const m = String(t || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : String(t || '').trim();
+}
+
 function seEnsureLive() {
   if (seDragLive) return seDragLive;
   const wrap = document.getElementById('classScheduleGridContainer');
@@ -10239,8 +10245,8 @@ function renderScheduleGrid() {
   // Collect unique slots
   const slotMap = new Map();
   roomRows.forEach(r => {
-    const s = String(r.startTime || '').trim();
-    const e = String(r.endTime || '').trim();
+    const s = normTimeStr(r.startTime);
+    const e = normTimeStr(r.endTime);
     if (s && e) {
       const key = `${s}-${e}`;
       if (!slotMap.has(key)) slotMap.set(key, { start: s, end: e });
@@ -10259,7 +10265,7 @@ function renderScheduleGrid() {
     defaults.forEach(d => slotMap.set(`${d.start}-${d.end}`, d));
   }
 
-  const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
+  const sortedSlots = [...slotMap.values()].sort((a, b) => toMin(a.start) - toMin(b.start) || toMin(a.end) - toMin(b.end));
 
   // แถบเลือกวัน (มือถือ) — แสดงเฉพาะจอ ≤768px ผ่าน CSS
   const filterBar = `
@@ -10291,8 +10297,8 @@ function renderScheduleGrid() {
     days.forEach(day => {
       const matched = roomRows.filter(r =>
         r.day === day &&
-        String(r.startTime).trim() === slot.start &&
-        String(r.endTime).trim() === slot.end
+        normTimeStr(r.startTime) === slot.start &&
+        normTimeStr(r.endTime) === slot.end
       );
 
       if (matched.length > 0) {
@@ -10601,8 +10607,8 @@ function openClassSlotModal(day, startTime, endTime) {
 
   const existing = roomRows.find(r =>
     r.day === day &&
-    String(r.startTime).trim() === startTime &&
-    String(r.endTime).trim() === endTime
+    normTimeStr(r.startTime) === normTimeStr(startTime) &&
+    normTimeStr(r.endTime) === normTimeStr(endTime)
   );
 
   document.getElementById('slotOrigDay').value = existing ? day : '';
@@ -11296,15 +11302,15 @@ async function exportClassScheduleExcel() {
 
       const slotMap = new Map();
       gRows.forEach(r => {
-        const s = String(r.startTime || '').trim();
-        const e = String(r.endTime || '').trim();
+        const s = normTimeStr(r.startTime);
+        const e = normTimeStr(r.endTime);
         if (s && e) {
           const key = `${s}-${e}`;
           if (!slotMap.has(key)) slotMap.set(key, { start: s, end: e });
         }
       });
 
-      const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
+      const sortedSlots = [...slotMap.values()].sort((a, b) => toMin(a.start) - toMin(b.start) || toMin(a.end) - toMin(b.end));
       const activeDaysSet = new Set(gRows.map(r => r.day));
 
       sortedSlots.forEach(slot => {
@@ -11314,8 +11320,8 @@ async function exportClassScheduleExcel() {
         days.forEach(day => {
           const matched = gRows.filter(r =>
             r.day === day &&
-            String(r.startTime).trim() === slot.start &&
-            String(r.endTime).trim() === slot.end
+            normTimeStr(r.startTime) === slot.start &&
+            normTimeStr(r.endTime) === slot.end
           );
 
           if (matched.length > 0) {
@@ -11391,8 +11397,8 @@ async function exportClassScheduleExcel() {
       // Time slots ของห้องนี้
       const slotMap = new Map();
       rmRows.forEach(r => {
-        const s = String(r.startTime || '').trim();
-        const e = String(r.endTime || '').trim();
+        const s = normTimeStr(r.startTime);
+        const e = normTimeStr(r.endTime);
         if (s && e) {
           const key = `${s}-${e}`;
           if (!slotMap.has(key)) slotMap.set(key, { start: s, end: e });
@@ -11410,7 +11416,7 @@ async function exportClassScheduleExcel() {
         defaults.forEach(d => slotMap.set(`${d.start}-${d.end}`, d));
       }
 
-      const sortedSlots = [...slotMap.values()].sort((a, b) => a.start.localeCompare(b.start));
+      const sortedSlots = [...slotMap.values()].sort((a, b) => toMin(a.start) - toMin(b.start) || toMin(a.end) - toMin(b.end));
       const activeDays = new Set(rmRows.map(r => r.day));
 
       sortedSlots.forEach(slot => {
@@ -11420,8 +11426,8 @@ async function exportClassScheduleExcel() {
         days.forEach(day => {
           const matched = rmRows.filter(r =>
             r.day === day &&
-            String(r.startTime).trim() === slot.start &&
-            String(r.endTime).trim() === slot.end
+            normTimeStr(r.startTime) === slot.start &&
+            normTimeStr(r.endTime) === slot.end
           );
 
           if (matched.length > 0) {
