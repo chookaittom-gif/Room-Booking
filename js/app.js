@@ -5221,7 +5221,7 @@ function updateUIForLoggedOutUser() {
 
   // \u0E16\u0E49\u0E32\u0E04\u0E49\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32 Dashboard \u0E43\u0E2B\u0E49\u0E14\u0E35\u0E14\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E32\u0E23\u0E32\u0E07
   const activeTab = document.querySelector('.nav-link.active');
-  if (activeTab && activeTab.id === 'dashboard-tab') {
+  if (activeTab && (activeTab.id === 'dashboard-tab' || activeTab.id === 'scheduleEditor-tab')) {
     if (typeof showTab === 'function') showTab('schedule');
   }
 
@@ -5611,6 +5611,20 @@ window.loadCombinedSchedule = async function (forceReload = false, targetDate) {
 window.showTab = async function (tabId, forceReload = false) {
   try {
     console.log(`\uD83D\uDD04 Switching to tab: ${tabId}`, { forceReload });
+
+    // Guard: ซ่อน/กัน tab พิเศษเฉพาะ Admin (dashboard, scheduleEditor)
+    if (tabId === 'dashboard' || tabId === 'scheduleEditor') {
+      const session = window.currentSession;
+      const role = String(session && session.role || '').toLowerCase();
+      const isAdmin = !!session && (role === 'admin' || role === 'superadmin' || role === 'super_admin');
+      if (!isAdmin) {
+        console.warn(`⛔ Access denied to tab "${tabId}" for non-admin user.`);
+        if (typeof showToast === 'function') {
+          showToast('ไม่มีสิทธิ์เข้าถึง', 'เมนูนี้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น', 'warning');
+        }
+        tabId = 'schedule';
+      }
+    }
 
     // =====================================================
     // \u2705 0) Token Guard (\u0E01\u0E31\u0E19\u0E2A\u0E25\u0E31\u0E1A\u0E40\u0E23\u0E47\u0E27 / click \u0E23\u0E31\u0E27 / async \u0E17\u0E31\u0E1A\u0E01\u0E31\u0E19)
