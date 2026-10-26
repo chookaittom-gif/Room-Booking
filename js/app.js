@@ -10141,7 +10141,11 @@ async function loadClassScheduleAdmin() {
 
     const rows = res.data && Array.isArray(res.data.rows) ? res.data.rows : [];
     // ข้อมูลเก่าอาจเก็บวันพฤหัสแบบสั้น ("พฤหัส") จาก dropdown เดิม — ปรับเป็นชื่อเต็มให้ตรงกันทั้งระบบ
-    rows.forEach(r => { if (r.day === 'พฤหัส') r.day = 'พฤหัสบดี'; });
+    const normCgFn = (window.classGroupTools || {}).normalizeClassGroupLabel;
+    rows.forEach(r => {
+      if (r.day === 'พฤหัส') r.day = 'พฤหัสบดี';
+      if (normCgFn && r.classGroup) r.classGroup = normCgFn(r.classGroup);
+    });
     const rooms = res.data && Array.isArray(res.data.rooms) ? res.data.rooms : (window.roomsData || []);
 
     window.__classScheduleState.rows = rows;
@@ -10582,10 +10586,12 @@ function ensureClassGroupSelect(selectedValue) {
   if (!sel) return;
   const tools = window.classGroupTools || {};
   const groups = Array.isArray(tools.CLASS_GROUPS) ? tools.CLASS_GROUPS.slice() : [];
-  if (selectedValue && !groups.includes(selectedValue)) groups.push(selectedValue);
+  const normSelected = tools.normalizeClassGroupLabel ? tools.normalizeClassGroupLabel(selectedValue) : String(selectedValue || '').trim();
+  const finalVal = groups.includes(normSelected) ? normSelected : (selectedValue || '');
+  if (finalVal && !groups.includes(finalVal)) groups.push(finalVal);
   sel.innerHTML = '<option value="">— ไม่ระบุกลุ่ม —</option>' +
     groups.map(g => `<option value="${safeAttr(g)}">${safe(g)}</option>`).join('');
-  sel.value = selectedValue || '';
+  sel.value = finalVal || '';
 }
 
 function openClassSlotModal(day, startTime, endTime) {
