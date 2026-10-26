@@ -5128,22 +5128,11 @@ function updateUIForLoggedInUser() {
     else debugMenu.classList.add('d-none');
   }
 
-  const dashboardBtn = document.getElementById('dashboard-tab');
-  if (dashboardBtn) dashboardBtn.style.display = isAdmin ? '' : 'none';
-
   const scheduleEditorTab = document.getElementById('scheduleEditor-tab');
   if (scheduleEditorTab) {
-    if (isAdmin) {
-      scheduleEditorTab.classList.remove('d-none');
-      scheduleEditorTab.style.display = '';
-    } else {
-      scheduleEditorTab.classList.add('d-none');
-      scheduleEditorTab.style.display = 'none';
-    }
+    scheduleEditorTab.classList.toggle('d-none', !isAdmin);
+    scheduleEditorTab.style.setProperty('display', isAdmin ? '' : 'none', 'important');
   }
-
-  const dashboardNavItem = dashboardBtn ? dashboardBtn.closest('li') : null;
-  if (dashboardNavItem) dashboardNavItem.style.display = isAdmin ? '' : 'none';
 
   // --- 3. [CHANGE] \u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 Mobile Auth (Navbar) ---
   // \u0E41\u0E2A\u0E14\u0E07 Profile \u0E22\u0E48\u0E2D + \u0E1B\u0E38\u0E48\u0E21 Logout \u0E43\u0E19 Navbar \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D
@@ -5182,7 +5171,7 @@ function updateUIForLoggedOutUser() {
   const scheduleEditorTab = document.getElementById('scheduleEditor-tab');
   if (scheduleEditorTab) {
     scheduleEditorTab.classList.add('d-none');
-    scheduleEditorTab.style.display = 'none';
+    scheduleEditorTab.style.setProperty('display', 'none', 'important');
   }
   console.log('\uD83C\uDFA8 UI: Switching to GUEST mode');
 
@@ -5208,20 +5197,9 @@ function updateUIForLoggedOutUser() {
   const debugMenu = document.getElementById('adminDebugMenu');
   if (debugMenu) debugMenu.classList.add('d-none');
 
-  const dashboardBtn = document.getElementById('dashboard-tab');
-  if (dashboardBtn) dashboardBtn.style.display = 'none';
-
-  const dashboardNavItem = dashboardBtn ? dashboardBtn.closest('li') : null;
-  if (dashboardNavItem) dashboardNavItem.style.display = 'none';
-
-  // \u0E40\u0E04\u0E25\u0E35\u0E22\u0E23\u0E4C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25 Dashboard \u0E40\u0E01\u0E48\u0E32
-  if (typeof clearDashboardBookingDetails === 'function') {
-    clearDashboardBookingDetails();
-  }
-
-  // \u0E16\u0E49\u0E32\u0E04\u0E49\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32 Dashboard \u0E43\u0E2B\u0E49\u0E14\u0E35\u0E14\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E32\u0E23\u0E32\u0E07
+  // \u0E16\u0E49\u0E32\u0E04\u0E49\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E31\u0E14\u0E15\u0E32\u0E23\u0E32\u0E07\u0E2A\u0E2D\u0E19 \u0E43\u0E2B\u0E49\u0E14\u0E35\u0E14\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E32\u0E23\u0E32\u0E07
   const activeTab = document.querySelector('.nav-link.active');
-  if (activeTab && (activeTab.id === 'dashboard-tab' || activeTab.id === 'scheduleEditor-tab')) {
+  if (activeTab && activeTab.id === 'scheduleEditor-tab') {
     if (typeof showTab === 'function') showTab('schedule');
   }
 
@@ -5386,6 +5364,7 @@ function initializeTabs() {
     if (targetId === '#schedule' || targetId === '#nav-schedule') return 'schedule';
     if (targetId === '#timetable' || targetId === '#nav-home') return 'timetable';
     if (targetId === '#dashboard' || targetId === '#nav-dashboard') return 'dashboard';
+    if (targetId === '#scheduleEditor') return 'scheduleEditor';
     return null;
   };
 
@@ -5612,8 +5591,8 @@ window.showTab = async function (tabId, forceReload = false) {
   try {
     console.log(`\uD83D\uDD04 Switching to tab: ${tabId}`, { forceReload });
 
-    // Guard: ซ่อน/กัน tab พิเศษเฉพาะ Admin (dashboard, scheduleEditor)
-    if (tabId === 'dashboard' || tabId === 'scheduleEditor') {
+    // Guard: ซ่อน/กัน tab พิเศษเฉพาะ Admin (scheduleEditor)
+    if (tabId === 'scheduleEditor') {
       const session = window.currentSession;
       const role = String(session && session.role || '').toLowerCase();
       const isAdmin = !!session && (role === 'admin' || role === 'superadmin' || role === 'super_admin');
@@ -9845,6 +9824,7 @@ function getActiveTabId_() {
     if (activeBtn.id === 'schedule-tab') return 'schedule';
     if (activeBtn.id === 'timetable-tab') return 'timetable';
     if (activeBtn.id === 'dashboard-tab') return 'dashboard';
+    if (activeBtn.id === 'scheduleEditor-tab') return 'scheduleEditor';
     return '';
 }
 // [ANCHOR:CLIENT.handleRoomCardClick:END]
