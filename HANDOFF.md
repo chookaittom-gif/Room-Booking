@@ -3,7 +3,7 @@
 **Date**: 2026-10-26  
 **Workspace**: `d:\Webapp\ระบบจองห้องเรียน`  
 **Current Git Branch**: `main`  
-**Latest Commit**: `7f42350` (`fix(schedule): Normalize slot validFrom and validTo dates to ISO format`)  
+**Latest Commit**: `1f6a36e` (`fix(schedule): Normalize slot validFrom and validTo dates to ISO format`)  
 **GAS Deployment**: `@185` on deployment ID `AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA`
 
 ---
@@ -20,7 +20,7 @@ This project is a web-based **Classroom Booking and Timetable Management System*
 
 | Commit Hash | Type / Scope | Description |
 | :--- | :--- | :--- |
-| `7f42350` | `fix(schedule)` | Normalize timetable slot validFrom/validTo dates to ISO format (`normDateIsoStr`) for HTML5 date inputs and show date range tooltip on slot cards. |
+| `1f6a36e` | `fix(schedule)` | Normalize timetable slot validFrom/validTo dates to ISO format (`normDateIsoStr`) for HTML5 date inputs and show date range tooltip on slot cards. |
 | `80cd8b2` | `feat(schedule)` | Replaced multi-row wrapping class group filter chips in summary grid with accessible dropdown `<select>` grouped by department (`optgroup`) with count badges and clear filter button. |
 | `cabc47a` | `fix(schedule)` | Formatted timetable time slots with `HH:mm` padding (`normTimeStr`) and sorted slots chronologically by minutes (`toMin`) for Excel export and Web Editor. |
 | `ec46608` | `feat(schedule)` | Added classGroup (สาขา×ชั้นปี) in ClassSchedule col 9, import wizard, and group-based timetable Excel export. |
@@ -48,6 +48,7 @@ This project is a web-based **Classroom Booking and Timetable Management System*
 - **Drag & drop (V1.5)**: slot cards drag between cells via Pointer Events (mouse + touch, `touch-action:none` on cards). Drop on empty cell = move (overlap re-checked via `toMin()` — legacy rows may already intersect); drop on occupied cell = swap behind `#scheduleConfirmModal` confirm (exchanges only `day/startTime/endTime`, `validFrom/validTo` stay with the subject). Drag mutates local state + `isDirty` only — persists via the same "บันทึกทั้งหมด" batch save. Binding: `bindScheduleDragEvents()` (delegation, guard `dataset.seDndBound`), ghost/drop-hint CSS in `.se-*` block; text selection is cleared at drag start (a stale selection turns the next gesture into a native text drag → `pointercancel`).
 - **Touch panning tradeoff (deliberate)**: `touch-action:none` on slot cards means touch-panning the grid cannot START on a card — pan from empty cells or the sticky time column instead. Letting cards pan would make finger-drag impossible (the browser steals the pointer). A long-press-to-drag gesture is the real fix if ever needed — new feature, not a polish item. Ghost is `aria-hidden`, and the `#seDragLive` region is created at bind time with clear-then-set announcements (SR-safe repeats).
 - Dirty-state protection: `isDirty` set on slot save/delete; guards on room switch, tab re-entry, and `beforeunload`; persistent badge on `#btnSaveAllSchedule` ("ยังไม่ได้บันทึก").
+- Date format normalization (`normDateIsoStr`): HTML5 `<input type="date">` strictly requires `YYYY-MM-DD`. `normDateIsoStr` in `js/app.js` normalizes `DD/MM/YYYY` from localized Google Sheet display values to ISO so that `slotValidFrom` and `slotValidTo` populate without silent browser clearing. Slot card faces remain clean (no visual clutter), with full date ranges displayed via `title` hover tooltips.
 - Overlap prevention: `saveClassSlot` rejects slots whose time range intersects an existing slot in the same room+day; also validates `validFrom <= validTo`.
 - Confirmations use `#scheduleConfirmModal` (Bootstrap, promise-based `showScheduleConfirm`) — not native `confirm()`.
 - Mobile ≤768px: day-filter pill bar (`.schedule-editor-dayfilter`) renders one day at a time; time column is sticky-left; no document overflow.
