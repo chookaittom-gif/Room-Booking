@@ -11531,6 +11531,13 @@ async function exportClassScheduleExcel() {
     }
     roomSheets.forEach(rs => tocEntries.push({ label: rs.rmName, sub: '', count: rs.slotCount, days: rs.activeDays, target: rs.name }));
 
+    const dayAbbrMap = {
+      'อาทิตย์': 'อา.', 'จันทร์': 'จ.', 'อังคาร': 'อ.', 'พุธ': 'พ.',
+      'พฤหัสบดี': 'พฤ.', 'ศุกร์': 'ศ.', 'เสาร์': 'ส.',
+      'อา': 'อา.', 'จ': 'จ.', 'อ': 'อ.', 'พ': 'พ.', 'พฤ': 'พฤ.', 'ศ': 'ศ.', 'ส': 'ส.'
+    };
+    const formatDayAbbr = d => dayAbbrMap[d] || (d ? d + '.' : '');
+
     const tocData = [
       ['สารบัญตารางสอน — ระบบจองห้องเรียน', '', '', ''],
       [`ข้อมูล ณ วันที่: ${printDate}`, '', '', ''],
@@ -11538,7 +11545,7 @@ async function exportClassScheduleExcel() {
       ['รายการ', 'จำนวนคาบ', 'วันที่มีคาบ', 'เปิดชีต'],
       ...tocEntries.map(e => e.section
         ? [e.section, '', '', '']
-        : [e.sub ? `${e.label} — ${e.sub}` : e.label, e.count, e.days.map(d => d.slice(0, 2)).join(', ') || '-', 'เปิดชีต →'])
+        : [e.sub ? `${e.label} — ${e.sub}` : e.label, e.count, e.days.map(formatDayAbbr).join(', ') || '-', 'เปิดชีต →'])
     ];
     const toc = XLSX.utils.aoa_to_sheet(tocData);
     toc['!cols'] = [{ wch: 65 }, { wch: 13 }, { wch: 24 }, { wch: 13 }];
