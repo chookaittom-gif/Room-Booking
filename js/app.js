@@ -10266,6 +10266,289 @@ async function onEditorRoomChange(roomId) {
   renderScheduleGrid();
 }
 
+/* ============================================================
+   SCHEDULE EDITOR: Live Search Module (วิชา / ผู้สอน / ห้อง)
+   ============================================================ */
+let seSearchDebounceTimer = null;
+let seSearchActiveIndex = -1;
+let seSearchCurrentMatches = [];
+
+function getScheduleRoomDisplayName(roomId) {
+  const state = window.__classScheduleState;
+  const rooms = (state && Array.isArray(state.rooms)) ? state.rooms : (window.roomsData || []);
+  const found = rooms.find(r => String(r.id || r.RoomID).trim() === String(roomId).trim());
+  return found ? (found.name || found.RoomName || roomId) : `ห้อง ${roomId}`;
+}
+
+function highlightMatchText(text, query) {
+  if (!text || !query) return typeof safe === 'function' ? safe(text || '') : (text || '');
+  const raw = String(text);
+  const q = String(query).trim().toLowerCase();
+  const idx = raw.toLowerCase().indexOf(q);
+  if (idx === -1) return typeof safe === 'function' ? safe(raw) : raw;
+  const before = raw.slice(0, idx);
+  const match = raw.slice(idx, idx + q.length);
+  const after = raw.slice(idx + q.length);
+  const s = typeof safe === 'function' ? safe : (v => v);
+  return `${s(before)}<span class="se-search-highlight-text">${s(match)}</span>${s(after)}`;
+}
+
+function closeScheduleSearchResults() {
+  const dropdown = document.getElementById('seSearchResults');
+  const input = document.getElementById('seSearchInput');
+  if (dropdown) dropdown.classList.add('d-none');
+  if (input) input.setAttribute('aria-expanded', 'false');
+  seSearchActiveIndex = -1;
+}
+
+function clearScheduleSearch() {
+  const input = document.getElementById('seSearchInput');
+  const clearBtn = document.getElementById('seSearchClearBtn');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  if (clearBtn) clearBtn.classList.add('d-none');
+  closeScheduleSearchResults();
+}
+
+function handleScheduleSearchInput(val) {
+  const clearBtn = document.getElementById('seSearchClearBtn');
+  const query = String(val || '').trim();
+  if (clearBtn) {
+    clearBtn.classList.toggle('d-none', query.length === 0);
+  }
+
+  clearTimeout(seSearchDebounceTimer);
+  if (!query) {
+    closeScheduleSearchResults();
+    return;
+  }
+
+  seSearchDebounceTimer = setTimeout(() => {
+    executeScheduleSearch(query);
+  }, 200);
+}
+
+function executeScheduleSearch(query) {
+  const state = window.__classScheduleState;
+  const allRows = (state && Array.isArray(state.rows)) ? state.rows : [];
+  const dropdown = document.getElementById('seSearchResults');
+  const input = document.getElementById('seSearchInput');
+  if (!dropdown || !input) return;
+
+  const q = query.toLowerCase();
+  const matches = [];
+
+  for (const r of allRows) {
+    const subj = String(r.subject || '').toLowerCase();
+    const inst = String(r.instructor || '').toLowerCase();
+    const grp = String(r.classGroup || '').toLowerCase();
+    const rId = String(r.roomId || '').toLowerCase();
+    const rName = String(getScheduleRoomDisplayName(r.roomId) || '').toLowerCase();
+    const day = String(r.day || '').toLowerCase();
+
+    if (subj.includes(q) || inst.includes(q) || grp.includes(q) || rId.includes(q) || rName.includes(q) || day.includes(q)) {
+      matches.push(r);
+    }
+  }
+
+  // เรียงลำดับ: วัน -> เวลาเริ่ม
+  matches.sort((a, b) => {
+    const dayDiff = (DAYS_OF_WEEK.indexOf(a.day) - DAYS_OF_WEEK.indexOf(b.day));
+    if (dayDiff !== 0) return dayDiff;
+    return toMin(normTimeStr(a.startTime)) - toMin(normTimeStr(b.startTime));
+  });
+
+  seSearchCurrentMatches = matches.slice(0, 25);
+  seSearchActiveIndex = -1;
+  renderScheduleSearchResults(query, seSearchCurrentMatches, matches.length);
+}
+
+function renderScheduleSearchResults(query, matches, totalCount) {
+  const dropdown = document.getElementById('seSearchResults');
+  const input = document.getElementById('seSearchInput');
+  if (!dropdown || !input) return;
+
+  if (matches.length === 0) {
+    dropdown.innerHTML = `
+      <div class="se-search-empty-state">
+        <i class="fas fa-search me-1 opacity-50"></i> ไม่พบคาบสอนที่ตรงกับ <strong>"${safe(query)}"</strong>
+      </div>`;
+    dropdown.classList.remove('d-none');
+    input.setAttribute('aria-expanded', 'true');
+    return;
+  }
+
+  let html = '';
+  matches.forEach((item, index) => {
+    const roomName = getScheduleRoomDisplayName(item.roomId);
+    const grpChip = item.classGroup ? classGroupChipHtml(item.classGroup) : '';
+    const isCurrentRoom = String(item.roomId).trim() === String(window.__classScheduleState.selectedRoom).trim();
+
+    html += `
+      <div class="se-search-item" role="option" tabindex="-1" data-se-search-idx="${index}"
+           id="seSearchOption${index}" onclick="selectScheduleSearchResultByIndex(${index})">
+        <div class="se-search-item-header">
+          <span class="se-search-item-badge">
+            <i class="fas fa-door-open me-1"></i>${highlightMatchText(roomName, query)}
+            ${isCurrentRoom ? '<span class="text-success ms-1 small">(ห้องปัจจุบัน)</span>' : ''}
+          </span>
+          <span class="se-search-item-time">
+            <i class="fas fa-calendar-day me-1"></i>${highlightMatchText('วัน' + item.day, query)}
+            ${safe(normTimeStr(item.startTime))} – ${safe(normTimeStr(item.endTime))}
+          </span>
+        </div>
+        <div class="se-search-item-subject">${highlightMatchText(item.subject || 'ไม่ระบุชื่อวิชา', query)}</div>
+        <div class="se-search-item-footer">
+          <span><i class="fas fa-user-tie me-1"></i>${highlightMatchText(item.instructor || 'ไม่ระบุผู้สอน', query)}</span>
+          ${grpChip}
+        </div>
+      </div>
+    `;
+  });
+
+  if (totalCount > matches.length) {
+    html += `
+      <div class="text-center py-2 border-top bg-light text-muted small">
+        แสดง ${matches.length} จากทั้งหมด ${totalCount} รายการ
+      </div>`;
+  }
+
+  dropdown.innerHTML = html;
+  dropdown.classList.remove('d-none');
+  input.setAttribute('aria-expanded', 'true');
+}
+
+function handleScheduleSearchKeydown(event) {
+  const dropdown = document.getElementById('seSearchResults');
+  const isDropdownVisible = dropdown && !dropdown.classList.contains('d-none');
+
+  if (event.key === 'Escape') {
+    closeScheduleSearchResults();
+    return;
+  }
+
+  if (!isDropdownVisible || seSearchCurrentMatches.length === 0) return;
+
+  const items = dropdown.querySelectorAll('.se-search-item');
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    seSearchActiveIndex = (seSearchActiveIndex + 1) % items.length;
+    updateSearchItemFocus(items);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    seSearchActiveIndex = (seSearchActiveIndex - 1 + items.length) % items.length;
+    updateSearchItemFocus(items);
+  } else if (event.key === 'Enter') {
+    event.preventDefault();
+    if (seSearchActiveIndex >= 0 && seSearchActiveIndex < seSearchCurrentMatches.length) {
+      selectScheduleSearchResultByIndex(seSearchActiveIndex);
+    }
+  }
+}
+
+function updateSearchItemFocus(items) {
+  items.forEach((item, idx) => {
+    const isAct = (idx === seSearchActiveIndex);
+    item.classList.toggle('active', isAct);
+    if (isAct) {
+      item.scrollIntoView({ block: 'nearest' });
+      const input = document.getElementById('seSearchInput');
+      if (input) input.setAttribute('aria-activedescendant', item.id);
+    }
+  });
+}
+
+function selectScheduleSearchResultByIndex(index) {
+  const item = seSearchCurrentMatches[index];
+  if (item) selectScheduleSearchResult(item);
+}
+
+async function selectScheduleSearchResult(item) {
+  if (!item) return;
+  const state = window.__classScheduleState;
+  const targetRoomId = item.roomId;
+
+  // ตรวจสอบ dirty state ก่อนสลับห้อง
+  if (state.isDirty && String(state.selectedRoom).trim() !== String(targetRoomId).trim()) {
+    const ok = await showScheduleConfirm({
+      title: 'สลับห้องเรียน?',
+      message: `มีการแก้ไขตารางของห้อง <strong>${safe(state.selectedRoom)}</strong> ที่ยังไม่ได้บันทึก การสลับห้องจะทิ้งการแก้ไขเหล่านั้น`,
+      plainMessage: `มีการแก้ไขตารางของห้อง ${state.selectedRoom} ที่ยังไม่ได้บันทึก — สลับห้องแล้วการแก้ไขจะหาย?`,
+      confirmText: 'ทิ้งการแก้ไขและสลับห้อง',
+      danger: true
+    });
+    if (!ok) return;
+    setScheduleEditorDirty(false);
+  }
+
+  // ปิด Dropdown
+  closeScheduleSearchResults();
+
+  // สลับห้อง
+  state.selectedRoom = targetRoomId;
+  const roomSelect = document.getElementById('editorRoomSelect');
+  if (roomSelect) roomSelect.value = targetRoomId;
+
+  // ปรับ filter วันในมือถือให้ตรงกับวันของคาบ
+  if (state.uiDayFilter && state.uiDayFilter !== item.day) {
+    state.uiDayFilter = item.day;
+  }
+
+  // เรนเดอร์ตารางห้องเป้าหมาย
+  renderScheduleGrid();
+
+  // ไฮไลต์และเลื่อนจอไปที่คาบเรียน
+  setTimeout(() => {
+    highlightScheduleSlot(item.day, item.startTime, item.endTime);
+  }, 100);
+}
+
+function highlightScheduleSlot(day, startTime, endTime) {
+  const normS = normTimeStr(startTime);
+  const normE = normTimeStr(endTime);
+  const container = document.getElementById('classScheduleGrid');
+  if (!container) return;
+
+  // เคลียร์ไฮไลต์เดิม
+  container.querySelectorAll('.se-slot-highlight').forEach(el => el.classList.remove('se-slot-highlight'));
+
+  // หา element ที่ตรงกัน
+  const selector = `.schedule-editor-slot[data-se-day="${day}"][data-se-start="${normS}"][data-se-end="${normE}"]`;
+  const slotEl = container.querySelector(selector);
+  if (slotEl) {
+    slotEl.classList.add('se-slot-highlight');
+    slotEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    setTimeout(() => {
+      slotEl.classList.remove('se-slot-highlight');
+    }, 3500);
+  } else {
+    // กรณีที่หา slot เฉพาะเจาะจงไม่เจอ ให้หา cell รวม
+    const cellSelector = `td.se-cell[data-se-day="${day}"][data-se-start="${normS}"][data-se-end="${normE}"]`;
+    const cellEl = container.querySelector(cellSelector);
+    if (cellEl) {
+      cellEl.classList.add('se-slot-highlight');
+      cellEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      setTimeout(() => {
+        cellEl.classList.remove('se-slot-highlight');
+      }, 3500);
+    }
+  }
+}
+
+// ผูก event ปิด dropdown เมื่อคลิกนอก container
+if (typeof window !== 'undefined' && !window.__seSearchClickBound) {
+  window.__seSearchClickBound = true;
+  document.addEventListener('click', (e) => {
+    const container = document.getElementById('seSearchContainer');
+    if (container && !container.contains(e.target)) {
+      closeScheduleSearchResults();
+    }
+  });
+}
+
 function renderScheduleGrid() {
   const container = document.getElementById('classScheduleGrid');
   if (!container) return;

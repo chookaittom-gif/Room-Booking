@@ -23,7 +23,7 @@
 
     <link rel="icon" href="https://raw.githubusercontent.com/chookaittom-gif/Room-Booking/main/logoroom.png">
 
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/style.css?v=20261027_01">
 
 <script>
   // กำหนดค่าเริ่มต้นว่างเพื่อรอ Asynchronous Fetch
@@ -968,6 +968,25 @@
                                             <option value="">กำลังโหลด...</option>
                                         </select>
                                     </div>
+                                    <div class="se-search-pill position-relative" id="seSearchContainer">
+                                        <i class="fas fa-search se-search-icon text-muted" aria-hidden="true"></i>
+                                        <input type="text" id="seSearchInput" class="form-control form-control-sm border-0 bg-transparent se-search-input"
+                                               placeholder="ค้นหาวิชา / ผู้สอน / ห้อง..."
+                                               autocomplete="off" spellcheck="false"
+                                               aria-label="ค้นหารายวิชาหรืออาจารย์ผู้สอนในตาราง"
+                                               aria-autocomplete="list"
+                                               aria-controls="seSearchResults"
+                                               aria-expanded="false"
+                                               oninput="handleScheduleSearchInput(this.value)"
+                                               onkeydown="handleScheduleSearchKeydown(event)">
+                                        <button type="button" id="seSearchClearBtn" class="btn btn-sm btn-link text-muted p-0 border-0 se-search-clear d-none"
+                                                onclick="clearScheduleSearch()" title="ล้างข้อความ" aria-label="ล้างข้อความ">
+                                            <i class="fas fa-times-circle" aria-hidden="true"></i>
+                                        </button>
+                                        <div id="seSearchResults" class="se-search-dropdown shadow-lg rounded-4 d-none" role="listbox" aria-label="ผลการค้นหาตารางสอน">
+                                            <!-- ผลการค้นหาจะแสดงที่นี่ -->
+                                        </div>
+                                    </div>
                                     <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-medium shadow-sm" onclick="openClassSlotModal('จันทร์','08:30','10:30')">
                                         <i class="fas fa-plus me-1"></i>เพิ่มคาบสอน
                                     </button>
@@ -1379,7 +1398,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" charset="utf-8"></script>
            
     <script src="./js/config.js?v=20261026_03"></script>
-    <script src="./js/app.js?v=20261026_04"></script>
+    <script src="./js/app.js?v=20261027_01"></script>
 
 
     <!-- Modal เพิ่ม/แก้ไข คาบสอน -->

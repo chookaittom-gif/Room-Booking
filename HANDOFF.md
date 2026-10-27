@@ -1,10 +1,10 @@
 # Project Handoff Document: ระบบจองห้องเรียน (Classroom Booking & Timetable System)
 
-**Date**: 2026-10-26  
+**Date**: 2026-10-27  
 **Workspace**: `d:\Webapp\ระบบจองห้องเรียน`  
 **Current Git Branch**: `main`  
-**Latest Commit**: `c9c0af6` (`fix(cancel): show Booking ID input when opening cancel modal without an ID`)  
-**GAS Deployment**: `@185` on deployment ID `AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA`
+**Latest Commit**: `e8606be` (`feat(schedule): add live search pill for subjects, instructors, and rooms in timetable editor`)  
+**GAS Deployment**: `@186` on deployment ID `AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA`
 
 ---
 
@@ -16,10 +16,11 @@ This project is a web-based **Classroom Booking and Timetable Management System*
 
 ---
 
-## 2. Recent Accomplishments & Commits (Oct 24–26, 2026)
+## 2. Recent Accomplishments & Commits (Oct 24–27, 2026)
 
 | Commit Hash | Type / Scope | Description |
 | :--- | :--- | :--- |
+| `e8606be` | `feat(schedule)` | Admin Timetable Editor: added inline live Search Pill (`.se-search-pill`) for instant cross-room querying of subjects, instructors, rooms, and class groups with keyboard navigation (Arrow/Enter/Esc), auto room-switching, day-filter synchronization, and slot highlight pulsing animation (`.se-slot-highlight`). Cache-buster bumped to `20261027_01`. Deployed to GAS `@186`. |
 | `c9c0af6` | `fix(cancel)` | Navbar "ยกเลิกจอง" cancel modal: `openCancelModal('')` now shows + focuses the Booking ID input instead of hiding it (was impossible to confirm — alert "ไม่พบรหัสการจอง" every time). Downgraded two by-design guards to `console.debug` (apiCall duplicate-request dedup, loadBookingChart canvas-not-visible skip). Invalid-date fallback log now includes the received value for diagnosis. Cache-buster bumped `20261026_03` → `_04`. Verified locally (DOM repro) and on production. |
 | `1f6a36e` | `fix(schedule)` | Normalize timetable slot validFrom/validTo dates to ISO format (`normDateIsoStr`) for HTML5 date inputs and show date range tooltip on slot cards. |
 | `80cd8b2` | `feat(schedule)` | Replaced multi-row wrapping class group filter chips in summary grid with accessible dropdown `<select>` grouped by department (`optgroup`) with count badges and clear filter button. |

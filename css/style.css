@@ -7595,6 +7595,154 @@ video {
   min-width: 140px;
 }
 
+/* --- Search Pill ในหน้า Schedule Editor --- */
+.se-search-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-secondary, #f8f9fa);
+  padding: 0.25rem 0.85rem;
+  border-radius: 50px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
+  min-height: 44px;
+  position: relative;
+}
+.se-search-pill:focus-within {
+  background: #ffffff;
+  border-color: var(--primary-color, #4361ee);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+.se-search-pill .se-search-input {
+  min-width: 170px;
+  max-width: 250px;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.25rem;
+  color: var(--text-primary, #212529);
+}
+.se-search-pill .se-search-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.se-search-clear {
+  line-height: 1;
+  font-size: 0.95rem;
+  color: var(--text-muted, #6c757d);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+.se-search-clear:hover {
+  color: var(--danger-color, #ef4444);
+}
+
+/* Dropdown ผลการค้นหา */
+.se-search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 380px;
+  max-width: 90vw;
+  max-height: 380px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid var(--border-light, #e2e8f0);
+  z-index: 1050;
+  padding: 0.35rem 0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+}
+.se-search-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  min-height: 44px;
+}
+.se-search-item:last-child {
+  border-bottom: none;
+}
+.se-search-item:hover,
+.se-search-item.active {
+  background-color: rgba(67, 97, 238, 0.08);
+}
+.se-search-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.se-search-item-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: var(--bg-secondary, #eef2ff);
+  color: var(--primary-color, #4361ee);
+}
+.se-search-item-time {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 500;
+}
+.se-search-item-subject {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #1e293b;
+  line-height: 1.35;
+}
+.se-search-item-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+}
+.se-search-highlight-text {
+  background: #fef08a;
+  color: #854d0e;
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+.se-search-empty-state {
+  padding: 1.25rem 1rem;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  font-size: 0.875rem;
+}
+
+/* Highlight คาบเรียนที่ถูกเลือกจาก Search */
+@keyframes se-highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(67, 97, 238, 0);
+    transform: scale(1.03);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(67, 97, 238, 0);
+    transform: scale(1);
+  }
+}
+.se-slot-highlight {
+  animation: se-highlight-pulse 0.9s ease-in-out 3 !important;
+  border: 2px solid var(--primary-color, #4361ee) !important;
+  position: relative;
+  z-index: 5;
+}
+
 /* --- Dirty badge บนปุ่มบันทึก --- */
 .schedule-editor-dirty-badge {
   display: inline-block;
