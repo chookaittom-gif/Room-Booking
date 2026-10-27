@@ -12024,6 +12024,13 @@ window.exportClassScheduleExcel = exportClassScheduleExcel;
 window.openClassImportWizard = openClassImportWizard;
 window.onClassImportFilePicked = onClassImportFilePicked;
 window.confirmClassImport = confirmClassImport;
+window.handleScheduleSearchInput = handleScheduleSearchInput;
+window.handleScheduleSearchKeydown = handleScheduleSearchKeydown;
+window.clearScheduleSearch = clearScheduleSearch;
+window.selectScheduleSearchResultByIndex = selectScheduleSearchResultByIndex;
+window.selectScheduleSearchResult = selectScheduleSearchResult;
+window.closeScheduleSearchResults = closeScheduleSearchResults;
+window.highlightScheduleSlot = highlightScheduleSlot;
 // [ANCHOR:CLIENT.scheduleEditor:END]
 
 // [ANCHOR:CLIENT.exportClientApi:END]

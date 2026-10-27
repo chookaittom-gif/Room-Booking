@@ -3,7 +3,7 @@
 **Date**: 2026-10-27  
 **Workspace**: `d:\Webapp\ระบบจองห้องเรียน`  
 **Current Git Branch**: `main`  
-**Latest Commit**: `e8606be` (`feat(schedule): add live search pill for subjects, instructors, and rooms in timetable editor`)  
+**Latest Commit**: `952d863` (`fix(schedule): bind timetable search handler functions to window scope`)  
 **GAS Deployment**: `@186` on deployment ID `AKfycby2Zk6Cl6vTr1YTf8zCRjAodngMz9SwlqzyHM4Ygt-cDtYF8nCQWiJlGshQVCkGX-pvAA`
 
 ---
@@ -20,7 +20,8 @@ This project is a web-based **Classroom Booking and Timetable Management System*
 
 | Commit Hash | Type / Scope | Description |
 | :--- | :--- | :--- |
-| `e8606be` | `feat(schedule)` | Admin Timetable Editor: added inline live Search Pill (`.se-search-pill`) for instant cross-room querying of subjects, instructors, rooms, and class groups with keyboard navigation (Arrow/Enter/Esc), auto room-switching, day-filter synchronization, and slot highlight pulsing animation (`.se-slot-highlight`). Cache-buster bumped to `20261027_01`. Deployed to GAS `@186`. |
+| `HEAD` | `fix(schedule)` | Timetable search handlers (`handleScheduleSearchInput`, `handleScheduleSearchKeydown`, `clearScheduleSearch`, `selectScheduleSearchResultByIndex`): export explicitly to `window` from enclosing IIFE in `js/app.js` to resolve `ReferenceError` on inline HTML event attributes. Cache-buster bumped `20261027_01` → `_02`. |
+| `4802096` | `feat(schedule)` | Admin Timetable Editor: added inline live Search Pill (`.se-search-pill`) for instant cross-room querying of subjects, instructors, rooms, and class groups with keyboard navigation (Arrow/Enter/Esc), auto room-switching, day-filter synchronization, and slot highlight pulsing animation (`.se-slot-highlight`). Cache-buster bumped to `20261027_01`. Deployed to GAS `@186`. |
 | `c9c0af6` | `fix(cancel)` | Navbar "ยกเลิกจอง" cancel modal: `openCancelModal('')` now shows + focuses the Booking ID input instead of hiding it (was impossible to confirm — alert "ไม่พบรหัสการจอง" every time). Downgraded two by-design guards to `console.debug` (apiCall duplicate-request dedup, loadBookingChart canvas-not-visible skip). Invalid-date fallback log now includes the received value for diagnosis. Cache-buster bumped `20261026_03` → `_04`. Verified locally (DOM repro) and on production. |
 | `1f6a36e` | `fix(schedule)` | Normalize timetable slot validFrom/validTo dates to ISO format (`normDateIsoStr`) for HTML5 date inputs and show date range tooltip on slot cards. |
 | `80cd8b2` | `feat(schedule)` | Replaced multi-row wrapping class group filter chips in summary grid with accessible dropdown `<select>` grouped by department (`optgroup`) with count badges and clear filter button. |
