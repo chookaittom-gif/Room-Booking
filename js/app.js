@@ -273,7 +273,7 @@ function filterRooms() {
 function updateSearchPlaceholder() {
   const searchInput = document.getElementById('searchRoom');
   const searchInputMobile = document.getElementById('searchRoomMobile');
-  const text = window.innerWidth < 768 ? 'ห้อง / วิชา / อาจารย์' : 'ค้นหาห้อง / วิชา / อาจารย์';
+  const text = 'ค้นหาห้องเรียน...';
   
   if (searchInput) {
     searchInput.placeholder = text;
